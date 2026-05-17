@@ -4,10 +4,7 @@ axis: data
 phase: architecture
 kind: index
 status: draft
-depends_on:
-  - detail.data.preservation_conformance
-  - detail.data.data_enforcement
-  - detail.data.pii_dedicated_cluster
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []

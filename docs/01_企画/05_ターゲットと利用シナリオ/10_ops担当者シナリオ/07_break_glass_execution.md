@@ -135,5 +135,5 @@ covered_by:
 ## 関連参照
 
 - [ops 担当者シナリオ index](README.md)
-- [security: break_glass_emergency_step_up_post_review](../../06_security担当者シナリオ/10_break_glass_emergency_step_up_post_review.md)
+- [security: break_glass_emergency_step_up_post_review](../06_security担当者シナリオ/10_break_glass_emergency_step_up_post_review.md)
 - [incident_response_7class主導](09_incident_response_7class主導.md)

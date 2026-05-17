@@ -6,7 +6,6 @@ kind: oss
 status: draft
 depends_on:
   - arch.formal.formal_index
-  - detail.tier1.oss_lifecycle_conformance
 covered_by:
   defense_in_depth_layers: [B, E]
   proof_classes: []

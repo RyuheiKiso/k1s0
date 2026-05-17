@@ -1,0 +1,75 @@
+// tier1 SLO 適合仕様 v1 — proto option 定義
+// 07_SLO適合仕様.md §v1 slo_class セット（6 class）を機械可読な form に固定する。
+// SLO class は Prometheus recording rule / alertmanager rule / Perses dashboard /
+// Litmus chaos scenario の build artifact 生成の input として使用される。
+syntax = "proto3";
+
+package tier1.slo.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/k1s0-io/k1s0/tier1/slo/v1;slov1";
+option java_multiple_files = true;
+option java_package = "io.k1s0.tier1.slo.v1";
+
+// SloClass は 07_SLO適合仕様.md §v1 slo_class セット（6 class）を宣言する。
+// class 1 値が sli_kind / target_level / window_class / multi_window_burn / alert_severity を
+// 一意に導出する。
+enum SloClass {
+  SLO_CLASS_UNSPECIFIED = 0;
+  // v1_request_availability: HTTP/gRPC API 可用性 SLO 99.9%（30d window）
+  V1_REQUEST_AVAILABILITY = 1;
+  // v1_request_latency_p99: request 経路 p99 latency（threshold_ms はインスタンス別）
+  V1_REQUEST_LATENCY_P99 = 2;
+  // v1_request_latency_p99_cross_region: cross-region write p99 latency（典型 1500ms）
+  V1_REQUEST_LATENCY_P99_CROSS_REGION = 3;
+  // v1_event_freshness: server-driven event 配信 freshness（p95 ≤ target、7d window）
+  V1_EVENT_FRESHNESS = 4;
+  // v1_workflow_completion: Temporal Workflow / Saga 完了率（99.5%、30d window）
+  V1_WORKFLOW_COMPLETION = 5;
+  // v1_data_durability: tenant data 永続性（11 nines + freeze_on_any_loss）
+  V1_DATA_DURABILITY = 6;
+}
+
+// SliKind は SLI の算出式の種類を宣言する。
+enum SliKind {
+  SLI_KIND_UNSPECIFIED = 0;
+  // good_events / total_events による可用性計測
+  AVAILABILITY = 1;
+  // threshold 内 request 比率による latency 計測
+  LATENCY = 2;
+  // end-to-end lag p95 比率
+  FRESHNESS = 3;
+  // completed / started による完了率
+  COMPLETION_RATE = 4;
+  // 永続性（loss event 検出ベース）
+  DURABILITY = 5;
+}
+
+// AlertSeverity は SLO 違反時のアラート重要度を宣言する。
+enum AlertSeverity {
+  ALERT_SEVERITY_UNSPECIFIED = 0;
+  // 即座に page（24h 対応）
+  PAGE_IMMEDIATE = 1;
+  // 業務時間内に page
+  PAGE_BUSINESS_HOURS = 2;
+  // チケット作成のみ
+  TICKET_ONLY = 3;
+}
+
+// SloMethodOptions は SLO 計測対象の RPC メソッドに付与する option を宣言する。
+message SloMethodOptions {
+  // slo_class: 適用する SLO class
+  SloClass slo_class = 1;
+  // sli_kind: SLI 算出式の種類（class から導出されるが明記可能）
+  SliKind sli_kind = 2;
+  // latency_threshold_ms: slo_class=V1_REQUEST_LATENCY_P99 の場合のインスタンス別 threshold
+  int32 latency_threshold_ms = 3;
+  // alert_severity: アラート重要度（class から導出されるが override 可能）
+  AlertSeverity alert_severity = 4;
+}
+
+// slo_method は SLO 計測対象の RPC に付与する method option。
+extend google.protobuf.MethodOptions {
+  SloMethodOptions slo_method = 50002;
+}

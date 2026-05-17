@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Content Security Policy: unsafe-inline / unsafe-eval を禁止する -->
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' wss:; frame-ancestors 'none';"
+  />
+  <!-- HSTS: HTTPS を強制する -->
+  <meta http-equiv="Strict-Transport-Security" content="max-age=63072000; includeSubDomains; preload" />
+  <!-- X-Content-Type-Options: MIME スニッフィングを禁止する -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <!-- Referrer-Policy: リファラを最小化する -->
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  <!-- Permissions-Policy: 不要な API を無効化する -->
+  <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>k1s0 tier3 SPA</title>
+  <!-- PWA manifest -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+</head>
+<body>
+  <!-- a11y: スキップリンク（WCAG 2.1 AA 準拠）-->
+  <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
+  <!-- ランドマークロール -->
+  <nav role="navigation" aria-label="メインナビゲーション">
+    <!-- ナビゲーションは実装時に追加する -->
+  </nav>
+  <!-- メインコンテンツ領域 -->
+  <main id="main-content" role="main" aria-label="メインコンテンツ">
+    <!-- SPA のルートコンポーネントをマウントする -->
+    <div id="root"></div>
+  </main>
+  <!-- フッター -->
+  <footer role="contentinfo" aria-label="フッター">
+    <!-- フッターは実装時に追加する -->
+  </footer>
+  <!-- SPA エントリポイント -->
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

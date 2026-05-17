@@ -1,0 +1,75 @@
+# Sigstore policy-controller による ClusterImagePolicy 定義
+# Fulcio OIDC keyless signature を要求し、未署名 image を admission 段で reject する
+apiVersion: policy.sigstore.dev/v1beta1
+# ClusterImagePolicy はクラスタ全体の image 署名ポリシーを定義するリソース
+kind: ClusterImagePolicy
+metadata:
+  # ポリシー名称: k1s0 Harbor image の cosign keyless 署名要求
+  name: k1s0-image-signature-policy
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.cosign_image_signature
+    # ポリシーの説明
+    policies.kyverno.io/description: "Fulcio OIDC keyless signature を要求する ClusterImagePolicy"
+spec:
+  # 署名検証の対象となる image パターン
+  images:
+    # Harbor レジストリ内の全 image を対象とする
+    - glob: "harbor.k1s0.internal/**"
+  # 署名要件の定義
+  authorities:
+    # keyless 署名の設定（Fulcio OIDC を使用する）
+    - keyless:
+        # Sigstore Fulcio OIDC issuer を使用する
+        identities:
+          # GitHub OAuth OIDC issuer を信頼する
+          - issuerRegExp: "https://github.com/login/oauth"
+            # k1s0.io ドメインの subject のみ許可する
+            subjectRegExp: ".*@k1s0.io"
+          # GitHub Actions OIDC issuer も信頼する（CI からの署名に対応する）
+          - issuerRegExp: "https://token.actions.githubusercontent.com"
+            # k1s0 リポジトリからのワークフローのみ許可する
+            subjectRegExp: "https://github.com/k1s0-io/k1s0/.*"
+        # Sigstore の公開 transparency log (Rekor) を使用する
+        url: https://fulcio.sigstore.dev
+      # Rekor transparency log への記録を必須とする
+      ctlog:
+        # Rekor の公開エンドポイントを使用する
+        url: https://rekor.sigstore.dev
+  # 署名検証の失敗時の動作を設定する
+  policy:
+    # 署名がない image は reject する（warn ではなく enforce する）
+    type: cip
+    # Rego ポリシーで追加の検証ルールを設定する
+    fetchConfigManifest: false
+---
+# policy-controller の Namespace とインストール ConfigMap
+apiVersion: v1
+# Namespace リソース定義
+kind: Namespace
+metadata:
+  # policy-controller が動作する namespace
+  name: cosign-system
+  labels:
+    # k1s0 管理対象であることを示すラベル
+    k1s0.io/managed-by: k1s0-security
+---
+# policy-controller のバージョンと install コマンドを管理する ConfigMap
+apiVersion: v1
+# ConfigMap リソース定義
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: cosign policy-controller のバージョン情報
+  name: policy-controller-version
+  # cosign-system namespace に配置する
+  namespace: cosign-system
+  annotations:
+    # この ConfigMap が準拠する仕様を示す annotation
+    k1s0.io/enforcement-spec: detail.security.cosign_install
+data:
+  # インストールする policy-controller のバージョン番号
+  version: "v0.8.4"
+  # Helm chart のバージョン番号
+  helm_chart_version: "0.8.4"
+  # policy-controller を install するための Helm コマンド
+  install_command: "helm install policy-controller sigstore/policy-controller -n cosign-system --version 0.8.4"

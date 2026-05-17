@@ -1,0 +1,64 @@
+# Strimzi Kafka operator の HelmRelease を定義する
+# Kafka クラスタ・Topic・User を Kubernetes CRD で管理する
+{{- if .Values.strimzi.enabled }}
+---
+# Strimzi 公式 Helm リポジトリ参照を定義する
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  # Strimzi Helm リポジトリの参照名
+  name: strimzi
+  # Flux GitOps 管理 Namespace に配置する
+  namespace: flux-system
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # Strimzi 公式 Helm リポジトリ URL
+  url: https://strimzi.io/charts/
+  # リポジトリキャッシュ更新間隔
+  interval: 1h
+---
+# Strimzi Kafka operator の HelmRelease を定義する
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  # HelmRelease リソースの名前
+  name: strimzi-kafka-operator
+  # operator をデプロイする専用 Namespace
+  namespace: {{ .Values.strimzi.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # Helm chart をポーリングする間隔
+  interval: 5m
+  chart:
+    spec:
+      # 使用する chart 名
+      chart: strimzi-kafka-operator
+      # デプロイするバージョン
+      version: {{ .Values.strimzi.version | quote }}
+      # 参照する HelmRepository
+      sourceRef:
+        kind: HelmRepository
+        name: strimzi
+        namespace: flux-system
+  # Helm values で詳細設定を上書きする
+  values:
+    # operator が監視する Namespace（空文字は全 Namespace を監視）
+    watchNamespaces: []
+    # operator のレプリカ数（HA 構成は 2 以上）
+    replicas: 1
+    # operator の log レベル設定
+    logLevel: INFO
+    # Kafka クラスタのデフォルト設定
+    defaultImageTag: {{ .Values.strimzi.version | quote }}
+    # Kafka ブローカーレプリカ数をデフォルト値として注入する
+    kafka:
+      replicas: {{ .Values.strimzi.kafkaReplicas }}
+    # ZooKeeper レプリカ数（KRaft 移行まで必要）
+    zookeeper:
+      replicas: {{ .Values.strimzi.zookeeperReplicas }}
+    # RBAC を有効化して operator が CRD を管理できるようにする
+    rbac:
+      create: true
+{{- end }}

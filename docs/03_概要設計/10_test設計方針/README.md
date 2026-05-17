@@ -4,9 +4,7 @@ axis: test
 phase: architecture
 kind: index
 status: draft
-depends_on:
-  - detail.test.verification_conformance
-  - detail.test.test_enforcement
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []
@@ -15,10 +13,10 @@ covered_by:
 # test 設計方針 index
 
 ## 一文方針
-- 本フォルダは test 軸（13 軸 + meta + security + ops の上位 meta-layer）の概要設計を集約する。test は新規物理機構を持ち込まず、各軸の defense-in-depth 層 A〜E から発信される全 verification claim が必ず coverage matrix（18 axis × 5 verification_class = 90 cell）に bind され、cell ごとの last_green_at が cadence 内に維持されることを assert する meta-layer。
+- 本フォルダは test 軸（18 軸 = 19 軸から formal 軸を除く）の概要設計を集約する。test は新規物理機構を持ち込まず、各軸の defense-in-depth 層 A〜E から発信される全 verification claim が必ず coverage matrix（18 axis × 5 verification_class = 90 cell）に bind され、cell ごとの last_green_at が cadence 内に維持されることを assert する meta-layer。
 
 ## 至高路線における立ち位置
-- test は 16 軸目として 00_軸登録適合仕様 の meta-registry に entry 登録される（cap v1=20 中 18 / 20、残 2 余地）。
+- test は canonical axis 09 として 19_検証規律 を所有し 00_軸登録適合仕様 の meta-registry に entry 登録される（cap v1=20 中 19 / 20、残 1 スロット）。
 - 「test を後で書く」「flaky だから一旦 skip」「coverage は努力目標」を全て禁止し、`coverage_matrix.lock.yaml` の green cell 完全性を 1.0.0 ship blocker とする。
 - mutation_score の baseline 引き下げ禁止、quarter monotonic increase only。
 - 現実には起こりにくいから property test を書かない / test 実行時間が長いから coverage を間引く判断は採らない。
@@ -53,7 +51,7 @@ covered_by:
 | `v1_scenario_replay` | 14（infra01 / data01 / 11 key / security15 / ops15 は 30）| 17 | Playwright / Apache JMeter / chainsaw |
 | `v1_fault_chaos` | 30（infra01=90 / data01=30-180 / security15=90）| 17 | Litmus / Toxiproxy / AFL++ |
 
-合計 18 axis × 5 class = 90 cell（v1 では cap 80 / 80、v2 で 20 軸 × 5 = 100）。
+合計 18 axis × 5 class = 90 cell（v1 では 18 軸 × 5 = 90、v2 で 20 軸 × 5 = 100）。
 
 ## 5 phase（verification の closure）
 - `phase_1_specify` → `phase_2_generate` → `phase_3_execute` → `phase_4_triage` → `phase_5_learn`

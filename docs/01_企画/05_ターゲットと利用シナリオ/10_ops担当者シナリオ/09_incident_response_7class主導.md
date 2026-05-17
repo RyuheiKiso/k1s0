@@ -134,4 +134,4 @@ incident が検知された時
 - [ops 担当者シナリオ index](README.md)
 - [postmortem_PR_merge_gate](03_postmortem_PR_merge_gate.md)
 - [SLO監視_burn_rate_alert](02_SLO監視_burn_rate_alert.md)
-- [security: data_breach_privacy_incident_response](../../06_security担当者シナリオ/14_data_breach_privacy_incident_response.md)
+- [security: data_breach_privacy_incident_response](../06_security担当者シナリオ/14_data_breach_privacy_incident_response.md)

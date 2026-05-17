@@ -1,0 +1,12 @@
+_AUTO_GENERATED: DO NOT EDIT. This file pins formal verification tool versions.
+tool_pins:
+  - tool_id: apalache
+    version: "0.45.4"
+    docker_image: "ghcr.io/apalache-mc/apalache:v0.45.4"
+    sha256_digest: "sha256:placeholder"
+    pin_expires_at: "2027-05-17T00:00:00Z"
+  - tool_id: tla_toolbox
+    version: "1.8.0"
+    docker_image: "ghcr.io/apalache-mc/tla-toolbox:v1.8.0"
+    sha256_digest: "sha256:placeholder"
+    pin_expires_at: "2027-05-17T00:00:00Z"

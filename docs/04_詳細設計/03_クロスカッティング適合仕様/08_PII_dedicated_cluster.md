@@ -1,20 +1,24 @@
 ---
-id: detail.data.pii_dedicated_cluster
-axis: data
+id: detail.cross_pii.pii_dedicated_cluster
+axis: cross_pii
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
 depends_on:
-  - arch.data.data_index
   - arch.data.preservation_policy
   - arch.data.encryption_policy
   - arch.security.pii_protection_policy
   - detail.data.preservation_conformance
   - detail.data.data_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [D, E]
   proof_classes:
     - v1_program_correctness_proof
+related_axes:
+  - data
+  - security
+  - infra
 ---
 
 # PII 専用 PostgreSQL クラスタ（v1）

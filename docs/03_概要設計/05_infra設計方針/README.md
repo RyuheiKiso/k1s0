@@ -4,10 +4,7 @@ axis: infra
 phase: architecture
 kind: index
 status: draft
-depends_on:
-  - detail.infra.cluster_topology_conformance
-  - detail.infra.clock_integrity_conformance
-  - detail.infra.infra_enforcement
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []

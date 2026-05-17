@@ -6,8 +6,6 @@ kind: detail
 status: draft
 depends_on:
   - arch.formal.counter_example_policy
-  - detail.formal.formal_conformance
-  - detail.formal.formal_enforcement
   - detail.formal.proof_artifact_system
 covered_by:
   defense_in_depth_layers: [A, B, D, E]

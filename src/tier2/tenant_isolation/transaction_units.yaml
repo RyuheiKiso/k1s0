@@ -1,0 +1,107 @@
+# tier2 トランザクションユニットカタログ（SoT: 手書き、10_テナント分離適合仕様.md と整合）
+# 業務操作カテゴリ → 必須参加 table class / 必須 GUC / atomic 制約 のマトリクス
+# 4 unit: state_change / master_update / pii_access / cross_tenant_admin
+
+transaction_units:
+
+  # ============================================================
+  # state_change: aggregate 状態変更（最も頻繁な業務操作）
+  # ============================================================
+  - unit_id: state_change
+    # 必須参加テーブルクラス: tenant_scoped のみ
+    required_table_classes:
+      - tenant_scoped
+    # 必須 GUC: 4 つ全て必須
+    required_gucs:
+      # テナント識別子
+      - app.tenant_id
+      # 操作者識別子
+      - app.actor_id
+      # 目的（business_op のみ許容）
+      - app.purpose
+      # 委譲チェーン（空でも可）
+      - app.delegation_chain
+    # atomic 制約: state_change + outbox + audit_event を同一 txn で書く（P1）
+    atomic_tables:
+      - domain_event
+      - outbox
+      - audit_event
+    # 目的制限: business_op / migration のみ許容
+    allowed_purposes:
+      - business_op
+      - migration
+    # 説明
+    description: "aggregate 状態変更（P1-P4 invariant 適用）"
+
+  # ============================================================
+  # master_update: マスタデータ更新（role 制限付き）
+  # ============================================================
+  - unit_id: master_update
+    # 必須参加テーブルクラス: tenant_master
+    required_table_classes:
+      - tenant_master
+    # 必須 GUC: 全 4 つ
+    required_gucs:
+      - app.tenant_id
+      - app.actor_id
+      - app.purpose
+      - app.delegation_chain
+    # atomic 制約: master_update + audit_event を同一 txn で書く
+    atomic_tables:
+      - domain_event
+      - audit_event
+    # 目的制限: business_op / migration のみ
+    allowed_purposes:
+      - business_op
+      - migration
+    # 説明
+    description: "マスタデータ更新（master.admin role 必須）"
+
+  # ============================================================
+  # pii_access: PII データアクセス（最高レベル制限）
+  # ============================================================
+  - unit_id: pii_access
+    # 必須参加テーブルクラス: pii_segregated
+    required_table_classes:
+      - pii_segregated
+    # 必須 GUC: 全 4 つ（purpose が特に重要）
+    required_gucs:
+      - app.tenant_id
+      - app.actor_id
+      - app.purpose
+      - app.delegation_chain
+    # atomic 制約: pii アクセス + audit_event を同一 txn で書く（P4）
+    atomic_tables:
+      - audit_event
+    # 目的制限: support / export のみ（business_op での PII 直接アクセス禁止）
+    allowed_purposes:
+      - support
+      - export
+      - emergency
+    # pgaudit での全記録が必須
+    pgaudit_required: true
+    # 説明
+    description: "PII データアクセス（support_engineer role + pgaudit 全記録）"
+
+  # ============================================================
+  # cross_tenant_admin: クロステナント管理操作（緊急・移行専用）
+  # ============================================================
+  - unit_id: cross_tenant_admin
+    # 必須参加テーブルクラス: 複数 class にまたがる可能性あり
+    required_table_classes:
+      - platform_global
+    # 必須 GUC: 全 4 つ（purpose = emergency のみ）
+    required_gucs:
+      - app.tenant_id
+      - app.actor_id
+      - app.purpose
+      - app.delegation_chain
+    # atomic 制約: 操作 + platform-wide audit を同一 txn で書く
+    atomic_tables:
+      - audit_event
+    # 目的制限: emergency / migration のみ（通常業務では使用禁止）
+    allowed_purposes:
+      - emergency
+      - migration
+    # 説明
+    description: "クロステナント管理操作（緊急対応・移行期間のみ使用可能）"

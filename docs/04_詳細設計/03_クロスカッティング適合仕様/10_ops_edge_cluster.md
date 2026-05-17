@@ -1,18 +1,20 @@
 ---
-id: detail.ops.ops_edge_cluster
-axis: ops
+id: detail.cross_edge.ops_edge_cluster
+axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
 depends_on:
   - arch.ops.ops_index
-  - arch.ops.oncall_policy
-  - detail.ops.ops_loop_conformance
-  - detail.ops.ops_enforcement
-  - detail.security.audit_ingest_gap_monitor
+  - detail.cross_pii.audit_ingest_gap_monitor
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, D, E]
   proof_classes: []
+related_axes:
+  - ops
+  - infra
+  - security
 ---
 
 # ops-edge escalation cluster（v1）

@@ -1,0 +1,68 @@
+{
+  "type": "record",
+  "name": "PiiRedactedEvent",
+  "namespace": "io.k1s0.data.pii",
+  "doc": "PII redact 済みイベントスキーマ。個人情報を削除または匿名化した後のイベント形式。GDPR 忘れられる権利対応。",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "元イベントの一意識別子。UUID v4 形式。"
+    },
+    {
+      "name": "event_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "元イベントの発生時刻。マイクロ秒単位の UNIX タイムスタンプ。"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "doc": "テナント識別子。UUID 形式。"
+    },
+    {
+      "name": "event_kind",
+      "type": "string",
+      "doc": "元イベントの種別。PII が含まれていた可能性のあるイベント種別。"
+    },
+    {
+      "name": "redaction_id",
+      "type": "string",
+      "doc": "PII 削除処理の識別子。忘れられる権利リクエストの追跡に使用する。"
+    },
+    {
+      "name": "redacted_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "PII 削除処理を実行した時刻。GDPR コンプライアンス記録に使用する。"
+    },
+    {
+      "name": "redacted_fields",
+      "type": {
+        "type": "array",
+        "items": "string"
+      },
+      "default": [],
+      "doc": "削除された PII フィールドのリスト。例: ['email', 'phone', 'address']。"
+    },
+    {
+      "name": "payload_redacted",
+      "type": "string",
+      "doc": "PII を削除・マスキング済みのペイロード。JSON 文字列形式。"
+    },
+    {
+      "name": "redaction_reason",
+      "type": "string",
+      "doc": "PII 削除の理由。例: 'gdpr_erasure_request', 'retention_policy_expired'。"
+    },
+    {
+      "name": "original_schema_id",
+      "type": "string",
+      "doc": "元イベントのスキーマ識別子。Apicurio Registry の subject ID。"
+    }
+  ]
+}

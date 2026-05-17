@@ -43,6 +43,7 @@ lock_artifacts:
     - `preservation_class.lock.yaml`（data）
     - 各軸の `<axis>_enforcement.lock.yaml`
     - `axis_registry.lock.yaml`
+    - `cross_cutting_registry.lock.yaml`
     - `ownership_table.lock.yaml`
 - 出力 schema:
     - `release_version`: semver（1.0.0）
@@ -121,6 +122,23 @@ lock_artifacts:
 | `meta.ownership_table_complete` | 全 service 4 軸 owner 完備 |
 | `meta.docs_lint_green` | docs lint（frontmatter / id / depends_on / forbidden 表現）green |
 | `meta.release_gate_dual_signoff_complete` | release_gate.lock.yaml の dual reviewer cosign signature 完備 |
+
+### cross-cutting cluster cells
+| cell_id | 入力 lock.yaml | 条件 |
+|---|---|---|
+| `cross_http2.enforcement_complete` | `cross_cutting_registry.lock.yaml` | HTTP/2 強制 enforcement 全 UA 経路で完全（Envoy h2 only + Companion ALPN h2 必須 + v1_legacy_http11 listener 分離）|
+| `cross_kek.shamir_threshold_drill_green` | `cross_cutting_registry.lock.yaml` | M-of-N Shamir threshold drill（property p1〜p5）quarterly green |
+| `cross_schema.apicurio_sot_drift_zero` | `cross_cutting_registry.lock.yaml` | git SoT と全 cluster Apicurio instance の drift ゼロ（cross-cluster byte-equal property test green）|
+| `cross_fsm.protoc_gen_go_codegen_drift_zero` | `cross_cutting_registry.lock.yaml` | protoc-gen-k1s0-go-fsm 生成コードと proto annotation の drift ゼロ（4 言語 typestate enforcement CI green）|
+| `cross_slo.protection_layers_4tier_green` | `cross_cutting_registry.lock.yaml` | SLO 保護四層（rate limiter / cgroup / PG pool / Kafka quota）+ 自動昇格 trigger の全 drill green |
+| `cross_bff.auth_edge_isolation_complete` | `cross_cutting_registry.lock.yaml` | BFF auth-edge（06/07 aggregate）: httpOnly cookie 分離 + CSRF/CORS + back-channel logout + Tauri sidecar PSK 非露出の全 conformance green |
+| `cross_bff.tauri_sidecar_distribution_green` | `cross_cutting_registry.lock.yaml` | Tauri sidecar cosign 署名 MDM 配布パイプライン green（全 OS variant、v1_no_sidecar degradation path 確認）|
+| `cross_pii.dedicated_cluster_drill_green` | `cross_cutting_registry.lock.yaml` | PII 専用 cluster drill（08/09 aggregate）: PII 物理分離 + dual-write atomicity + reconciliation job green |
+| `cross_pii.audit_ingest_gap_zero` | `cross_cutting_registry.lock.yaml` | audit ingest gap モニター: 全 source heartbeat 到達 + gap > 0 で 90 sec 以内 page（Chaos drill green）|
+| `cross_edge.ops_edge_cluster_independent_green` | `cross_cutting_registry.lock.yaml` | ops-edge cluster（10-13 aggregate）: target cluster kill → ops-edge から page 5 min 以内 drill green |
+| `cross_edge.companion_otel_4stack_green` | `cross_cutting_registry.lock.yaml` | .NET Framework Companion OTel 4 stack（WCF / HttpWebRequest / HttpClient / WebClient）JWT claim 注入 E2E green |
+| `cross_edge.ua_aware_adapter_capability_matrix_complete` | `cross_cutting_registry.lock.yaml` | UA-aware adapter 5 ua_subclass 全 capability cell 完備（四軸 entry 要件 CI green）|
+| `cross_edge.dotnet8_connect_conformance_green` | `cross_cutting_registry.lock.yaml` | .NET 8 Connect-RPC Conformance Suite 全 case green（bidi / server-streaming / unary / client-streaming）|
 
 ## AND-gate の意味論
 - 全 cell が `status=green` でなければ `release_gate_status=red`

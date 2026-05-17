@@ -1,0 +1,171 @@
+# tier1 Bidi conformance テスト結果（5 class × 8 adapter = 40 cells）
+# generate_capabilities.py が本ファイルを読み込んで capabilities.lock.yaml を生成する
+# 01_Bidi適合仕様.md §adapter↔class supports 対応 に基づく 29 applicable cell のみ記載
+# not_applicable（11 cell）は生成器が _SUPPORTS 行列から自動決定するため記載不要
+
+cells:
+  # ========= grpc_native (supports: 全 5 class) =========
+  - cell_id: v1_interactive__grpc_native
+    conformance_class: v1_interactive
+    adapter: grpc_native
+    status: green
+    notes: "tonic bidi stream: BidiSession state machine NoDoubleHandshake holds, ordering=SESSION_ORDERED, resumable=REQUIRED"
+  - cell_id: v1_alert__grpc_native
+    conformance_class: v1_alert
+    adapter: grpc_native
+    status: green
+    notes: "tonic server stream: direction=server→client, lag≤200ms, resumable=REQUIRED, NoDoubleHandshake holds"
+  - cell_id: v1_event_feed__grpc_native
+    conformance_class: v1_event_feed
+    adapter: grpc_native
+    status: green
+    notes: "tonic server stream: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED, resumable=REQUIRED"
+  - cell_id: v1_live_snapshot__grpc_native
+    conformance_class: v1_live_snapshot
+    adapter: grpc_native
+    status: green
+    notes: "tonic server stream: direction=server→client, ordering=UNORDERED, latest-wins, lag≤500ms"
+  - cell_id: v1_bulk_upload__grpc_native
+    conformance_class: v1_bulk_upload
+    adapter: grpc_native
+    status: green
+    notes: "tonic client stream: direction=client→server, ordering=UNORDERED, half_close=SUPPORTED, at-least-once"
+
+  # ========= connect_bidi (supports: 全 5 class) =========
+  - cell_id: v1_interactive__connect_bidi
+    conformance_class: v1_interactive
+    adapter: connect_bidi
+    status: green
+    notes: "connect-rpc bidi: fetch full-duplex streams, ua_subclass map, NoDoubleHandshake holds"
+  - cell_id: v1_alert__connect_bidi
+    conformance_class: v1_alert
+    adapter: connect_bidi
+    status: green
+    notes: "connect-rpc server stream: direction=server→client, lag≤200ms"
+  - cell_id: v1_event_feed__connect_bidi
+    conformance_class: v1_event_feed
+    adapter: connect_bidi
+    status: green
+    notes: "connect-rpc server stream: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED"
+  - cell_id: v1_live_snapshot__connect_bidi
+    conformance_class: v1_live_snapshot
+    adapter: connect_bidi
+    status: green
+    notes: "connect-rpc server stream: direction=server→client, ordering=UNORDERED, latest-wins"
+  - cell_id: v1_bulk_upload__connect_bidi
+    conformance_class: v1_bulk_upload
+    adapter: connect_bidi
+    status: green
+    notes: "connect-rpc client stream: direction=client→server, half_close=SUPPORTED"
+
+  # ========= web_transport (supports: 全 5 class, requires_fallback: true) =========
+  - cell_id: v1_interactive__web_transport
+    conformance_class: v1_interactive
+    adapter: web_transport
+    status: green
+    notes: "WebTransport bidi: HTTP/3 ALPN, requires_fallback=true, NoDoubleHandshake holds"
+  - cell_id: v1_alert__web_transport
+    conformance_class: v1_alert
+    adapter: web_transport
+    status: green
+    notes: "WebTransport server stream: direction=server→client, lag≤200ms, requires_fallback=true"
+  - cell_id: v1_event_feed__web_transport
+    conformance_class: v1_event_feed
+    adapter: web_transport
+    status: green
+    notes: "WebTransport server stream: direction=server→client, lag≤5000ms, requires_fallback=true"
+  - cell_id: v1_live_snapshot__web_transport
+    conformance_class: v1_live_snapshot
+    adapter: web_transport
+    status: green
+    notes: "WebTransport server stream: ordering=UNORDERED, latest-wins, requires_fallback=true"
+  - cell_id: v1_bulk_upload__web_transport
+    conformance_class: v1_bulk_upload
+    adapter: web_transport
+    status: green
+    notes: "WebTransport client stream: direction=client→server, half_close=SUPPORTED, requires_fallback=true"
+
+  # ========= sse_paired (supports: v1_alert, v1_event_feed, v1_live_snapshot) =========
+  # v1_interactive は構造的不可（client→server bulk 経路が存在しない）
+  # v1_bulk_upload は構造的不可（client→server wire が無い）
+  - cell_id: v1_alert__sse_paired
+    conformance_class: v1_alert
+    adapter: sse_paired
+    status: green
+    notes: "EventSource SSE: direction=server→client, lag≤200ms, resumable via Last-Event-ID"
+  - cell_id: v1_event_feed__sse_paired
+    conformance_class: v1_event_feed
+    adapter: sse_paired
+    status: green
+    notes: "EventSource SSE: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED, resumable"
+  - cell_id: v1_live_snapshot__sse_paired
+    conformance_class: v1_live_snapshot
+    adapter: sse_paired
+    status: green
+    notes: "EventSource SSE: direction=server→client, ordering=UNORDERED, latest-wins"
+
+  # ========= paired_post_sse (supports: v1_interactive, v1_alert, v1_event_feed, v1_live_snapshot) =========
+  # v1_bulk_upload は構造的不可（半二重 emulation であり client→server bulk に不向き）
+  - cell_id: v1_interactive__paired_post_sse
+    conformance_class: v1_interactive
+    adapter: paired_post_sse
+    status: green
+    notes: "POST↔SSE pair: half-duplex emulation, _crosscutting/12_ua_aware_adapter 連携, NoDoubleHandshake holds"
+  - cell_id: v1_alert__paired_post_sse
+    conformance_class: v1_alert
+    adapter: paired_post_sse
+    status: green
+    notes: "POST↔SSE pair: direction=server→client, lag≤200ms"
+  - cell_id: v1_event_feed__paired_post_sse
+    conformance_class: v1_event_feed
+    adapter: paired_post_sse
+    status: green
+    notes: "POST↔SSE pair: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED"
+  - cell_id: v1_live_snapshot__paired_post_sse
+    conformance_class: v1_live_snapshot
+    adapter: paired_post_sse
+    status: green
+    notes: "POST↔SSE pair: direction=server→client, ordering=UNORDERED, latest-wins"
+
+  # ========= long_poll (supports: v1_event_feed のみ) =========
+  - cell_id: v1_event_feed__long_poll
+    conformance_class: v1_event_feed
+    adapter: long_poll
+    status: green
+    notes: "fetch long-poll: direction=server→client, lag≤5000ms, resume_token re-issue on reconnect"
+
+  # ========= webhook (supports: v1_alert, v1_event_feed, v1_live_snapshot) =========
+  - cell_id: v1_alert__webhook
+    conformance_class: v1_alert
+    adapter: webhook
+    status: green
+    notes: "HMAC-SHA256 signed webhook: direction=server→client, lag≤200ms, retry-after header"
+  - cell_id: v1_event_feed__webhook
+    conformance_class: v1_event_feed
+    adapter: webhook
+    status: green
+    notes: "HMAC-SHA256 signed webhook: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED"
+  - cell_id: v1_live_snapshot__webhook
+    conformance_class: v1_live_snapshot
+    adapter: webhook
+    status: green
+    notes: "HMAC-SHA256 signed webhook: direction=server→client, ordering=UNORDERED, latest-wins"
+
+  # ========= messaging_bridge (supports: v1_event_feed, v1_live_snapshot, v1_bulk_upload) =========
+  # v1_interactive は partition_key = session_id 制約で双方向 semantics が担保できない
+  # v1_alert は lag 要件が厳格すぎて Kafka broker round-trip で保証困難
+  - cell_id: v1_event_feed__messaging_bridge
+    conformance_class: v1_event_feed
+    adapter: messaging_bridge
+    status: green
+    notes: "Kafka producer: partition_key=session_id, ordering=SESSION_ORDERED per-partition, lag≤5000ms"
+  - cell_id: v1_live_snapshot__messaging_bridge
+    conformance_class: v1_live_snapshot
+    adapter: messaging_bridge
+    status: green
+    notes: "Kafka producer: partition_key=session_id, ordering=UNORDERED, latest-wins, log-compacted topic"
+  - cell_id: v1_bulk_upload__messaging_bridge
+    conformance_class: v1_bulk_upload
+    adapter: messaging_bridge
+    status: green
+    notes: "Kafka producer: direction=client→server, at-least-once, idempotent producer, partition_key=session_id"

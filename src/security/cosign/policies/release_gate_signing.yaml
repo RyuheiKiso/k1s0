@@ -1,0 +1,50 @@
+# release_gate.lock.yaml の cosign keyless signing ワークフロー定義
+# 実際の signing は GitHub Actions OIDC で行う（このファイルはワークフロー概念を記述する）
+# signing workflow: GitHub Actions OIDC token -> Fulcio -> cosign sign -> Rekor (transparency log)
+apiVersion: v1
+# ConfigMap リソース定義（signing ワークフローのパラメータを管理する）
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: release gate signing ワークフロー設定
+  name: release-gate-signing-config
+  # cosign-system namespace に配置する
+  namespace: cosign-system
+  annotations:
+    # この ConfigMap が準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.release_gate_cosign_conformance
+    # ポリシーの説明
+    k1s0.io/description: "release_gate.lock.yaml cosign keyless signing ワークフロー設定"
+data:
+  # cosign signing の対象ファイル
+  signing_target: "release_gate.lock.yaml"
+  # 使用する cosign バージョン
+  cosign_version: "v2.2.4"
+  # GitHub Actions OIDC issuer（CI からの署名に使用する）
+  oidc_issuer: "https://token.actions.githubusercontent.com"
+  # Fulcio のエンドポイント（keyless 署名に使用する）
+  fulcio_url: "https://fulcio.sigstore.dev"
+  # Rekor のエンドポイント（transparency log に使用する）
+  rekor_url: "https://rekor.sigstore.dev"
+  # cosign sign コマンドのテンプレート
+  # 実際の GitHub Actions ワークフロー (.github/workflows/sign_release_gate.yaml) で使用する
+  sign_command_template: |
+    # GitHub Actions OIDC トークンを使用して keyless 署名を実行する
+    cosign sign-blob \
+      --yes \
+      --oidc-issuer=${OIDC_ISSUER} \
+      --fulcio-url=${FULCIO_URL} \
+      --rekor-url=${REKOR_URL} \
+      release_gate.lock.yaml
+  # cosign verify コマンドのテンプレート
+  verify_command_template: |
+    # GitHub Actions OIDC 署名を検証する
+    cosign verify-blob \
+      --certificate-identity-regexp="https://github.com/k1s0-io/k1s0/.*" \
+      --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+      --rekor-url=${REKOR_URL} \
+      --bundle=release_gate.lock.yaml.bundle \
+      release_gate.lock.yaml
+  # GitHub Actions ワークフローのトリガー条件
+  workflow_trigger: "release_gate.lock.yaml の全 19 軸 AND-gate が green になったとき"
+  # dual sign-off の要件
+  dual_signoff_requirement: "human author cosign × 1 + ai_static_analysis evidence × 1"

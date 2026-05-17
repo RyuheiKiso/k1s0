@@ -1,6 +1,6 @@
 ---
-id: detail.tier1.apicurio_gitops_sot
-axis: tier1
+id: detail.cross_schema.apicurio_gitops_sot
+axis: cross_schema
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -8,11 +8,16 @@ depends_on:
   - detail.tier1.schema_evolution_conformance
   - detail.tier1.oss_lifecycle_conformance
   - detail.data.preservation_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
+related_axes:
+  - tier1
+  - data
+  - client
+  - infra
 ---
 
 # Apicurio Registry GitOps SoT 適合仕様（v1）

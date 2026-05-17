@@ -1,0 +1,53 @@
+# Policy 24: ホスト時刻 API 直接使用禁止ポリシー
+# k1s0.io/uses-host-time: true annotation を持つ Pod を拒否する
+# HLC (Hybrid Logical Clock) wrapper の使用を強制する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: ホスト時刻 API の直接使用禁止
+  name: block-host-time-api-usage
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.infra.clock_integrity_conformance
+    # ポリシーの説明
+    policies.kyverno.io/description: "k1s0.io/uses-host-time: true の Pod を reject する。HLC wrapper を使用すること"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: ホスト時刻 API 使用フラグの確認
+    - name: check-host-time-annotation
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+              # ホスト時刻 API 使用アノテーションが設定されたリソースのみ対象とする
+              annotations:
+                k1s0.io/uses-host-time: "true"
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+      # ホスト時刻 API 使用の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "k1s0.io/uses-host-time: true は禁止されています。HLC (Hybrid Logical Clock) wrapper ライブラリを使用してください"
+        # ホスト時刻 API 使用アノテーションがある場合は常に拒否する
+        deny:
+          conditions:
+            all:
+              # uses-host-time が true の場合は拒否する
+              - key: "{{ request.object.metadata.annotations.\"k1s0.io/uses-host-time\" || '' }}"
+                operator: Equals
+                value: "true"

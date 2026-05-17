@@ -1,6 +1,6 @@
 ---
-id: detail.tier3.bff_auth_edge
-axis: tier3
+id: detail.cross_bff.bff_auth_edge
+axis: cross_bff
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -9,11 +9,16 @@ depends_on:
   - detail.tier1.auth_conformance
   - detail.tier2.tenant_isolation_conformance
   - detail.tier3.tier3_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_temporal_safety_proof
     - v1_program_correctness_proof
+related_axes:
+  - tier3
+  - tier1
+  - tier2
 ---
 
 # tier3 BFF auth-edge（v1）

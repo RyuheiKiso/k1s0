@@ -1,0 +1,92 @@
+# k1s0 クラスタインベントリ: kind クラスタの topology_class 注釈と node 情報を管理する
+# このファイルは cluster_inventory.lock.yaml の生成元となる人間管理ファイルである
+clusters:
+  # ================================================================
+  # k1s0-target: メインワークロードクラスタ（P8 infra 検証用）
+  # ================================================================
+  - cluster_id: k1s0-target
+    # kind クラスタの設定ファイルへの参照
+    kind_config: kind/kind-config.yaml
+    # このクラスタが準拠する topology_class を指定する
+    topology_class: v1_single_zone
+    # クラスタを構成するノード数（コントロールプレーン含む）
+    node_count: 4
+    # 各ノードが属するゾーン情報（AZ を模擬する）
+    zones:
+      - zone-a
+      - zone-b
+      - zone-c
+    # ノード詳細情報リスト
+    nodes:
+      # コントロールプレーンノード（クラスタ管理を担当する）
+      - node_name: k1s0-target-control-plane
+        role: control-plane
+        zone: zone-a
+        labels:
+          # topology.kubernetes.io ラベルでゾーンを明示する
+          topology.kubernetes.io/zone: zone-a
+          topology.kubernetes.io/region: local
+      # ワーカーノード 1（アプリワークロードを実行する）
+      - node_name: k1s0-target-worker
+        role: worker
+        zone: zone-a
+        labels:
+          topology.kubernetes.io/zone: zone-a
+          topology.kubernetes.io/region: local
+          # k1s0 固有のノードラベル（軸別スケジューリングに使用する）
+          k1s0.io/workload-class: tier1
+      # ワーカーノード 2（ゾーン分散配置を確認するために別ゾーンに配置する）
+      - node_name: k1s0-target-worker2
+        role: worker
+        zone: zone-b
+        labels:
+          topology.kubernetes.io/zone: zone-b
+          topology.kubernetes.io/region: local
+          k1s0.io/workload-class: tier2
+      # ワーカーノード 3（ゾーン分散配置の第三ゾーンを担当する）
+      - node_name: k1s0-target-worker3
+        role: worker
+        zone: zone-c
+        labels:
+          topology.kubernetes.io/zone: zone-c
+          topology.kubernetes.io/region: local
+          k1s0.io/workload-class: infra
+    # クラスタ全体の検証状態（drill.sh 実行後に更新される）
+    verification_status: pending
+    # 最終 drill 実行日時（drill.sh が記録する）
+    last_drill_at: null
+
+  # ================================================================
+  # k1s0-ops-edge: 運用・監視用クラスタ（Argo CD / Grafana を配置する）
+  # ================================================================
+  - cluster_id: k1s0-ops-edge
+    # ops-edge クラスタの kind 設定ファイルへの参照
+    kind_config: kind/kind-config-ops-edge.yaml
+    # ops-edge は単一ゾーン構成（軽量な運用クラスタ）
+    topology_class: v1_single_zone
+    # ops-edge クラスタのノード数（コントロールプレーン + ワーカー 1）
+    node_count: 2
+    # ops-edge が配置されるゾーン
+    zones:
+      - zone-a
+    # ノード詳細情報リスト
+    nodes:
+      # コントロールプレーンノード（クラスタ管理を担当する）
+      - node_name: k1s0-ops-edge-control-plane
+        role: control-plane
+        zone: zone-a
+        labels:
+          topology.kubernetes.io/zone: zone-a
+          topology.kubernetes.io/region: local
+      # ワーカーノード（Argo CD・Grafana・Alert Manager を実行する）
+      - node_name: k1s0-ops-edge-worker
+        role: worker
+        zone: zone-a
+        labels:
+          topology.kubernetes.io/zone: zone-a
+          topology.kubernetes.io/region: local
+          k1s0.io/workload-class: ops
+    # ops-edge クラスタの検証状態
+    verification_status: pending
+    # 最終 drill 実行日時
+    last_drill_at: null

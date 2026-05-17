@@ -1,6 +1,6 @@
 ---
-id: detail.tier2.slo_protection_layers
-axis: tier2
+id: detail.cross_slo.slo_protection_layers
+axis: cross_slo
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -10,11 +10,16 @@ depends_on:
   - detail.tier1.slo_conformance
   - detail.tier1.tenant_capacity_conformance
   - detail.ops.ops_loop_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, C, D, E]
   proof_classes:
     - v1_temporal_safety_proof
     - v1_program_correctness_proof
+related_axes:
+  - tier1
+  - tier2
+  - ops
 ---
 
 # 共有 Pod / DB の SLO 保護四層 + 自動昇格 trigger（v1）

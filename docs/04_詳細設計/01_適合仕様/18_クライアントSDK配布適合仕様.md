@@ -17,11 +17,11 @@ depends_on:
   - detail.client.client_enforcement
   - detail.security.build_provenance_conformance
   - detail.infra.clock_integrity_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
     - v1_temporal_safety_proof
 lock_artifacts:
   - sdk_inventory.lock.yaml

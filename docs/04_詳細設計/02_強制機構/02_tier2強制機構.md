@@ -10,13 +10,11 @@ depends_on:
   - arch.tier2.multi_tenant_policy
   - arch.tier2.business_asset_ownership
   - arch.tier2.business_error_audit_compliance
-  - detail.tier2.tenant_isolation_conformance
   - detail.tier1.observability_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
 ---
 
 # tier2 強制機構

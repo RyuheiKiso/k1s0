@@ -1,0 +1,130 @@
+# ClickHouse クラスター定義: 監査ログ・分析クエリ用の OLAP ストア
+# Keeper 3 ノード + 2 shard × 2 replica 構成
+---
+# ClickHouse Keeper クラスター（ZooKeeper 互換の分散コーディネーター）
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseKeeperInstallation
+metadata:
+  # ClickHouse Keeper クラスター名
+  name: k1s0-keeper
+  # ClickHouse 専用 namespace に配置する
+  namespace: clickhouse-system
+spec:
+  # Keeper ノードの設定
+  configuration:
+    clusters:
+      - # Keeper クラスター名（ClickHouse から参照するための識別子）
+        name: k1s0-keeper
+        layout:
+          # Keeper ノード数: 3 で過半数 quorum を実現（1 ノード障害を許容）
+          nodesCount: 3
+    settings:
+      # Keeper のログレベル: information（詳細すぎないよう調整）
+      logger/level: information
+      # スナップショット保持数（ディスクスペース削減のため適切な数に制限）
+      keeper_server/snapshot_distance: "100000"
+  # Keeper ノードの Pod テンプレート設定
+  templates:
+    podTemplates:
+      - name: keeper-pod-template
+        spec:
+          containers:
+            - # Keeper コンテナ名
+              name: clickhouse-keeper
+              # ClickHouse Keeper の公式イメージ（Altinity ビルド）
+              image: clickhouse/clickhouse-keeper:24.8.5.115
+              resources:
+                requests:
+                  # CPU 要求: Keeper は軽量なので控えめ
+                  cpu: "500m"
+                  # メモリ要求: メタデータのみなのでコンパクト
+                  memory: "512Mi"
+                limits:
+                  # CPU 上限: Keeper がリソースを占有しないよう制限
+                  cpu: "1"
+                  # メモリ上限: Keeper の適切な上限値
+                  memory: "1Gi"
+    volumeClaimTemplates:
+      - name: keeper-data-volume
+        spec:
+          # Keeper データの永続化（スナップショット・WAL の保存）
+          accessModes:
+            - ReadWriteOnce
+          # ストレージサイズ: Keeper メタデータは小さいので 10Gi で十分
+          resources:
+            requests:
+              storage: 10Gi
+---
+# ClickHouse クラスター本体: 2 shard × 2 replica 構成
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
+metadata:
+  # ClickHouse インストール名（クラスター全体の識別子）
+  name: k1s0-clickhouse
+  # ClickHouse 専用 namespace に配置する
+  namespace: clickhouse-system
+spec:
+  # ClickHouse クラスターの基本設定
+  configuration:
+    # Keeper への接続設定（ZooKeeper 互換 API を使用）
+    zookeeper:
+      nodes:
+        # Keeper ノード 1 の接続先
+        - host: k1s0-keeper-0.k1s0-keeper.clickhouse-system.svc.cluster.local
+          port: 2181
+        # Keeper ノード 2 の接続先
+        - host: k1s0-keeper-1.k1s0-keeper.clickhouse-system.svc.cluster.local
+          port: 2181
+        # Keeper ノード 3 の接続先
+        - host: k1s0-keeper-2.k1s0-keeper.clickhouse-system.svc.cluster.local
+          port: 2181
+    # クラスター設定（shard・replica のレイアウトを定義）
+    clusters:
+      - # クラスター名（ClickHouse SQL で参照する名前）
+        name: k1s0_cluster
+        layout:
+          # shard 数: 2 シャード（データを並列分散して書き込み性能を向上）
+          shardsCount: 2
+          # replica 数: 2 レプリカ（1 ノード障害時もデータ損失なし）
+          replicasCount: 2
+    # ClickHouse サーバー設定
+    settings:
+      # 最大メモリ使用量（クエリごとの上限）: 4GB
+      max_memory_usage: "4294967296"
+      # 最大接続数（同時クライアント接続の上限）
+      max_connections: "100"
+      # ログレベル: information（運用に適した詳細度）
+      logger/level: information
+      # デフォルトデータベースを k1s0 に設定
+      default_database: k1s0
+  # Pod・PVC のテンプレート設定
+  templates:
+    podTemplates:
+      - name: clickhouse-pod-template
+        spec:
+          containers:
+            - # ClickHouse サーバーのコンテナ名
+              name: clickhouse
+              # ClickHouse の公式イメージ（LTS 安定版）
+              image: clickhouse/clickhouse-server:24.8.5.115
+              resources:
+                requests:
+                  # CPU 要求: OLAP クエリ処理のための十分なコア数
+                  cpu: "2"
+                  # メモリ要求: カラムナーストレージのキャッシュを考慮
+                  memory: "4Gi"
+                limits:
+                  # CPU 上限: スパイク時の制限
+                  cpu: "8"
+                  # メモリ上限: クエリが OOM にならない安全マージン
+                  memory: "16Gi"
+    volumeClaimTemplates:
+      - name: clickhouse-data-volume
+        spec:
+          # ClickHouse データの永続化
+          accessModes:
+            - ReadWriteOnce
+          # ストレージサイズ: 監査ログ 90 日分を保持できる容量
+          resources:
+            requests:
+              storage: 500Gi

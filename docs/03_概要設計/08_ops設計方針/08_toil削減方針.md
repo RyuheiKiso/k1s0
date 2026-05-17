@@ -8,7 +8,6 @@ depends_on:
   - arch.ops.ops_index
   - arch.ops.runbook_policy
   - arch.ops.alert_policy
-  - detail.ops.ops_enforcement
 covered_by:
   defense_in_depth_layers: [B, D, E]
   proof_classes: []

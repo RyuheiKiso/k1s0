@@ -1,0 +1,79 @@
+# clock-integrity-class annotation テスト用リソース定義ファイル
+---
+# テストリソース 1: PTP clock class annotation を持つ Pod（pass ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: PTP clock class を持つ pass ケース
+  name: pod-with-ptp-clock-class
+  # テスト用 namespace に配置する
+  namespace: default
+  annotations:
+    # 有効な clock-integrity-class annotation を設定する
+    k1s0.io/clock-integrity-class: "v1_intra_rack_ptp"
+    # topology-class annotation も設定する
+    k1s0.io/topology-class: "v1_single_zone"
+spec:
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest
+---
+# テストリソース 2: air-gapped legacy clock class annotation を持つ Pod（pass ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: air-gapped clock class を持つ pass ケース
+  name: pod-with-airgapped-clock-class
+  # テスト用 namespace に配置する
+  namespace: default
+  annotations:
+    # 有効な clock-integrity-class annotation を設定する（air_gapped_legacy）
+    k1s0.io/clock-integrity-class: "v1_air_gapped_legacy"
+    # topology-class annotation も設定する
+    k1s0.io/topology-class: "v1_single_zone"
+spec:
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest
+---
+# テストリソース 3: clock-integrity-class annotation がない Pod（fail ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: annotation なしの fail ケース
+  name: pod-without-clock-class
+  # テスト用 namespace に配置する
+  namespace: default
+  annotations:
+    # topology-class annotation のみ設定する（clock-integrity-class は省略）
+    k1s0.io/topology-class: "v1_single_zone"
+spec:
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest
+---
+# テストリソース 4: 無効な clock-integrity-class 値を持つ Pod（fail ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: 無効な annotation 値を持つ fail ケース
+  name: pod-with-invalid-clock-class
+  # テスト用 namespace に配置する
+  namespace: default
+  annotations:
+    # 無効な clock-integrity-class 値を設定する（違反ケース）
+    k1s0.io/clock-integrity-class: "v1_unknown_clock_type"
+    # topology-class annotation は設定する
+    k1s0.io/topology-class: "v1_single_zone"
+spec:
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest

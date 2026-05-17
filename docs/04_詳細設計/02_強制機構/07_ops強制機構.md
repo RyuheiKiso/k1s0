@@ -15,7 +15,7 @@ depends_on:
   - arch.ops.runbook_policy
   - arch.ops.toil_reduction_policy
   - detail.ops.ops_loop_conformance
-  - detail.ops.ops_edge_cluster
+  - detail.cross_edge.ops_edge_cluster
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []

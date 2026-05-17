@@ -44,7 +44,7 @@ OSS 受領者は `README.md` で価値を把握 → 本書で物理層を把握 
 | `/src/` | 実装コード（19 軸射影） | 設計文書（→ `docs/`） | 本書「src/ 19 軸射影」章 |
 | `/tools/` | CI / build / lint スクリプト実体 | プロダクト logic / 設計文書 | 各 tool 配下 `README.md` |
 
-**root 直下許可ファイル**: `CLAUDE.md` / `README.md` / `LICENSE` / `ARCHITECTURE.md` / `.claudeignore` / `.gitignore` のみ。その他 `.md` / `.yaml` の root 散乱は `tools/docs_lint/` による B 層 lint で fail する。
+**root 直下許可ファイル**: `CLAUDE.md` / `README.md` / `LICENSE` / `ARCHITECTURE.md` / `.claudeignore` / `.gitignore` / `Makefile` / `pyproject.toml` / `requirements.txt` / `uv.lock`。その他 `.md` / `.yaml` の root 散乱は `tools/docs_lint/` による B 層 lint で fail する。`Makefile` は build 基盤 entry point として root 直下を必須とする（convention）。`pyproject.toml` / `uv.lock` は Python tooling deps 管理用。
 
 ---
 
@@ -153,7 +153,7 @@ A=compile / B=lint / C=integration test / D=runtime / E=物理 / F=数学的（f
 
 1. root 直下許可ファイル allowlist 違反（想定外 `.md` / `.yaml` の散乱）→ fail
 2. root top-level directory allowlist 違反（増減）→ fail
-3. `src/` 直下サブディレクトリが 10 軸 + `_meta` + `_crosscutting` + `README.md` 以外 → fail
+3. `src/` 直下ファイルが `README.md` / `CLAUDE.md` 以外 → fail、サブディレクトリが 10 軸 + `_meta` + `_crosscutting` 以外 → fail
 4. `src/_crosscutting/` 配下が `NN_<slug>/` 形式（`NN` = 01〜13、`<slug>` = `[a-z][a-z0-9_-]+`）以外 → fail
 5. `/img/` 直下のファイル拡張子が `.svg` / `.drawio` 以外 → fail
 

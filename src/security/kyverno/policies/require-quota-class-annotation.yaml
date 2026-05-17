@@ -1,0 +1,86 @@
+# Policy 9: quota-class annotation と resources 必須化ポリシー
+# k1s0.io/quota-class annotation と resources.requests/limits が設定されていない Pod を拒否する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: quota-class annotation の要求
+  name: require-quota-class-annotation
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.infra.resource_quota_conformance
+    # ポリシーの説明
+    policies.kyverno.io/description: "k1s0.io/quota-class annotation と resources.requests/limits を必須化する"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: quota-class annotation の確認
+    - name: check-quota-class-annotation
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+                # cert-manager namespace を除外
+                - cert-manager
+      # quota-class annotation の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "k1s0.io/quota-class annotation は必須です"
+        # quota-class annotation が設定されているかを確認するパターン
+        pattern:
+          metadata:
+            annotations:
+              # quota-class annotation が任意の値で存在することを確認する
+              k1s0.io/quota-class: "?*"
+    # ルール名称: resources.requests/limits の確認
+    - name: check-resource-requests-limits
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+      # resources の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "全コンテナに resources.requests と resources.limits の設定が必要です"
+        # 全コンテナに resources が設定されているかを確認するパターン
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    # CPU リクエストが設定されていることを確認する
+                    cpu: "?*"
+                    # メモリリクエストが設定されていることを確認する
+                    memory: "?*"
+                  limits:
+                    # CPU リミットが設定されていることを確認する
+                    cpu: "?*"
+                    # メモリリミットが設定されていることを確認する
+                    memory: "?*"

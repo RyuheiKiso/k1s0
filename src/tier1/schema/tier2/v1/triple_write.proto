@@ -1,0 +1,109 @@
+// tier2 atomic triple write 定義 — StateChange / OutboxEntry / AuditEvent / CloudEvent
+// 10_テナント分離適合仕様.md §atomic 三表書込 P1-P4 invariant の
+// 機械可読な schema を宣言する。
+// tier2 の Rust / Go / C# / TypeScript 実装はこの proto から codegen する。
+syntax = "proto3";
+
+package tier1.tier2bridge.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/k1s0-io/k1s0/tier1/tier2bridge/v1;tier2bridgev1";
+option java_multiple_files = true;
+option java_package = "io.k1s0.tier1.tier2bridge.v1";
+option csharp_namespace = "K1s0.Tier2Bridge.V1";
+
+// StateChange は domain state の変更イベントを宣言する。
+// atomic triple write の第 1 TABLE（domain_event）に INSERT される。
+message StateChange {
+  // idempotency_key: P3 dedup 用の一意キー（UUID v7 推奨）
+  string idempotency_key = 1;
+  // tenant_id: 書き込み先テナント識別子（RLS と GUC で自動フィルタ）
+  string tenant_id = 2;
+  // aggregate_type: 集約の種別（例: "ProductionBatch"）
+  string aggregate_type = 3;
+  // aggregate_id: 集約識別子（UUID）
+  string aggregate_id = 4;
+  // event_kind: イベントの種類（例: "production_started"）
+  string event_kind = 5;
+  // payload: イベントペイロード（業界 pack の語彙を使わない中立表現）
+  google.protobuf.Any payload = 6;
+  // occurred_at: イベント発生時刻（HLC — wall-clock 禁止）
+  google.protobuf.Timestamp occurred_at = 7;
+  // schema_version: payload の schema バージョン
+  string schema_version = 8;
+}
+
+// OutboxEntry は tier1 sidecar が Kafka に relay するための outbox record を宣言する。
+// atomic triple write の第 2 TABLE（outbox_message）に INSERT される。
+// P3: (tenant_id, idempotency_key) で UNIQUE constraint を持ち dedup する。
+message OutboxEntry {
+  // idempotency_key: P3 dedup 用（StateChange と同じキーを使用）
+  string idempotency_key = 1;
+  // tenant_id: outbox を読む sidecar が tenant フィルタに使用
+  string tenant_id = 2;
+  // topic: Kafka 送信先 topic
+  string topic = 3;
+  // partition_key: Kafka partition 決定キー（session_id 推奨）
+  string partition_key = 4;
+  // cloudevent_json: CloudEvents 1.0 形式の JSON エンベロープ
+  string cloudevent_json = 5;
+  // retry_count: relay 失敗時の retry 回数
+  int32 retry_count = 6;
+  // created_at: INSERT 時刻
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// AuditEvent は操作の監査記録を宣言する。
+// atomic triple write の第 3 TABLE（audit_event）に INSERT される。
+// P2: StateChange と同一トランザクションで必ず flush される。
+message AuditEvent {
+  // event_id: 監査イベント識別子（UUID v7）
+  string event_id = 1;
+  // tenant_id: 監査対象テナント
+  string tenant_id = 2;
+  // actor_id: 操作者（Keycloak sub 等）
+  string actor_id = 3;
+  // auth_class: 操作時の auth_class（AuthContext から伝搬）
+  string auth_class = 4;
+  // purpose: 操作の目的（app.purpose GUC から伝搬）
+  string purpose = 5;
+  // action: 操作内容（例: "state_change.production_batch.start"）
+  string action = 6;
+  // aggregate_type: 操作対象の集約種別
+  string aggregate_type = 7;
+  // aggregate_id: 操作対象の集約識別子
+  string aggregate_id = 8;
+  // outcome: 操作結果（"success" / "failure"）
+  string outcome = 9;
+  // occurred_at: 操作時刻（HLC）
+  google.protobuf.Timestamp occurred_at = 10;
+  // idempotency_key: StateChange と同じキー（監査追跡に使用）
+  string idempotency_key = 11;
+}
+
+// TripleWriteRequest は atomic triple write の 3 TABLE を同時に送信するための
+// サービス呼出パラメータを宣言する。
+// P1: state_change と outbox_message は同一トランザクションで必ず書かれる。
+// P4: rollback 時には 3 TABLE が全て rollback される。
+message TripleWriteRequest {
+  // state_change: 第 1 TABLE への INSERT 内容
+  StateChange state_change = 1;
+  // outbox_entry: 第 2 TABLE への INSERT 内容（null 不可）
+  OutboxEntry outbox_entry = 2;
+  // audit_event: 第 3 TABLE への INSERT 内容（null 不可）
+  AuditEvent audit_event = 3;
+}
+
+// TripleWriteResult は atomic triple write の結果を宣言する。
+message TripleWriteResult {
+  // success: true = 3 TABLE 全ての commit 成功
+  bool success = 1;
+  // idempotency_conflict: P3 により dedup された場合 true（エラーではなく正常系）
+  bool idempotency_conflict = 2;
+  // state_change_id: INSERT された state_change の row id
+  string state_change_id = 3;
+  // committed_at: commit 完了時刻（HLC）
+  google.protobuf.Timestamp committed_at = 4;
+}

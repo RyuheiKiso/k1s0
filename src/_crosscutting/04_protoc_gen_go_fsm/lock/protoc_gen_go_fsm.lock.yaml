@@ -1,0 +1,29 @@
+_AUTO_GENERATED: DO NOT EDIT.
+# protoc-gen-k1s0-go-fsm 適合仕様のロックファイル: 実装状態と検証情報を記録する
+spec_id: c04
+# クラスタ ID: cross_protoc_fsm (protoc FSM コード生成クロスカッティング適合仕様)
+cluster_id: cross_protoc_fsm
+# 強制ステータス: 実装済みであることを示す
+enforcement_status: implemented
+# 最終検証日時: ISO 8601 形式で記録する
+last_verified_at: "2026-05-17T00:00:00Z"
+# 検証方法: コード生成テストとコンパイル確認による検証
+verification_method: codegen_compile_test
+# 検証者: FSM コード生成テストスイート
+verified_by: fsm_codegen_test.go
+# 実装成果物リスト: 実装された成果物を列挙する
+artifacts:
+  # プラグイン実装: protoc-gen-k1s0-go-fsm プラグイン
+  - plugin/main.go
+  # Go モジュール定義ファイル
+  - plugin/go.mod
+  # FSM コード生成テスト
+  - tests/fsm_codegen_test.go
+# 型安全性保証: typestate パターンによる不正遷移のコンパイルエラー化
+type_safety:
+  # sealed interface: 外部実装を禁止する sealed interface を使用する
+  sealed_interface: true
+  # typestate: 型システムで不正遷移をコンパイルエラーとする
+  typestate_pattern: true
+  # compile_error_on_invalid: 不正遷移は compile error となる
+  compile_error_on_invalid_transition: true

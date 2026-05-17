@@ -1,0 +1,67 @@
+name: lock-yaml-generator
+on:
+  push:
+    paths:
+      - 'tools/lock_yaml_generator/**'
+      - 'src/_meta/**'
+      - 'src/**/lock/**'
+  pull_request:
+    paths:
+      - 'tools/lock_yaml_generator/**'
+      - 'src/_meta/**'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      # lock_yaml_generator の単体テストを実行
+      - name: run tests
+        run: |
+          uv run \
+            --with pytest \
+            --with pyyaml \
+            --with jsonschema \
+            --with click \
+            --with rich \
+            --no-project \
+            pytest tools/lock_yaml_generator/tests/ -v
+
+  bit-for-bit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      # 全 lock.yaml を生成
+      - name: generate all
+        run: |
+          uv run \
+            --with pyyaml \
+            --with jsonschema \
+            --with click \
+            --with rich \
+            --no-project \
+            python -m tools.lock_yaml_generator.cli all
+
+      # 生成結果が既存ファイルと bit-for-bit 一致することを確認
+      - name: check reproducibility
+        run: |
+          uv run \
+            --with pyyaml \
+            --with jsonschema \
+            --with click \
+            --with rich \
+            --no-project \
+            python -m tools.lock_yaml_generator.cli all --check-only

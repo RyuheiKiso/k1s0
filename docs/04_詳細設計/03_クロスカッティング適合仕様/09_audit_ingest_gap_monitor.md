@@ -1,17 +1,18 @@
 ---
-id: detail.security.audit_ingest_gap_monitor
-axis: security
+id: detail.cross_pii.audit_ingest_gap_monitor
+axis: cross_pii
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
 depends_on:
-  - arch.security.audit_policy
-  - arch.security.incident_response_policy
   - detail.security.threat_model_conformance
-  - detail.security.security_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, C, D, E]
   proof_classes: []
+related_axes:
+  - security
+  - ops
 ---
 
 # audit ingest gap monitor + heartbeat（v1）

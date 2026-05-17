@@ -49,7 +49,7 @@ while IFS= read -r -d '' f; do
       fi
     done <<< "$locks"
   fi
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 # ---- 2. id 一意性検査 ----
 echo ""
@@ -58,7 +58,7 @@ ids_file=$(mktemp)
 while IFS= read -r -d '' f; do
   id=$(awk '/^id:/{print $2; exit}' "$f")
   [ -n "$id" ] && echo "$id $f" >> "$ids_file"
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 dups=$(awk '{print $1}' "$ids_file" | sort | uniq -d)
 if [ -n "$dups" ]; then
@@ -90,12 +90,12 @@ while IFS= read -r -d '' f; do
     echo "  FAIL: $f id prefix '$prefix' != expected '$expected_phase'"
     EXIT_CODE=1
   fi
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 # ---- 4. depends_on 参照整合 ----
 echo ""
 echo "[4/7] depends_on 参照整合"
-all_ids=$(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -exec awk '/^id:/{print $2}' {} \;)
+all_ids=$(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -exec awk '/^id:/{print $2}' {} \;)
 while IFS= read -r -d '' f; do
   fm=$(awk '/^---$/{n++} n==1 && !/^---$/ {print} n==2{exit}' "$f")
   deps=$(echo "$fm" | awk '/^depends_on:/{flag=1; next} /^[a-z]/{flag=0} flag && /^  - / {gsub(/^  - /, ""); print}')
@@ -106,7 +106,7 @@ while IFS= read -r -d '' f; do
       EXIT_CODE=1
     fi
   done <<< "$deps"
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 # ---- 5. cross-link dangling 検査 ----
 echo ""
@@ -125,7 +125,7 @@ while IFS= read -r -d '' f; do
       EXIT_CODE=1
     fi
   done <<< "$links"
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 # ---- 6. 禁止表現検査 ----
 echo ""
@@ -138,7 +138,7 @@ while IFS= read -r -d '' f; do
     echo "  FAIL: $f 段階的 release 表現「$FORBIDDEN_EXPR」検出"
     EXIT_CODE=1
   fi
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 # ---- 7. 空セクション / TBD 残存検査（status: locked のみ） ----
 echo ""
@@ -151,7 +151,7 @@ while IFS= read -r -d '' f; do
     echo "  FAIL: $f locked status で TBD / 未定 / 後述のみ検出"
     EXIT_CODE=1
   fi
-done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_knowledge/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
+done < <(find "$DOCS_DIR" -name '*.md' -not -path '*/90_archive/*' -not -path '*/00_format/*' -not -path "$DOCS_DIR/README.md" -print0)
 
 # ---- 結果 ----
 echo ""

@@ -1,0 +1,20 @@
+<!--
+  k1s0 tier2 C# プロジェクト定義
+  テナントコンテキスト（4 GUC 注入）の .NET 8 実装
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- .NET 8 ターゲットフレームワーク -->
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Null 参照型の有効化（型安全性向上） -->
+    <Nullable>enable</Nullable>
+    <!-- 暗黙的 using の無効化（明示的 import を強制する） -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- ルート名前空間 -->
+    <RootNamespace>K1s0.Tier2</RootNamespace>
+    <!-- アセンブリ名 -->
+    <AssemblyName>k1s0.tier2.tenantcontext</AssemblyName>
+    <!-- バージョン -->
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,65 @@
+# Pod Security Standards テスト用リソース定義ファイル
+---
+# テストリソース 1: runAsNonRoot: true が設定された Pod（pass ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: 非 root ユーザー設定の pass ケース
+  name: pod-with-non-root
+  # テスト用 namespace に配置する
+  namespace: default
+spec:
+  # Pod レベルのセキュリティコンテキスト設定
+  securityContext:
+    # 非 root ユーザーでの実行を強制する
+    runAsNonRoot: true
+    # 実行ユーザー ID を 1000 に設定する
+    runAsUser: 1000
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest
+---
+# テストリソース 2: runAsNonRoot が設定されていない Pod（fail ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: 非 root ユーザー設定なしの fail ケース
+  name: pod-without-non-root
+  # テスト用 namespace に配置する
+  namespace: default
+spec:
+  # セキュリティコンテキストが不完全（runAsNonRoot が未設定）
+  securityContext:
+    # runAsNonRoot を意図的に省略する（違反ケース）
+    runAsUser: 1000
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest
+---
+# テストリソース 3: privileged コンテナを持つ Pod（fail ケース）
+apiVersion: v1
+# Pod リソース定義
+kind: Pod
+metadata:
+  # Pod 名称: privileged コンテナを持つ fail ケース
+  name: pod-with-privileged-container
+  # テスト用 namespace に配置する
+  namespace: default
+spec:
+  # Pod レベルのセキュリティコンテキスト設定
+  securityContext:
+    # 非 root ユーザーでの実行を設定する
+    runAsNonRoot: true
+    # 実行ユーザー ID を設定する
+    runAsUser: 1000
+  containers:
+    - name: test-container
+      # テスト用 image を指定する
+      image: harbor.k1s0.internal/k1s0/test:latest
+      securityContext:
+        # privileged を true に設定する（違反ケース）
+        privileged: true

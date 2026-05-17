@@ -7,10 +7,9 @@ status: draft
 depends_on:
   - arch.tier1.tier1_index
   - arch.tier1.libraries
-  - arch.tier1.feature_categories
   - req.overview.oss_catalog
   - detail.tier1.migration_pair_conformance
-  - detail.tier1.tier1_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

@@ -1,0 +1,146 @@
+# 軸 × verification_class の cadence override テーブル
+# デフォルト cadence は verification_classes.yaml の cadence_days を使用する
+# override が必要な組み合わせのみここに列挙する
+overrides:
+  # infra 軸 × v1_fault_chaos: 90日周期（クラスタ全体の障害演習頻度）
+  - axis: infra
+    verification_class: v1_fault_chaos
+    cadence_days: 90
+  # data 軸 × v1_fault_chaos: 30日周期（データ整合性の障害演習は高頻度）
+  - axis: data
+    verification_class: v1_fault_chaos
+    cadence_days: 30
+  # security 軸 × v1_fault_chaos: 90日周期（セキュリティ障害演習頻度）
+  - axis: security
+    verification_class: v1_fault_chaos
+    cadence_days: 90
+
+# 全 90 entry の cadence 解決ルール
+# 1. overrides に一致する axis+verification_class があれば cadence_days を上書き
+# 2. 一致しない場合は verification_classes.yaml の cadence_days を使用
+# 3. cadence_days: 0 は "compile-time のみ（実行周期なし）" を意味する
+cadence_resolution_rule: override_then_parent_default
+
+# デフォルト cadence 参照元
+default_cadence_source: src/test/verification_classes.yaml
+
+# 網羅チェック用: 18 軸一覧
+axes:
+  - tier1
+  - tier2
+  - tier3
+  - infra
+  - data
+  - security
+  - ops
+  - client
+  - test
+  - cross_http2
+  - cross_kek
+  - cross_schema
+  - cross_fsm
+  - cross_slo
+  - cross_bff
+  - cross_pii
+  - cross_edge
+  - meta
+
+# 網羅チェック用: 5 verification_class 一覧
+verification_classes:
+  - v1_type_invariant
+  - v1_property_axiom
+  - v1_contract_pair
+  - v1_scenario_replay
+  - v1_fault_chaos
+
+# override が存在しない 87 entry はすべて default cadence を継承する
+# tier1 × v1_type_invariant: 0 (compile-time)
+# tier1 × v1_property_axiom: 7
+# tier1 × v1_contract_pair: 14
+# tier1 × v1_scenario_replay: 7
+# tier1 × v1_fault_chaos: 90 (default)
+# tier2 × v1_type_invariant: 0
+# tier2 × v1_property_axiom: 7
+# tier2 × v1_contract_pair: 14
+# tier2 × v1_scenario_replay: 7
+# tier2 × v1_fault_chaos: 90 (default)
+# tier3 × v1_type_invariant: 0
+# tier3 × v1_property_axiom: 7
+# tier3 × v1_contract_pair: 14
+# tier3 × v1_scenario_replay: 7
+# tier3 × v1_fault_chaos: 90 (default)
+# infra × v1_type_invariant: 0
+# infra × v1_property_axiom: 7
+# infra × v1_contract_pair: 14
+# infra × v1_scenario_replay: 7
+# infra × v1_fault_chaos: 90 (OVERRIDE)
+# data × v1_type_invariant: 0
+# data × v1_property_axiom: 7
+# data × v1_contract_pair: 14
+# data × v1_scenario_replay: 7
+# data × v1_fault_chaos: 30 (OVERRIDE)
+# security × v1_type_invariant: 0
+# security × v1_property_axiom: 7
+# security × v1_contract_pair: 14
+# security × v1_scenario_replay: 7
+# security × v1_fault_chaos: 90 (OVERRIDE)
+# ops × v1_type_invariant: 0
+# ops × v1_property_axiom: 7
+# ops × v1_contract_pair: 14
+# ops × v1_scenario_replay: 7
+# ops × v1_fault_chaos: 90 (default)
+# client × v1_type_invariant: 0
+# client × v1_property_axiom: 7
+# client × v1_contract_pair: 14
+# client × v1_scenario_replay: 7
+# client × v1_fault_chaos: 90 (default)
+# test × v1_type_invariant: 0
+# test × v1_property_axiom: 7
+# test × v1_contract_pair: 14
+# test × v1_scenario_replay: 7
+# test × v1_fault_chaos: 90 (default)
+# cross_http2 × v1_type_invariant: 0
+# cross_http2 × v1_property_axiom: 7
+# cross_http2 × v1_contract_pair: 14
+# cross_http2 × v1_scenario_replay: 7
+# cross_http2 × v1_fault_chaos: 90 (default)
+# cross_kek × v1_type_invariant: 0
+# cross_kek × v1_property_axiom: 7
+# cross_kek × v1_contract_pair: 14
+# cross_kek × v1_scenario_replay: 7
+# cross_kek × v1_fault_chaos: 90 (default)
+# cross_schema × v1_type_invariant: 0
+# cross_schema × v1_property_axiom: 7
+# cross_schema × v1_contract_pair: 14
+# cross_schema × v1_scenario_replay: 7
+# cross_schema × v1_fault_chaos: 90 (default)
+# cross_fsm × v1_type_invariant: 0
+# cross_fsm × v1_property_axiom: 7
+# cross_fsm × v1_contract_pair: 14
+# cross_fsm × v1_scenario_replay: 7
+# cross_fsm × v1_fault_chaos: 90 (default)
+# cross_slo × v1_type_invariant: 0
+# cross_slo × v1_property_axiom: 7
+# cross_slo × v1_contract_pair: 14
+# cross_slo × v1_scenario_replay: 7
+# cross_slo × v1_fault_chaos: 90 (default)
+# cross_bff × v1_type_invariant: 0
+# cross_bff × v1_property_axiom: 7
+# cross_bff × v1_contract_pair: 14
+# cross_bff × v1_scenario_replay: 7
+# cross_bff × v1_fault_chaos: 90 (default)
+# cross_pii × v1_type_invariant: 0
+# cross_pii × v1_property_axiom: 7
+# cross_pii × v1_contract_pair: 14
+# cross_pii × v1_scenario_replay: 7
+# cross_pii × v1_fault_chaos: 90 (default)
+# cross_edge × v1_type_invariant: 0
+# cross_edge × v1_property_axiom: 7
+# cross_edge × v1_contract_pair: 14
+# cross_edge × v1_scenario_replay: 7
+# cross_edge × v1_fault_chaos: 90 (default)
+# meta × v1_type_invariant: 0
+# meta × v1_property_axiom: 7
+# meta × v1_contract_pair: 14
+# meta × v1_scenario_replay: 7
+# meta × v1_fault_chaos: 90 (default)

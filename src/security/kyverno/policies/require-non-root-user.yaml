@@ -1,0 +1,56 @@
+# Policy 20: 非 root ユーザー必須化ポリシー
+# securityContext.runAsUser: 0 (root) での実行を拒否する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: 非 root ユーザーの要求
+  name: require-non-root-user
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.non_root_user_required
+    # ポリシーの説明
+    policies.kyverno.io/description: "runAsUser: 0 (root) のコンテナを reject する"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: root UID 使用の禁止
+    - name: block-root-uid
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+      # root UID 使用の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "runAsUser: 0 (root) は使用できません。非特権ユーザー（UID 1000以上）を使用してください"
+        # root UID を使用していないかを確認する
+        deny:
+          conditions:
+            any:
+              # コンテナレベルで root UID が設定されている場合は拒否する
+              - key: "{{ request.object.spec.containers[].securityContext.runAsUser }}"
+                # 0 (root) の場合は拒否する
+                operator: AnyIn
+                value:
+                  - 0
+              # Pod レベルで root UID が設定されている場合は拒否する
+              - key: "{{ request.object.spec.securityContext.runAsUser || '' }}"
+                # 0 (root) の場合は拒否する
+                operator: Equals
+                value: 0

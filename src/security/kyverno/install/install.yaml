@@ -1,0 +1,50 @@
+# Kyverno operator install manifest
+# version: v1.13.0
+# このファイルは Kyverno Namespace と install 参照 ConfigMap を定義する
+apiVersion: v1
+# Namespace リソース定義
+kind: Namespace
+metadata:
+  # Kyverno が動作する専用 namespace
+  name: kyverno
+  labels:
+    # Kyverno 自身を enforcement 対象から除外するためのラベル
+    app.kubernetes.io/managed-by: kyverno
+---
+# Kyverno のバージョンと install コマンドを管理する ConfigMap
+# リポジトリ管理外の image は この ConfigMap で一元管理する
+apiVersion: v1
+# ConfigMap リソース定義
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: kyverno のバージョン情報
+  name: kyverno-version
+  # kyverno namespace に配置する
+  namespace: kyverno
+  labels:
+    # k1s0 管理対象であることを示すラベル
+    k1s0.io/managed-by: k1s0-security
+  annotations:
+    # この ConfigMap が準拠する enforcement 仕様を示す annotation
+    k1s0.io/enforcement-spec: detail.security.kyverno_install
+data:
+  # インストールする Kyverno のバージョン番号
+  version: "v1.13.0"
+  # 使用する Helm chart の名称
+  helm_chart: "kyverno/kyverno"
+  # Helm chart のバージョン番号
+  helm_chart_version: "3.3.0"
+  # Kyverno を install するための Helm コマンド
+  install_command: "helm install kyverno kyverno/kyverno -n kyverno --version 3.3.0"
+  # Kyverno を upgrade するための Helm コマンド
+  upgrade_command: "helm upgrade kyverno kyverno/kyverno -n kyverno --version 3.3.0"
+  # Helm リポジトリを追加するためのコマンド
+  repo_add_command: "helm repo add kyverno https://kyverno.github.io/kyverno/"
+  # Helm リポジトリを更新するためのコマンド
+  repo_update_command: "helm repo update"
+  # Kyverno policy reporter の有効化フラグ
+  policy_reporter_enabled: "true"
+  # admission webhook の timeout 設定（秒）
+  webhook_timeout_seconds: "10"
+  # background scan の有効化フラグ
+  background_scan_enabled: "true"

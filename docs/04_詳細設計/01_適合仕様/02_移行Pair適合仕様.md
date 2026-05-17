@@ -5,16 +5,12 @@ phase: detail
 kind: conformance_spec
 status: draft
 depends_on:
-  - arch.tier1.libraries
-  - arch.tier1.feature_categories
-  - detail.tier1.bidi_conformance
-  - detail.tier1.oss_lifecycle_conformance
-  - detail.tier1.tier1_enforcement
+  - arch.tier1.tier1_index
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
     - v1_refinement_proof
 lock_artifacts:
   - dry_run.lock.yaml

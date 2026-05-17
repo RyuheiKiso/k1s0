@@ -1,0 +1,95 @@
+// tier1 Bidi 適合仕様 v1 — proto option 定義
+// 01_Bidi適合仕様.md §v1 conformance_class セット（5 class）と
+// §adapter↔class supports 対応（8 adapter）を機械可読な form に固定する。
+//
+// Buf custom lint 責務:
+//   - bidi RPC に (tier1.bidi.conformance_class) option が必須（欠落で fail）
+//   - 宣言された class が classes.yaml の keys に存在すること
+//   - 廃止予定 class の使用に warn
+syntax = "proto3";
+
+package tier1.bidi.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/k1s0-io/k1s0/tier1/bidi/v1;bidiv1";
+option java_multiple_files = true;
+option java_package = "io.k1s0.tier1.bidi.v1";
+
+// ConformanceClass は 01_Bidi適合仕様.md §v1 conformance_class セット（5 class）を宣言する。
+// class 1 値が ordering / half_close / resumable / max_msg_lag_ms / direction を一意に導出する。
+enum ConformanceClass {
+  // デフォルト（未指定）— Buf lint が fail にする
+  CONFORMANCE_CLASS_UNSPECIFIED = 0;
+  // v1_interactive: 双方向対話、SESSION_ORDERED、half_close=SUPPORTED、resumable=REQUIRED、lag≤200ms
+  V1_INTERACTIVE = 1;
+  // v1_alert: サーバー主導警報、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤200ms、server→client
+  V1_ALERT = 2;
+  // v1_event_feed: Domain Event 配信、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤5000ms、server→client
+  V1_EVENT_FEED = 3;
+  // v1_live_snapshot: 最新値表示、UNORDERED、half_close=UNUSED、resumable=NONE、lag≤500ms、server→client
+  V1_LIVE_SNAPSHOT = 4;
+  // v1_bulk_upload: 大量データ投入、UNORDERED、half_close=SUPPORTED、resumable=NONE、client→server
+  V1_BULK_UPLOAD = 5;
+}
+
+// Ordering は bidi stream のメッセージ順序保証を宣言する。
+enum Ordering {
+  ORDERING_UNSPECIFIED = 0;
+  // セッション内での順序保証あり（送信順で届く）
+  SESSION_ORDERED = 1;
+  // 順序保証なし（latest-wins または at-least-once）
+  UNORDERED = 2;
+}
+
+// HalfClose はクライアント側からの終端通知サポートを宣言する。
+enum HalfClose {
+  HALF_CLOSE_UNSPECIFIED = 0;
+  // クライアントから終端を通知できる
+  SUPPORTED = 1;
+  // 終端通知は使用しない
+  UNUSED = 2;
+}
+
+// Resumable は切断後の再接続 semantics を宣言する。
+enum Resumable {
+  RESUMABLE_UNSPECIFIED = 0;
+  // resume_token 経由で状態継続が必須
+  REQUIRED = 1;
+  // resume なし（再接続時は最初から）
+  NONE = 2;
+}
+
+// Direction は通信の方向性を宣言する。
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  // クライアント ↔ サーバー 双方向
+  BIDIRECTIONAL = 1;
+  // サーバー → クライアント 一方向
+  SERVER_TO_CLIENT = 2;
+  // クライアント → サーバー 一方向
+  CLIENT_TO_SERVER = 3;
+}
+
+// BidiMethodOptions は bidi RPC メソッドに付与する option セットを宣言する。
+// Buf custom lint により、bidi RPC には (tier1.bidi.v1.bidi_method) が必須。
+message BidiMethodOptions {
+  // conformance_class は bundle を選択する（他の option は class から導出される）
+  ConformanceClass conformance_class = 1;
+  // ordering: class から自動導出されるが、参照用として明記可能
+  Ordering ordering = 2;
+  // half_close: class から自動導出
+  HalfClose half_close = 3;
+  // resumable: class から自動導出
+  Resumable resumable = 4;
+  // max_msg_lag_ms: class から自動導出（0=best-effort）
+  int32 max_msg_lag_ms = 5;
+  // direction: class から自動導出
+  Direction direction = 6;
+}
+
+// bidi_method は bidi RPC に付与する method option。
+// syntax: option (tier1.bidi.v1.bidi_method).conformance_class = V1_INTERACTIVE;
+extend google.protobuf.MethodOptions {
+  BidiMethodOptions bidi_method = 50000;
+}

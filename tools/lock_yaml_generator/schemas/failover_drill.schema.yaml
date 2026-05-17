@@ -1,0 +1,49 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for failover_drill.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: failover_drill
+description: >
+  フェイルオーバードリルの実施記録を管理するスキーマ。
+type: object
+required:
+  - drills
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  drills:
+    type: array
+    description: フェイルオーバードリルエントリの配列。
+    items:
+      $ref: "#/definitions/failover_drill_entry"
+definitions:
+  failover_drill_entry:
+    type: object
+    required:
+      - drill_id
+      - topology_class
+      - drill_state
+    additionalProperties: false
+    properties:
+      drill_id:
+        type: string
+        description: ドリルの一意識別子。
+      topology_class:
+        type: string
+        enum:
+          - v1_single_zone
+          - v1_multi_zone_per_cluster
+          - v1_active_passive_dr
+          - v1_multi_region_active_passive
+          - v1_multi_region_active_active
+        description: ドリル対象のトポロジークラス（5 値 enum）。
+      drill_state:
+        type: string
+        enum:
+          - green
+          - red
+          - pending
+        description: ドリル実行状態（3 値 enum）。

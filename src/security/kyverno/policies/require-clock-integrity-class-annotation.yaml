@@ -1,0 +1,58 @@
+# _AUTO_GENERATED: このファイルは build_policies.py によって自動生成されました
+# 手動編集は次回生成時に上書きされます
+# 生成日時: 2026-05-17T09:45:56.958137+00:00
+# 生成コマンド: python3 src/security/kyverno/generator/build_policies.py
+
+# clock-integrity-class annotation 必須化ポリシー（自動生成）
+# 許可値は src/infra/clock_integrity/classes.yaml から自動的に生成される
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: clock-integrity-class annotation の要求（自動生成版）
+  name: require-clock-integrity-class-annotation
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.infra.clock_integrity_conformance
+    # 自動生成されたことを示す annotation
+    k1s0.io/auto-generated: "true"
+    # 生成元ファイルを示す annotation
+    k1s0.io/generated-from: src/infra/clock_integrity/classes.yaml
+    # ポリシーの説明
+    policies.kyverno.io/description: "k1s0.io/clock-integrity-class annotation がない workload を reject する（自動生成）"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを無効化（admission 時のみ検証）
+  background: false
+  rules:
+    # ルール名称: clock-integrity-class annotation の確認
+    - name: check-clock-integrity-class
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+                # cert-manager namespace を除外
+                - cert-manager
+      # clock-integrity-class annotation の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "k1s0.io/clock-integrity-class annotation は必須です。許可値: v1_intra_rack_ptp|v1_dc_chrony_stratum1|v1_multi_region_ntp|v1_legacy_skew_tolerant|v1_air_gapped_legacy"
+        # 許可された clock integrity class 値のパターン（自動生成）
+        pattern:
+          metadata:
+            annotations:
+              # clock integrity class は定義された値のいずれかである必要がある
+              k1s0.io/clock-integrity-class: "v1_intra_rack_ptp|v1_dc_chrony_stratum1|v1_multi_region_ntp|v1_legacy_skew_tolerant|v1_air_gapped_legacy"

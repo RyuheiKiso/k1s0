@@ -143,4 +143,4 @@ covered_by:
 
 - [法務 DPO 担当者シナリオ index](README.md)
 - [partner契約_DPA_締結](09_partner契約_DPA_締結.md)
-- [infra: network変更](../../04_infra担当者シナリオ/07_network変更.md)
+- [infra: network変更](../04_infra担当者シナリオ/07_network変更.md)

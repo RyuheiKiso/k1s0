@@ -60,7 +60,7 @@ covered_by:
 - 入力: 全 `.md` の `depends_on` と本文 link
 - 検証:
     - `depends_on` に列挙された `id` は本文中にも link が存在
-    - 本文中の link 先 `.md` の `id` は `depends_on` にも含まれる（同一フェーズ内・index・90_knowledge への link は除外）
+    - 本文中の link 先 `.md` の `id` は `depends_on` にも含まれる（同一フェーズ内・index・90_archive への link は除外）
 - 違反: status: locked で 1 件以上 → CI fail
 
 ### cell-6: lock_artifacts catalog 整合

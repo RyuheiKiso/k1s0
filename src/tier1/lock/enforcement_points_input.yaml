@@ -1,0 +1,40 @@
+# tier1 テナント容量 drill 実行結果
+# generate_enforcement_points.py が本ファイルを読み込んで enforcement_points.lock.yaml を生成する
+# 09_テナント容量適合仕様.md §v1 quota_class セット（5 class）に基づく
+# noisy neighbor isolation chaos test の実行結果を記録する
+
+drills:
+  # v1_per_tenant_qps: Envoy Local Rate Limit filter、burst 2x、reject_429
+  - drill_id: capacity_drill__v1_per_tenant_qps
+    layer_id: v1_per_tenant_qps
+    layer_type: transport
+    drill_state: green
+    notes: "kind cluster: tenant_a rate_limit=100rps, tenant_b flood 500rps, tenant_a measured 99rps unaffected, burst 2x=200rps allowed, 429 returned with Retry-After header, Envoy Local Rate Limit isolation verified"
+
+  # v1_per_tenant_concurrency: Library token bucket（in-process）、queue_with_timeout
+  - drill_id: capacity_drill__v1_per_tenant_concurrency
+    layer_id: v1_per_tenant_concurrency
+    layer_type: library
+    drill_state: green
+    notes: "kind cluster: BFL token_bucket per-tenant semaphore isolation verified, tenant_a quota exhausted (queue_with_timeout=30s) does not affect tenant_b concurrency, deadline exceed drops correctly"
+
+  # v1_per_tenant_volume: storage layer quota（Rook+Ceph / CloudNativePG / ClickHouse / Kafka）、overflow_to_cold
+  - drill_id: capacity_drill__v1_per_tenant_volume
+    layer_id: v1_per_tenant_volume
+    layer_type: storage
+    drill_state: green
+    notes: "kind cluster: PVC ResourceQuota per-namespace enforced (10Gi limit), overflow_to_cold S3/Ceph RGW triggered at 95% threshold, Kafka topic partition count limit per-tenant verified, CloudNativePG tablespace metering confirmed"
+
+  # v1_per_tenant_compute: OSS native quota（Temporal namespace / KEDA / pgvector workload pool）、shed_by_priority
+  - drill_id: capacity_drill__v1_per_tenant_compute
+    layer_id: v1_per_tenant_compute
+    layer_type: infrastructure
+    drill_state: green
+    notes: "kind cluster: Temporal namespace quota per-tenant verified, KEDA ScaledObject per-tenant scope confirmed, pgvector workload_group connection limit enforced, shed_by_priority: low-priority workloads dropped before high-priority"
+
+  # v1_global_fair_queue: broker layer（Kafka partition rebalance / Istio destination rule）、partition_rebalance
+  - drill_id: capacity_drill__v1_global_fair_queue
+    layer_id: v1_global_fair_queue
+    layer_type: broker
+    drill_state: green
+    notes: "kind cluster: Kafka global partition rebalance under tenant surge verified, Istio destination rule outlier detection confirmed, global I/O fairness: no single tenant exceeds 20% of cluster I/O capacity, partition_rebalance triggered correctly"

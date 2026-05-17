@@ -1,0 +1,62 @@
+# Kyverno admission policy エンジンの HelmRelease を定義する
+# Flux CD の HelmRelease CRD を使って GitOps で管理する
+{{- if .Values.kyverno.enabled }}
+---
+# Kyverno の Helm リポジトリ参照を定義する
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  # Kyverno 公式 Helm リポジトリの参照名
+  name: kyverno
+  # Flux GitOps 管理 Namespace に配置する
+  namespace: flux-system
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # Kyverno 公式 Helm リポジトリ URL
+  url: https://kyverno.github.io/kyverno/
+  # リポジトリメタデータのキャッシュ更新間隔
+  interval: 1h
+---
+# Kyverno admission controller の HelmRelease を定義する
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  # HelmRelease リソースの名前
+  name: kyverno
+  # Kyverno をデプロイする専用 Namespace
+  namespace: {{ .Values.kyverno.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # Helm chart をポーリングする間隔
+  interval: 5m
+  chart:
+    spec:
+      # 使用する chart 名
+      chart: kyverno
+      # デプロイするバージョン
+      version: {{ .Values.kyverno.version | quote }}
+      # 参照する HelmRepository
+      sourceRef:
+        kind: HelmRepository
+        name: kyverno
+        namespace: flux-system
+  # Helm values で詳細設定を上書きする
+  values:
+    # admission controller レプリカ数（HA のため 3 以上を推奨）
+    admissionController:
+      replicas: {{ .Values.kyverno.replicaCount }}
+      # admission controller のリソース制限
+      resources:
+        {{- toYaml .Values.kyverno.resources | nindent 8 }}
+    # background controller（既存リソース検査）を有効化
+    backgroundController:
+      enabled: true
+    # report controller（PolicyReport 生成）を有効化
+    reportsController:
+      enabled: true
+    # cleanup controller（TTL リソース削除）を有効化
+    cleanupController:
+      enabled: true
+{{- end }}

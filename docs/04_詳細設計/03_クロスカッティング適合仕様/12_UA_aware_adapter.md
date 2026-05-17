@@ -1,17 +1,20 @@
 ---
-id: detail.client.ua_aware_adapter
-axis: client
+id: detail.cross_edge.ua_aware_adapter
+axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
 depends_on:
   - arch.client.transport_adaptation_policy
   - detail.client.sdk_distribution_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, C, D]
   proof_classes:
-    - v1_property_axiom_proof
     - v1_program_correctness_proof
+related_axes:
+  - client
+  - tier1
 ---
 
 # Connect-RPC UA-aware adapter（v1）

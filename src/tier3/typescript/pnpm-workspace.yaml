@@ -1,0 +1,17 @@
+# k1s0 tier3 pnpm workspace 定義
+# tier3 TypeScript パッケージを管理する
+packages:
+  # 4 layer state reducer（primary 実装）
+  - "packages/state"
+  # CRDT 型（tier3 内部閉込め）
+  - "packages/crdt"
+  # IndexedDB + WebCrypto AES-GCM encrypted outbox
+  - "packages/outbox"
+  # SSE/WS subscription manager
+  - "packages/realtime"
+  # BFF cookie auth（access_token getter 不在）
+  - "packages/auth"
+  # locale JSON loader
+  - "packages/i18n"
+  # Web SPA skeleton
+  - "spa"

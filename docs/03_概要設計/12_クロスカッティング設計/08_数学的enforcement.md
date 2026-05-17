@@ -38,7 +38,7 @@ covered_by:
 - refinement_proof: 35 pair
 - program_correctness_proof: 19 cell
 - runtime_modelcheck_proof: 14 cell
-- 合計: 99 cell（予備 4）
+- 合計: 99 obligation（複数 obligation が 1 cell に集約、cell 数自体は 19 軸 × 5 proof_class = 95）
 
 ## counter-example の物理 closure
 - 4 close_kind: `fixed_in_code` / `fixed_in_spec` / `accepted_as_bug` / `scope_narrowed`
@@ -47,10 +47,9 @@ covered_by:
 - accepted_as_bug cap ≤ 10 件、cap 越えは破壊的変更扱い
 
 ## reviewer dual sign-off
-- reviewer pool: core team 4 名 + domain expert 各 2 名
+- reviewer pool（v1 単一実装者体制）: single human author × 1 + AI reviewer kind 4 種（Claude Opus / Claude Sonnet / GPT-4 / Gemini）を ai_static_analysis evidence の供給源として併用 + cosign_history evidence（過去 3 件以上の predecessor 必須）。LLM 単独 sign-off 禁止（human 1 必須）、ai_static_analysis evidence は最大 4 model の cross-check を許容。詳細は dual_signoff 体系 (docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md) を参照。
 - cosign signature 物理 enforce
-- LLM 補助 reviewer は最大 1 名（人間 1 名以上必須）
-- LLM 単独 sign-off 禁止
+- LLM 単独 sign-off 禁止 (human 1 必須)、ただし ai_static_analysis evidence は最大 4 model の cross-check を許容
 
 ## assumption 管理
 - `assumption.lock.yaml` に明示登録された assumption（DDH / RSA hardness / discrete log 等）の下で proof 成立

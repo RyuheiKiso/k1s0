@@ -1,0 +1,79 @@
+# Harbor admission policy 定義
+# 署名なし image のプルを禁止し、Trivy スキャン統合を設定する
+apiVersion: v1
+# ConfigMap リソース定義（Harbor admission policy の設定を管理する）
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: Harbor admission policy 設定
+  name: harbor-admission-policy
+  # harbor namespace に配置する
+  namespace: harbor
+  annotations:
+    # この ConfigMap が準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.harbor_admission_policy
+data:
+  # Harbor admission policy の概念説明
+  policy_description: |
+    # Harbor は 2 段階の admission control を実装する
+    # 1. Content Trust (Cosign): 署名なし image の pull を禁止する
+    # 2. Trivy Scan: CRITICAL CVE が検出された image の pull を禁止する
+    # 両方が pass した image のみ pull を許可する
+
+  # Trivy スキャン統合の設定
+  trivy_integration: |
+    # Trivy スキャナーの設定（Harbor values に対応する）
+    trivy:
+      # スキャナーを有効化する
+      enabled: true
+      # Trivy のオフラインモードを無効化する（オンラインで DB を更新する）
+      offlineScan: false
+      # スキャン結果の保存期間（日数）
+      timeout: "5m0s"
+      # スキャン DB の自動更新を有効化する
+      gitHubToken: ""
+      # GitHub トークンは OpenBao Transit で管理する
+      skipUpdate: false
+      # OS 脆弱性のみスキャン対象とするか（false = 全脆弱性をスキャンする）
+      ignoreUnfixed: false
+
+  # signed-only policy の設定
+  signed_only_policy: |
+    # Content Trust の設定（Harbor values に対応する）
+    contentTrust:
+      # Content Trust を有効化する
+      enabled: true
+      # Cosign を使用して署名を検証する
+      automatedTagging: false
+
+  # 脆弱性ポリシーの設定
+  vulnerability_policy: |
+    # 脆弱性ポリシーの設定（Harbor REST API で設定する）
+    # CRITICAL レベル以上の脆弱性が存在する場合は pull を禁止する
+    vulnerability:
+      preventVulnerableImagesFromRunning: true
+      preventVulnerableImagesFromRunningSeverity: critical
+      enableAutoScan: true
+
+  # Kyverno との統合設定
+  kyverno_integration: |
+    # Harbor admission policy は Kyverno policy と二重で機能する
+    # 1. Harbor: pull 段階で検証する
+    # 2. Kyverno: Pod admission 段階で検証する
+    # 両方が機能することで多層防御を実現する
+    # Kyverno policy: src/security/kyverno/policies/inspect-image-signature.yaml
+    # Kyverno policy: src/security/kyverno/policies/require-image-from-harbor.yaml
+
+  # 例外設定
+  exceptions: |
+    # 以下の namespace は Harbor admission policy の対象外とする
+    # - kube-system: Kubernetes システムコンポーネント
+    # - kyverno: Kyverno 自身
+    # - cert-manager: 証明書管理
+    # - istio-system: Istio コントロールプレーン
+    # - harbor: Harbor 自身（ブートストラップ問題を回避する）
+    exception_namespaces:
+      - kube-system
+      - kyverno
+      - cert-manager
+      - istio-system
+      - harbor

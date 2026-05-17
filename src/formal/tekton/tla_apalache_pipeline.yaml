@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: tla-apalache-verification
+  namespace: formal-verification
+  labels:
+    app.kubernetes.io/component: formal-verification
+    app.kubernetes.io/part-of: k1s0
+spec:
+  params:
+    - name: spec-file
+      type: string
+      description: TLA+ スペックファイルのパス（リポジトリルートからの相対パス）
+    - name: obligation-id
+      type: string
+      description: proof obligation の識別子（proof_inventory/inventory.yaml の obligation_id）
+    - name: config-file
+      type: string
+      description: Apalache 設定 JSON ファイルのパス
+      default: ""
+  tasks:
+    - name: run-apalache
+      taskRef:
+        name: apalache-check
+      params:
+        - name: spec-file
+          value: $(params.spec-file)
+        - name: config-file
+          value: $(params.config-file)
+    - name: record-certificate
+      runAfter: [run-apalache]
+      taskRef:
+        name: record-proof-result
+      params:
+        - name: obligation-id
+          value: $(params.obligation-id)
+        - name: result-status
+          value: $(tasks.run-apalache.results.check-status)
+        - name: certificate-uri
+          value: $(tasks.run-apalache.results.certificate-uri)
+    - name: update-dual-review
+      runAfter: [record-certificate]
+      taskRef:
+        name: update-dual-review-record
+      params:
+        - name: obligation-id
+          value: $(params.obligation-id)
+        - name: ai-evidence-uri
+          value: $(tasks.run-apalache.results.certificate-uri)
+  results:
+    - name: obligation-id
+      description: 検証した obligation の ID
+      value: $(params.obligation-id)
+    - name: check-status
+      description: Apalache 検証結果（PASS / FAIL）
+      value: $(tasks.run-apalache.results.check-status)
+    - name: certificate-uri
+      description: 生成された proof certificate の URI
+      value: $(tasks.run-apalache.results.certificate-uri)

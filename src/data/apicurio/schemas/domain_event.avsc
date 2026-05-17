@@ -1,0 +1,70 @@
+{
+  "type": "record",
+  "name": "DomainEvent",
+  "namespace": "io.k1s0.data.domain",
+  "doc": "汎用ドメインイベントスキーマ。システム全体のイベントソーシングで使用する基本型。",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "イベントの一意識別子。UUID v4 形式で生成する。"
+    },
+    {
+      "name": "event_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "イベント発生時刻。マイクロ秒単位の UNIX タイムスタンプ。"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "doc": "テナント識別子。UUID 形式。マルチテナント分離のキー。"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "イベントが属する集約の識別子。UUID 形式。"
+    },
+    {
+      "name": "aggregate_type",
+      "type": "string",
+      "doc": "集約の型名。イベントのルーティングとフィルタリングに使用する。"
+    },
+    {
+      "name": "event_kind",
+      "type": "string",
+      "doc": "イベント種別名。例: 'OrderPlaced', 'PaymentConfirmed'。"
+    },
+    {
+      "name": "event_version",
+      "type": "long",
+      "doc": "集約に対するイベントの連番バージョン。順序保証と冪等性検証に使用する。"
+    },
+    {
+      "name": "schema_id",
+      "type": "string",
+      "doc": "Apicurio Registry でのスキーマ識別子。スキーマ進化の追跡に使用する。"
+    },
+    {
+      "name": "payload",
+      "type": "string",
+      "doc": "イベントの具体的なペイロード。スキーマ ID に対応する JSON 文字列。"
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "default": {},
+      "doc": "イベントのメタデータ。相関 ID・causation ID・ユーザーエージェント等を格納する。"
+    },
+    {
+      "name": "created_by",
+      "type": "string",
+      "doc": "イベントを発行したサービス名。監査とデバッグに使用する。"
+    }
+  ]
+}

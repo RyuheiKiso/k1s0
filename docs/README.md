@@ -25,7 +25,10 @@ covered_by:
 | 4 | [04_詳細設計/](04_詳細設計/README.md) | 適合仕様 / 強制機構 / クロス適合仕様 / 運用 UI 開発者体験 / lock.yaml 体系 |
 | 5 | [05_環境構築/](05_環境構築/README.md) | 役割別環境構築手順（k1s0 作者 / tier1 / …）|
 
-## 19 軸 matrix
+## 19 軸 matrix（10 主要軸 + meta の行。cross-cutting 8 クラスタは cross-cutting 列に集約）
+
+> **19 軸の構成**: 10 主要軸 + 9 cross-cutting/meta 軸（axis_registry cap v1=20 / 使用 19 / 残 1）。
+> 下表は 10 主要軸 + meta-axis を行とし、cross-cutting 適合仕様（13 件 / 8 クラスタ）を right column に対応付ける。
 
 | 軸 | 概要設計 | 詳細設計（適合仕様） | cross-cutting |
 |---|---|---|---|
@@ -49,7 +52,7 @@ covered_by:
 - [04_詳細設計/05_lock_yaml体系/](04_詳細設計/05_lock_yaml体系/README.md): proof_artifact / counter_example / release_gate / artifact_lock 命名規約 / immutable archive
 
 ## 補助
-- [90_knowledge/](90_knowledge/): 技術学習用 reference
+- [90_archive/](90_archive/): 過去の構想スタック (Dapr / Istio Ambient / k3s 等) の参考資料。本流の OSS 選定は反映していない。本流は [02_要件定義/04_技術選定/01_OSS採用一覧.md](02_要件定義/04_技術選定/01_OSS採用一覧.md) を参照。
 
 ## 用語
 - [01_企画/09_用語集/](01_企画/09_用語集/README.md): 19 軸 / 5 階層論 / L1+ / 業界 pack / 4 layer state / BusinessConflict subtype / KEK shamir / atomic 三表書込 / proof_class 等の主要術語

@@ -9,14 +9,12 @@ depends_on:
   - arch.tier3.responsibility
   - arch.tier3.auth_multi_tenant
   - arch.tier3.observability
-  - detail.tier3.client_state_conformance
   - detail.tier2.tier2_enforcement
   - detail.tier1.tier1_enforcement
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
 ---
 
 # tier3 強制機構

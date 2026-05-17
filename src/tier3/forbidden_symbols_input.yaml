@@ -1,0 +1,90 @@
+# k1s0 tier3 禁止 export symbol カタログ SoT
+# tier3 強制機構 layer 1 / layer 3 / layer 4 / layer 5 の物理根拠
+# 手書き SoT（generate_forbidden_export_symbols.py が読み込む）
+
+# 適合仕様 SoT リファレンス
+spec_ref: "docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md"
+# 強制機構 SoT リファレンス
+enforcement_ref: "docs/04_詳細設計/02_強制機構/03_tier3強制機構.md"
+# バージョン
+version: "v1"
+
+# 禁止 export symbol（banned status = CI fail 対象）
+symbols:
+  # access_token getter 禁止（layer 3: tier3 が access_token を保管・公開禁止）
+  - symbol_id: access_token_getter
+    # 禁止シンボル名パターン
+    pattern: "getAccessToken|accessToken|get_access_token"
+    # 禁止理由
+    reason: "BFF auth-edge が cookie でのみ保持。tier3 が access_token getter を公開することを禁止する"
+    # 適用スコープ（tier3 の全 TypeScript / C# / Go / Rust）
+    scope: tier3_public_api
+    # 強制機構層
+    enforcement_layer: 3
+    # ステータス
+    status: banned
+
+  # refresh_token 公開禁止（BFF の Valkey にのみ存在すべき）
+  - symbol_id: refresh_token_getter
+    # 禁止シンボル名パターン
+    pattern: "getRefreshToken|refreshToken|get_refresh_token"
+    # 禁止理由
+    reason: "refresh_token は BFF process memory + Valkey にのみ保持。tier3 への公開を禁止する"
+    # 適用スコープ
+    scope: tier3_public_api
+    # 強制機構層
+    enforcement_layer: 3
+    # ステータス
+    status: banned
+
+  # tenant_id を form / URL / query で受け取る API の禁止（layer 3）
+  - symbol_id: tenant_id_in_public_form
+    # 禁止シンボル名パターン
+    pattern: "tenantId|tenant_id"
+    # 禁止理由
+    reason: "tenant_id は OIDC token claim tid のみから取得。form / URL / query パラメータで受け取る API を禁止する"
+    # 適用スコープ
+    scope: tier3_public_form_schema_url_query
+    # 強制機構層
+    enforcement_layer: 3
+    # ステータス
+    status: banned
+
+  # PII を localStorage に平文書込みする経路の禁止（layer 5）
+  - symbol_id: pii_localstorage_write
+    # 禁止シンボル名パターン
+    pattern: "localStorage.setItem|sessionStorage.setItem"
+    # 禁止理由（pii annotation が付いたフィールドを含む場合に禁止）
+    reason: "PII を localStorage / SessionStorage に平文書込みすることを禁止する（暗号化 IndexedDB Outbox のみ例外）"
+    # 適用スコープ
+    scope: tier3_storage_write_with_pii
+    # 強制機構層
+    enforcement_layer: 5
+    # ステータス
+    status: banned
+
+  # 認可結果の client-side cache 禁止（layer 4）
+  - symbol_id: authorization_denied_cache
+    # 禁止シンボル名パターン
+    pattern: "cacheAuthorization|cache_authorization|authorizationCache"
+    # 禁止理由
+    reason: "AuthorizationDenied の client-side cache を禁止する（replay attack surface 削減）"
+    # 適用スコープ
+    scope: tier3_cache_layer
+    # 強制機構層
+    enforcement_layer: 4
+    # ステータス
+    status: banned
+
+  # tier1 / OSS 直接 import 禁止（layer 1: tier2 SDK 経由必須）
+  - symbol_id: tier1_direct_import
+    # 禁止シンボル名パターン
+    pattern: "from 'tier1/|import tier1/|@tier1/"
+    # 禁止理由
+    reason: "tier3 から tier1 / OSS への直接 import を禁止する（tier2 SDK 経由必須）"
+    # 適用スコープ
+    scope: tier3_import_statements
+    # 強制機構層
+    enforcement_layer: 1
+    # ステータス
+    status: banned

@@ -6,7 +6,6 @@ kind: policy
 status: draft
 depends_on:
   - arch.formal.formal_index
-  - detail.formal.proof_artifact_system
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E, F]
   proof_classes:

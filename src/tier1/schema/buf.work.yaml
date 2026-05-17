@@ -1,0 +1,8 @@
+version: v1
+directories:
+  - bidi
+  - auth
+  - slo
+  - tenant_capacity
+  - oss_lifecycle
+  - tier2

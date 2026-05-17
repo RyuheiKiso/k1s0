@@ -1,6 +1,6 @@
 ---
-id: detail.client.dotnet8_connect_inhouse
-axis: client
+id: detail.cross_edge.dotnet8_connect_inhouse
+axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -8,11 +8,14 @@ depends_on:
   - arch.client.transport_adaptation_policy
   - detail.client.sdk_distribution_conformance
   - detail.client.client_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
-    - v1_property_axiom_proof
     - v1_program_correctness_proof
+related_axes:
+  - client
+  - tier1
 ---
 
 # .NET 8 LTS 向け Connect-RPC 自製実装 適合仕様（v1）

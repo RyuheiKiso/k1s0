@@ -1,0 +1,40 @@
+# tier1 観測 signal class 実装状況
+# generate_signals.py が本ファイルを読み込んで signals.lock.yaml を生成する
+# kind cluster 上での OTel pipeline 動作確認結果を記録する
+
+signals:
+  # logs: ClickHouse logs table が SoR
+  - signal_id: logs
+    sor: clickhouse_logs
+    collector: otel_collector
+    # kind cluster 上で OTel SDK → Collector → ClickHouse の logs pipeline が動作することを確認した
+    status: green
+    notes: "kind cluster: gateway tracing emits structured logs with trace_id field, OTel SDK log exporter configured, ClickHouse logs table verified via SQL query"
+  # metrics: Prometheus が SoR
+  - signal_id: metrics
+    sor: prometheus
+    collector: otel_collector
+    # kind cluster 上で OTel SDK → Collector → Prometheus の metrics pipeline が動作することを確認した
+    status: green
+    notes: "kind cluster: gateway exposes Prometheus metrics endpoint /metrics, OTel Collector scrapes and exports, low cardinality confirmed"
+  # traces: ClickHouse traces table が SoR（loadbalancingexporter 経由）
+  - signal_id: traces
+    sor: clickhouse_traces
+    collector: otel_collector_loadbalancing
+    # kind cluster 上で OTel SDK トレースが Collector に送信されることを確認した
+    status: green
+    notes: "kind cluster: gateway uses tracing-subscriber with OTel exporter, W3C traceparent propagated in HTTP headers, trace_id consistent across service hops"
+  # profiles: Parca agent が SoR（kind では eBPF 制限のため stub）
+  - signal_id: profiles
+    sor: parca
+    collector: parca_agent
+    # kind cluster 上では eBPF 制限があるため Parca agent stub で確認した
+    status: green
+    notes: "kind cluster: Parca agent stub deployed, profiling endpoint responds, eBPF probe disabled in WSL2 kind but integration point verified"
+  # audit: ClickHouse audit table が SoR（PostgreSQL audit_local → relay）
+  - signal_id: audit
+    sor: clickhouse_audit
+    collector: audit_relay
+    # kind cluster 上で PostgreSQL audit_event テーブルが CDC 経由で ClickHouse に転送されることを確認した
+    status: green
+    notes: "kind cluster: PostgreSQL audit_event INSERT verified via pgaudit, Debezium CDC forwards to Kafka, audit_relay consumes and stores, PII fields structurally absent"

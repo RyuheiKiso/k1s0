@@ -6,10 +6,7 @@ kind: enforcement
 status: draft
 depends_on:
   - arch.tier1.tier1_index
-  - arch.tier1.libraries
   - arch.tier1.feature_categories
-  - detail.tier1.bidi_conformance
-  - detail.tier1.migration_pair_conformance
   - detail.tier1.observability_conformance
   - detail.tier1.auth_conformance
   - detail.tier1.key_management_conformance
@@ -21,7 +18,6 @@ covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
 ---
 
 # tier1 強制機構

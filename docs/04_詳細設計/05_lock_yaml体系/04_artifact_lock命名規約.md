@@ -34,6 +34,7 @@ covered_by:
   - `conflict_tree.lock.yaml`（tier3 クライアント状態適合仕様）
   - `sdk_inventory.lock.yaml` / `capability_matrix.lock.yaml` / `sdk_conformance.lock.yaml`（client クライアント SDK 配布適合仕様）
   - `proof_inventory.lock.yaml` / `proof_status.lock.yaml` / `counter_example.lock.yaml` / `proof_review.lock.yaml` / `proof_matrix.lock.yaml` / `assumption.lock.yaml` / `mathlib_pin.lock.yaml` / `tla_apalache_pin.lock.yaml` / `kani_cbmc_pin.lock.yaml`（formal 形式検証適合仕様）
+  - `cross_cutting_registry.lock.yaml`（cross-cutting cluster bundle map）
   - `release_gate.lock.yaml`（meta-axis 軸登録適合仕様）
 
 ## frontmatter 規約

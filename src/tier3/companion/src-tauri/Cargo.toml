@@ -1,0 +1,32 @@
+# k1s0 tier3 Tauri companion frontend glue crate
+# tier1 Cargo workspace member にしない（tier3/CLAUDE.md に明記）
+# sidecar exe の実装は src/_crosscutting/07_tauri_companion_sidecar/sidecar/ が primary
+# ここは Tauri framework が要求する frontend glue（window.invoke() 経由の IPC 層）
+
+# standalone workspace 宣言（tier1 workspace とは独立）
+[workspace]
+members = ["."]
+resolver = "2"
+
+[package]
+# crate 名（Tauri が要求する命名）
+name = "k1s0-tier3-companion"
+# バージョン
+version = "0.1.0"
+# Rust edition
+edition = "2021"
+# 説明
+description = "k1s0 tier3 Tauri companion frontend glue（IPC bridge）"
+
+[dependencies]
+# Tauri framework v2（IPC コマンド・イベント・plugin 機構を提供する）
+# Tauri CLI が管理するため、バージョン指定は Tauri CLI に従う
+tauri = { version = "2", features = [] }
+# serde: シリアライズ/デシリアライズフレームワーク（derive マクロを有効化する）
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON 値の動的操作（state_read / state_write の Value 型に使用する）
+serde_json = "1"
+
+[lib]
+# Tauri が要求するクレートタイプ
+crate-type = ["staticlib", "cdylib", "rlib"]

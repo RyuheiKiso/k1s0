@@ -1,0 +1,50 @@
+# k1s0 SLO 保護レイヤ: PgBouncer 接続プール ConfigMap 設定
+# 第 3 層保護: DB 接続プールで PostgreSQL への過剰接続を防ぎ SLO を維持する
+apiVersion: v1
+# リソース種別: ConfigMap
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: pgbouncer-config
+  name: pgbouncer-config
+  # Namespace: k1s0-system に配置する
+  namespace: k1s0-system
+data:
+  # pgbouncer.ini: PgBouncer のメイン設定ファイル
+  pgbouncer.ini: |
+    # PgBouncer データベース接続設定: k1s0 のメイン DB への接続を定義する
+    [databases]
+    # k1s0 データベース: PostgreSQL サービスに接続する
+    k1s0 = host=postgres.k1s0-system.svc.cluster.local port=5432 dbname=k1s0
+
+    # PgBouncer 基本設定: 接続プールの動作を制御する
+    [pgbouncer]
+    # リスナーアドレス: 全インターフェイスでリッスンする
+    listen_addr = *
+    # リスナーポート: デフォルトの PgBouncer ポート 5432 を使用する
+    listen_port = 5432
+    # 認証ファイル: userlist.txt で認証情報を管理する
+    auth_file = /etc/pgbouncer/userlist.txt
+    # 認証タイプ: MD5 認証を使用する
+    auth_type = md5
+    # プールモード: トランザクション単位のプールを使用する (接続再利用効率が高い)
+    pool_mode = transaction
+    # デフォルトプールサイズ: 1 データベースユーザーあたり 25 接続を確保する
+    default_pool_size = 25
+    # 最小プールサイズ: 常に 5 接続を維持する
+    min_pool_size = 5
+    # 最大クライアント接続数: 全クライアントへの最大同時接続数を 1000 に制限する
+    max_client_conn = 1000
+    # サーバー再利用最大回数: 1000 回使用後に接続を破棄して新しい接続を確立する
+    server_round_robin = 0
+    # ログレベル: info レベルのログを記録する
+    log_connections = 0
+    # 管理データベース: pgbouncer 管理用データベースを有効化する
+    admin_users = pgbouncer_admin
+    # 統計更新間隔: 60 秒ごとに統計情報を更新する
+    stats_period = 60
+
+  # userlist.txt: PgBouncer 認証ユーザーリスト (実際の値は Secret から注入する)
+  userlist.txt: |
+    # 認証ユーザーリスト: ユーザー名とハッシュ化パスワードを定義する
+    # 本番環境では Secret から注入すること
+    "k1s0_app" "md5placeholder"

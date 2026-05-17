@@ -1,0 +1,22 @@
+# k1s0 プラットフォーム operator bundle の Helm chart メタデータ
+apiVersion: v2
+# chart 名称（リポジトリ内で一意）
+name: k1s0
+# chart の用途説明
+description: k1s0 platform operator bundle
+# type: application（デプロイ可能な成果物）
+type: application
+# chart 自体のバージョン（semver）
+version: 0.1.0
+# デプロイ対象アプリのバージョン
+appVersion: "1.0.0"
+# chart のメンテナー情報
+maintainers:
+  - name: k1s0-infra-team
+    email: infra@k1s0.internal
+# chart が依存する子 chart 一覧（外部 repo 経由）
+dependencies: []
+# k1s0 固有のアノテーション（gitops ラベル）
+annotations:
+  k1s0.io/axis: infra
+  k1s0.io/layer: operator-bundle

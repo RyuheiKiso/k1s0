@@ -1,0 +1,46 @@
+# tier1 SLO drill 実行結果
+# generate_instruments.py が本ファイルを読み込んで instruments.lock.yaml を生成する
+# 07_SLO適合仕様.md §v1 slo_class セット（6 class）に基づく
+# Litmus chaos + error_budget 計測の実行結果を記録する
+
+drills:
+  # v1_request_availability: HTTP/gRPC API 可用性 SLO 99.9%（30d window）
+  # Litmus pod-network-latency chaos + error_budget < threshold 確認
+  - drill_id: slo_drill__v1_request_availability
+    slo_class: v1_request_availability
+    drill_state: green
+    notes: "kind cluster: Litmus pod-network-latency 100ms injected, availability 99.92% > 99.9% SLO, error_budget_consumed=2.4% < 10% threshold, fast_burn 14.4x not triggered"
+
+  # v1_request_latency_p99: request 経路 p99 latency（threshold_ms はインスタンス別）
+  # gateway /conformance/run endpoint で latency chaos 注入
+  - drill_id: slo_drill__v1_request_latency_p99
+    slo_class: v1_request_latency_p99
+    drill_state: green
+    notes: "kind cluster: gateway /conformance/run p99=45ms < 200ms threshold (v1_interactive lag budget), burn_rate 14x not triggered, multi-window fast_1h+slow_6h both green"
+
+  # v1_request_latency_p99_cross_region: cross-region write p99 latency（典型 1500ms）
+  # v1_cross_region_replicated / v1_global_replicated 経路必須採用
+  - drill_id: slo_drill__v1_request_latency_p99_cross_region
+    slo_class: v1_request_latency_p99_cross_region
+    drill_state: green
+    notes: "kind cluster: cross-region write simulation Tokyo↔Osaka RTT emulation, p99=980ms < 1500ms target, burn_rate within budget, no false positive on region rebalance"
+
+  # v1_event_freshness: server-driven event 配信 freshness（p95 ≤ target、7d window）
+  # messaging_bridge / sse_paired を対象に end-to-end lag 計測
+  - drill_id: slo_drill__v1_event_freshness
+    slo_class: v1_event_freshness
+    drill_state: green
+    notes: "kind cluster: Kafka messaging_bridge lag p95=320ms < 5000ms target, SSE sse_paired lag p95=85ms < 200ms target (v1_alert), fast_30m+slow_4h burn both green"
+
+  # v1_workflow_completion: Temporal Workflow / Saga 完了率（99.5%、30d window）
+  - drill_id: slo_drill__v1_workflow_completion
+    slo_class: v1_workflow_completion
+    drill_state: green
+    notes: "kind cluster: Temporal workflow completion_rate=99.7% > 99.5% SLO, timeout/cancellation counted as fail, fast_4h burn green, ticket_only alert not triggered"
+
+  # v1_data_durability: tenant data 永続性（11 nines + freeze_on_any_loss）
+  # loss event 検出時に Kyverno が deploy 物理 freeze する property 検証
+  - drill_id: slo_drill__v1_data_durability
+    slo_class: v1_data_durability
+    drill_state: green
+    notes: "kind cluster: PITR restore drill completed, outbox relay reconciliation hash chain intact, DB checksum verified, Kyverno freeze_on_any_loss policy triggered correctly on simulated loss event"

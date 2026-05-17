@@ -1,0 +1,447 @@
+# Backstage catalog-info.yaml: k1s0 全 19 軸の ComponentEntity を定義する
+# Backstage Software Catalog に登録してサービスカタログとして可視化する
+---
+# ============================================================
+# tier1: 低レイヤサーバ・operator 層（Rust/Go で実装する）
+# ============================================================
+# tier1 コンポーネントエンティティを定義する
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  # コンポーネントの一意識別子（k1s0 軸 ID と一致させる）
+  name: k1s0-tier1
+  # Backstage UI に表示されるタイトル
+  title: k1s0 Tier1 - Transport Server & Operators
+  description: >
+    k1s0 最下層。Rust axum による HTTP/2 transport server と
+    Kubernetes operator（Go）を含む。HLC 必須 / cosign 署名済み image のみ。
+  # 検索・フィルタリング用のアノテーション
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/axis-id: "tier1"
+    k1s0.io/layer: "application"
+  tags:
+    - tier1
+    - rust
+    - go
+    - operator
+spec:
+  # コンポーネントのタイプ（service / library / website）
+  type: service
+  # ライフサイクル状態
+  lifecycle: experimental
+  # オーナーチーム
+  owner: k1s0-infra-team
+  # 依存する他のコンポーネント
+  dependsOn:
+    - component:k1s0-infra
+    - component:k1s0-formal
+---
+# tier2: テナント分離 SDK・facade 層
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-tier2
+  title: k1s0 Tier2 - SDK Facade & Tenant Isolation
+  description: >
+    k1s0 中間層。tier1 OSS API の facade を提供するテナント分離 SDK。
+    Rust/C#/Go/TypeScript の 4 言語で等価強度の実装を提供する。
+  annotations:
+    k1s0.io/axis-id: "tier2"
+    k1s0.io/layer: "application"
+  tags:
+    - tier2
+    - sdk
+    - facade
+    - tenant-isolation
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+  dependsOn:
+    - component:k1s0-tier1
+---
+# tier3: クライアント層（SPA / Desktop / Legacy）
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-tier3
+  title: k1s0 Tier3 - Client Applications
+  description: >
+    k1s0 クライアント層。TypeScript + React SPA / Rust + Tauri Desktop /
+    .NET Framework Legacy の 3 種類のクライアントを含む。
+  annotations:
+    k1s0.io/axis-id: "tier3"
+    k1s0.io/layer: "application"
+  tags:
+    - tier3
+    - frontend
+    - react
+    - tauri
+spec:
+  type: website
+  lifecycle: experimental
+  owner: k1s0-infra-team
+  dependsOn:
+    - component:k1s0-tier2
+---
+# ============================================================
+# infra: インフラ管理軸（Helm / IaC / eBPF / topology）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-infra
+  title: k1s0 Infra - Helm + Topology + eBPF + IaC
+  description: >
+    k1s0 インフラ管理軸。kind クラスタ / Helm operator bundle /
+    topology failover drill / clock_integrity / eBPF probe /
+    Backstage / OpenTofu IaC を含む。
+  annotations:
+    k1s0.io/axis-id: "infra"
+    k1s0.io/layer: "infrastructure"
+  tags:
+    - infra
+    - helm
+    - kind
+    - ebpf
+    - opentofu
+spec:
+  type: service
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# ============================================================
+# data: データ管理軸（PostgreSQL / ClickHouse / Debezium）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-data
+  title: k1s0 Data - PostgreSQL RLS + ClickHouse + CDC
+  description: >
+    k1s0 データ管理軸。PostgreSQL RLS・pgaudit・Barman バックアップ /
+    ClickHouse 分析 / Debezium CDC / PII クラスタリングを含む。
+  annotations:
+    k1s0.io/axis-id: "data"
+    k1s0.io/layer: "data"
+  tags:
+    - data
+    - postgresql
+    - clickhouse
+    - debezium
+    - cdc
+spec:
+  type: service
+  lifecycle: experimental
+  owner: k1s0-infra-team
+  dependsOn:
+    - component:k1s0-infra
+---
+# ============================================================
+# security: セキュリティ軸（Kyverno / cosign / 脅威モデル）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-security
+  title: k1s0 Security - Kyverno + cosign + Threat Model
+  description: >
+    k1s0 セキュリティ軸。Kyverno 25+ policy / cosign signing policy /
+    Harbor admission / 脅威モデル / SBOM provenance を含む。
+  annotations:
+    k1s0.io/axis-id: "security"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - security
+    - kyverno
+    - cosign
+    - harbor
+    - threat-model
+spec:
+  type: service
+  lifecycle: experimental
+  owner: k1s0-infra-team
+  dependsOn:
+    - component:k1s0-infra
+---
+# ============================================================
+# ops: 運用管理軸（Argo CD / Grafana / Alert Manager）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-ops
+  title: k1s0 Ops - GitOps + Observability
+  description: >
+    k1s0 運用管理軸。Argo CD GitOps / Prometheus + Grafana 可観測性 /
+    Alert Manager / SLO ループを含む。
+  annotations:
+    k1s0.io/axis-id: "ops"
+    k1s0.io/layer: "operations"
+  tags:
+    - ops
+    - gitops
+    - argocd
+    - prometheus
+    - grafana
+spec:
+  type: service
+  lifecycle: experimental
+  owner: k1s0-infra-team
+  dependsOn:
+    - component:k1s0-infra
+    - component:k1s0-security
+---
+# ============================================================
+# client: クライアント SDK 配布軸
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-client
+  title: k1s0 Client - SDK Distribution
+  description: >
+    k1s0 クライアント SDK 配布軸。HLC ライブラリ / tier2 SDK の
+    パッケージング・配布・バージョン管理を担当する。
+  annotations:
+    k1s0.io/axis-id: "client"
+    k1s0.io/layer: "application"
+  tags:
+    - client
+    - sdk
+    - distribution
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+  dependsOn:
+    - component:k1s0-tier2
+---
+# ============================================================
+# test: テスト基盤軸（coverage_matrix / regression_corpus）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-test
+  title: k1s0 Test - Coverage Matrix + Regression
+  description: >
+    k1s0 テスト基盤軸。18 軸 × 5 verification_class = 90 cell の
+    coverage_matrix / regression_corpus を管理する。
+  annotations:
+    k1s0.io/axis-id: "test"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - test
+    - coverage
+    - regression
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# ============================================================
+# formal: 形式検証軸（TLA+ / Lean 4 / Stainless / Kani）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-formal
+  title: k1s0 Formal - TLA+ + Lean4 + Stainless + Kani
+  description: >
+    k1s0 形式検証軸。TLA+ temporal_safety_proof / Stainless data invariant /
+    Lean 4 proof / Kani bounded model check / CBMC の 5 ツールを含む。
+  annotations:
+    k1s0.io/axis-id: "formal"
+    k1s0.io/layer: "verification"
+  tags:
+    - formal
+    - tla
+    - lean4
+    - kani
+    - stainless
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# ============================================================
+# _meta: メタ軸（axis_registry / 軸登録適合仕様）
+# ============================================================
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-meta
+  title: k1s0 Meta - Axis Registry
+  description: >
+    k1s0 メタ軸。axis_registry.lock.yaml（19 軸 / cap 20 / 残 1）と
+    00_軸登録適合仕様の物理化を担当する。
+  annotations:
+    k1s0.io/axis-id: "_meta"
+    k1s0.io/layer: "meta"
+  tags:
+    - meta
+    - axis-registry
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# ============================================================
+# crosscutting: 横断的関心事クラスタ（8 軸）
+# ============================================================
+# crosscutting: HLC（Hybrid Logical Clock）
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-hlc
+  title: k1s0 Crosscutting - HLC (Hybrid Logical Clock)
+  description: 横断的 HLC 実装。全軸で wall-clock を HLC に置き換える共有ライブラリ。
+  annotations:
+    k1s0.io/axis-id: "cc_hlc"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - hlc
+    - clock
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: 認証・認可
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-authn
+  title: k1s0 Crosscutting - AuthN/AuthZ
+  description: 横断的認証・認可。OIDC + RBAC + OPA policy の共有実装。
+  annotations:
+    k1s0.io/axis-id: "cc_authn"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - authn
+    - authz
+    - oidc
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: 可観測性
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-observability
+  title: k1s0 Crosscutting - Observability (OTLP)
+  description: 横断的可観測性。OpenTelemetry OTLP エクスポータの共有実装。
+  annotations:
+    k1s0.io/axis-id: "cc_observability"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - observability
+    - opentelemetry
+    - otlp
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: エラー処理
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-error-handling
+  title: k1s0 Crosscutting - Error Handling
+  description: 横断的エラー処理。構造化エラー型・サーキットブレーカーの共有実装。
+  annotations:
+    k1s0.io/axis-id: "cc_error_handling"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - error-handling
+    - circuit-breaker
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: スキーマ管理（Protobuf / Buf）
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-schema
+  title: k1s0 Crosscutting - Schema (Protobuf + Buf)
+  description: 横断的スキーマ管理。Protobuf / Buf codegen の共有定義。
+  annotations:
+    k1s0.io/axis-id: "cc_schema"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - protobuf
+    - buf
+    - schema
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: FSM（有限状態機械）
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-fsm
+  title: k1s0 Crosscutting - FSM (Finite State Machine)
+  description: 横断的 FSM 実装。状態遷移のコード生成と検証の共有実装。
+  annotations:
+    k1s0.io/axis-id: "cc_fsm"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - fsm
+    - state-machine
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: HTTP/2 強制
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-http2
+  title: k1s0 Crosscutting - HTTP/2 Enforcement
+  description: 横断的 HTTP/2 強制。全 tier でのプロトコル強制と検証の共有実装。
+  annotations:
+    k1s0.io/axis-id: "cc_http2"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - http2
+    - protocol
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team
+---
+# crosscutting: レート制限
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-cc-rate-limit
+  title: k1s0 Crosscutting - Rate Limiting
+  description: 横断的レート制限。Token Bucket / Leaky Bucket の共有実装。
+  annotations:
+    k1s0.io/axis-id: "cc_rate_limit"
+    k1s0.io/layer: "crosscutting"
+  tags:
+    - crosscutting
+    - rate-limiting
+    - token-bucket
+spec:
+  type: library
+  lifecycle: experimental
+  owner: k1s0-infra-team

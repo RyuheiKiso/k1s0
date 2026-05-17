@@ -7,7 +7,6 @@ status: draft
 depends_on:
   - arch.formal.formal_index
   - arch.formal.proof_artifact_policy
-  - detail.formal.counter_example_system
 covered_by:
   defense_in_depth_layers: [B, D, E]
   proof_classes:

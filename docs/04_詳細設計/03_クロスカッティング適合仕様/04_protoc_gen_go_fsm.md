@@ -1,6 +1,6 @@
 ---
-id: detail.tier2.protoc_gen_go_fsm
-axis: tier2
+id: detail.cross_fsm.protoc_gen_go_fsm
+axis: cross_fsm
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -8,11 +8,14 @@ depends_on:
   - arch.tier2.tier2_index
   - detail.tier2.tier2_enforcement
   - detail.client.sdk_distribution_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D]
   proof_classes:
-    - v1_property_axiom_proof
     - v1_program_correctness_proof
+related_axes:
+  - tier2
+  - client
 ---
 
 # protoc-gen-k1s0-go-fsm（v1）

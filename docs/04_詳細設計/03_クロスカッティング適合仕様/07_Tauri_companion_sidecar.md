@@ -1,20 +1,25 @@
 ---
-id: detail.tier3.tauri_companion_sidecar
-axis: tier3
+id: detail.cross_bff.tauri_companion_sidecar
+axis: cross_bff
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
 depends_on:
   - arch.tier3.application_form
   - arch.tier3.device_offline
-  - detail.tier3.bff_auth_edge
+  - detail.cross_bff.bff_auth_edge
   - detail.tier3.tier3_enforcement
   - detail.infra.clock_integrity_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_temporal_safety_proof
     - v1_program_correctness_proof
+related_axes:
+  - tier3
+  - client
+  - infra
 ---
 
 # Tauri Companion sidecar（v1）

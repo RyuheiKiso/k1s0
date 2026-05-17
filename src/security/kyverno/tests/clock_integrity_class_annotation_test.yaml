@@ -1,0 +1,51 @@
+# clock-integrity-class annotation ポリシーのテストファイル
+# kyverno test コマンドで実行する: kyverno test .
+apiVersion: cli.kyverno.io/v1alpha1
+# Kyverno CLI テストリソース定義
+kind: Test
+metadata:
+  # テスト名称: clock-integrity-class annotation の検証テスト
+  name: clock-integrity-class-annotation-test
+spec:
+  # テスト対象のポリシーファイルパス
+  policies:
+    # clock-integrity-class annotation ポリシーを参照する
+    - ../policies/require-clock-integrity-class-annotation.yaml
+  # テスト対象のリソースファイルパス
+  resources:
+    # テスト用リソースファイルを参照する
+    - resources/clock_integrity_class_resources.yaml
+  # テストケース定義
+  results:
+    # pass ケース 1: 有効な clock-integrity-class annotation を持つ Pod
+    - policy: require-clock-integrity-class-annotation
+      # ルール名称を指定する
+      rule: check-clock-integrity-class
+      # テスト対象リソース名
+      resource: pod-with-ptp-clock-class
+      # 合格すること（この Pod は許可されるべき）
+      result: pass
+    # pass ケース 2: air_gapped_legacy annotation を持つ Pod
+    - policy: require-clock-integrity-class-annotation
+      # ルール名称を指定する
+      rule: check-clock-integrity-class
+      # テスト対象リソース名
+      resource: pod-with-airgapped-clock-class
+      # 合格すること（この Pod は許可されるべき）
+      result: pass
+    # fail ケース 1: clock-integrity-class annotation がない Pod
+    - policy: require-clock-integrity-class-annotation
+      # ルール名称を指定する
+      rule: check-clock-integrity-class
+      # テスト対象リソース名
+      resource: pod-without-clock-class
+      # 失敗すること（この Pod は拒否されるべき）
+      result: fail
+    # fail ケース 2: 無効な clock-integrity-class 値を持つ Pod
+    - policy: require-clock-integrity-class-annotation
+      # ルール名称を指定する
+      rule: check-clock-integrity-class
+      # テスト対象リソース名
+      resource: pod-with-invalid-clock-class
+      # 失敗すること（この Pod は拒否されるべき）
+      result: fail

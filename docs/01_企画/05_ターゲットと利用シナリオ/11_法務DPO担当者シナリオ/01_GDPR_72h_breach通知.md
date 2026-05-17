@@ -152,4 +152,4 @@ data breach 発生時（security 担当者から breach 疑いの通知を受け
 - [法務 DPO 担当者シナリオ index](README.md)
 - [個人情報保護法30d報告](02_個人情報保護法30d報告.md)
 - [DSAR対応最終承認](03_DSAR対応最終承認.md)
-- [security: data_breach_privacy_incident_response](../../06_security担当者シナリオ/14_data_breach_privacy_incident_response.md)
+- [security: data_breach_privacy_incident_response](../06_security担当者シナリオ/14_data_breach_privacy_incident_response.md)

@@ -15,7 +15,6 @@ depends_on:
   - arch.security.incident_response_policy
   - arch.security.security_training_policy
   - detail.security.threat_model_conformance
-  - detail.security.build_provenance_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []

@@ -106,11 +106,16 @@ docs/00_format/
     3. CI lint green 確認
 - 規約変更の意思決定は本 README の trail には残さず、git log を単一の真とする（CLAUDE.md「変更履歴を明文化しない」）。
 
-## CI / lint 実装状況
+## 11 Phase と規約層の対応
 
-- 規約宣言: 完了（Phase 0 の本作業）
-- lint 実装: Phase 5 で `tools/docs_lint/` 配下に実装
-- CI 統合: Phase 5
+| 規約層の deliverable | 対応 Phase | 内容 |
+|---|---|---|
+| 規約宣言（本ディレクトリ） | P0 Tooling | `docs/00_format/` の規約 / schema / template / linter 設定を確定 |
+| lint 実装 | P2 B 層 lint | `tools/docs_lint/` に markdownlint / textlint / frontmatter_validator / xref_check を実装 |
+| CI 統合 | P2 B 層 lint | GitHub Actions で全 .md の lint green を ship blocker に設定 |
+| `status: locked` 昇格 | Phase 別 | 各 Phase 完了時に対象文書を locked に昇格 |
+
+11 Phase の全体像は root [CLAUDE.md](../../CLAUDE.md) を参照。
 
 ## 関連参照
 - [conventions/frontmatter.md](conventions/frontmatter.md)

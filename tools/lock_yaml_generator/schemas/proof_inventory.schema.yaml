@@ -1,0 +1,64 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for proof_inventory.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: proof_inventory
+description: >
+  95 件の proof obligation を管理するスキーマ。
+  obligations の件数は固定 95 件。
+type: object
+required:
+  - obligations
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  obligations:
+    type: array
+    minItems: 95
+    maxItems: 95
+    description: proof obligation エントリ（固定 95 件）。
+    items:
+      $ref: "#/definitions/obligation_entry"
+definitions:
+  obligation_entry:
+    type: object
+    required:
+      - obligation_id
+      - axis
+      - proof_class
+      - tool_kind
+      - spec_file
+      - cell_state
+    additionalProperties: false
+    properties:
+      obligation_id:
+        type: string
+        description: obligation の一意識別子。
+      axis:
+        type: string
+        description: この obligation が属する軸 ID。
+      proof_class:
+        type: string
+        enum:
+          - v1_temporal_safety_proof
+          - v1_program_correctness_proof
+          - v1_refinement_proof
+          - v1_runtime_model_check
+          - v1_property_axiom
+        description: proof の分類（5 値 enum）。
+      tool_kind:
+        type: string
+        description: 使用する検証ツール種別（例: TLA+, Stainless, Coq 等）。
+      spec_file:
+        type: string
+        description: 対応する仕様ファイルのパス。
+      cell_state:
+        type: string
+        enum:
+          - v1_baseline_verified
+          - v1_unverified_handled
+          - v1_pending
+        description: このセルの現在の検証状態。

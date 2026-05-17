@@ -1,0 +1,63 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "k1s0-companion",
+  "version": "0.1.0",
+  "identifier": "io.k1s0.companion",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "k1s0 コンパニオン",
+        "width": 1024,
+        "height": 768,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' tauri: asset: https://asset.localhost; connect-src 'self' http://localhost:* https://localhost:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "k1s0",
+    "copyright": "Copyright (c) 2026 k1s0",
+    "category": "Developer Tool",
+    "licenseFile": "LICENSE",
+    "linux": {
+      "deb": {
+        "depends": ["libudev1", "libudev-dev"]
+      }
+    },
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "certificateThumbprint": null,
+      "timestampUrl": ""
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "frameworks": [],
+      "signingIdentity": null,
+      "providerShortName": null,
+      "entitlements": null
+    },
+    "updater": {
+      "active": false
+    }
+  }
+}

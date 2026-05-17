@@ -1,0 +1,109 @@
+# tier2 テーブルクラスカタログ（SoT: 手書き、10_テナント分離適合仕様.md と整合）
+# 4 class × 必須列 / RLS / 監査要件 / Outbox 要件 の純粋関数テーブル
+# generate_migration.py が本ファイルを読み込んで migration.lock.yaml を生成する
+
+table_classes:
+
+  # ============================================================
+  # tenant_scoped: テナントスコープエンティティ（業務 aggregate 標準クラス）
+  # ============================================================
+  - class_id: tenant_scoped
+    # テナント ID 列: 必須（RLS が tenant_id で絞り込む）
+    tenant_id_required: true
+    # RLS 有効化フラグ: FORCE flag 付きで有効化する
+    rls_enabled: true
+    # RLS ポリシー種別: USING / WITH CHECK 共に tenant_id 一致を要求する
+    rls_policy: tenant_id_match
+    # 監査要件: INSERT / UPDATE / DELETE で audit_local を必須 emit する
+    audit_required: true
+    # Outbox 要件: aggregate 状態変化で outbox を必須 emit する
+    outbox_required: true
+    # 必須列リスト: この class のすべての table が持つべき列
+    required_columns:
+      # エンティティ主キー
+      - id
+      # テナント識別子（RLS の絞り込みキー）
+      - tenant_id
+      # 作成日時
+      - created_at
+      # 更新日時
+      - updated_at
+      # 楽観的ロックバージョン
+      - version
+    # 典型用途
+    description: "業務 entity / aggregate / Read Model"
+
+  # ============================================================
+  # tenant_master: テナントマスタ（role 制限付き）
+  # ============================================================
+  - class_id: tenant_master
+    # テナント ID 列: 必須
+    tenant_id_required: true
+    # RLS 有効化フラグ: FORCE flag 付き
+    rls_enabled: true
+    # RLS ポリシー種別: tenant_id + role 制限（master.admin role が必要）
+    rls_policy: tenant_id_match_with_role
+    # 監査要件: 変更操作で audit_local を必須 emit する
+    audit_required: true
+    # Outbox 要件: class 宣言で必要とされる場合のみ emit する
+    outbox_required: false
+    # 必須列リスト
+    required_columns:
+      - id
+      - tenant_id
+      - created_at
+      - updated_at
+      - version
+    # 典型用途
+    description: "テナント所有マスタ（通貨レート・製品カタログ等）"
+
+  # ============================================================
+  # platform_global: プラットフォームグローバル（tenant 越境 read 可）
+  # ============================================================
+  - class_id: platform_global
+    # テナント ID 列: 不在（プラットフォーム共通データ）
+    tenant_id_required: false
+    # RLS 有効化フラグ: 無効（tenant 全員が read 可、書込は platform_admin role のみ）
+    rls_enabled: false
+    # RLS ポリシー種別: なし（無効）
+    rls_policy: none
+    # 監査要件: 変更時に platform-wide audit（tenant 識別子無しの sink）
+    audit_required: true
+    # Outbox 要件: platform-wide topic に emit する
+    outbox_required: true
+    # 必須列リスト（tenant_id は含まない）
+    required_columns:
+      - id
+      - created_at
+      - updated_at
+      - version
+    # 典型用途
+    description: "通貨 / 国 / 業界共通分類（全 tenant 参照可能）"
+
+  # ============================================================
+  # pii_segregated: PII 隔離（最高レベルのアクセス制限）
+  # ============================================================
+  - class_id: pii_segregated
+    # テナント ID 列: 必須
+    tenant_id_required: true
+    # RLS 有効化フラグ: FORCE flag + purpose check 付き
+    rls_enabled: true
+    # RLS ポリシー種別: tenant_id 一致 + purpose check（support_engineer role が必要）
+    rls_policy: tenant_id_match_with_purpose_check
+    # 監査要件: audit_local に加えて pgaudit による全アクセス DB ログ
+    audit_required: true
+    # pgaudit 有効化フラグ: pii_segregated のみ true
+    pgaudit_required: true
+    # Outbox 要件: redact 済み payload のみ emit（PII 平文は Outbox に載せない）
+    outbox_required: true
+    # Outbox における PII redact 必須フラグ
+    outbox_pii_redact: true
+    # 必須列リスト
+    required_columns:
+      - id
+      - tenant_id
+      - created_at
+      - updated_at
+      - version
+    # 典型用途
+    description: "PII を含む user / partner（個人情報保護法・GDPR 対象）"
