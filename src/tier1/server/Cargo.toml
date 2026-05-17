@@ -1,0 +1,39 @@
+# k1s0 tier1 Rust workspace: サーバー系クレート群を管理する
+[workspace]
+# Rust workspace のメンバークレート一覧
+members = [
+    # HTTP/2 ALPN h2 ゲートウェイサーバー（Bidi conformance を担う）
+    "gateway",
+    # Outbox リレーサイドカー（WAL → Kafka 非同期転送）
+    "sidecar",
+    # ライブラリ向けバックエンド（トークン検証エンドポイント）
+    "bfl",
+    # コントロールプレーン（flagd 連携スタブ）
+    "control_plane",
+]
+# Cargo workspace の依存バージョン一元管理（resolver v2 必須）
+resolver = "2"
+
+[workspace.dependencies]
+# axum: 高性能 Rust Web フレームワーク（HTTP/2 対応）
+axum = { version = "0.8", features = ["http2"] }
+# tokio: 非同期 I/O ランタイム（全機能を有効化する）
+tokio = { version = "1", features = ["full"] }
+# tower: ミドルウェア・レイヤリング用 HTTP ユーティリティ
+tower = "0.5"
+# tower-http: HTTP 特化ミドルウェア（トレース・圧縮等）
+tower-http = { version = "0.6", features = ["trace"] }
+# serde: データシリアライズ/デシリアライズフレームワーク
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON シリアライズ/デシリアライズライブラリ
+serde_json = "1"
+# tracing: 構造化ロギングフレームワーク
+tracing = "0.1"
+# tracing-subscriber: tracing のサブスクライバー実装
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# anyhow: エラーハンドリングライブラリ
+anyhow = "1"
+# uuid: UUID 生成ライブラリ（セッション・ドリル ID 生成に使用する）
+uuid = { version = "1", features = ["v4"] }
+# chrono: 日時ライブラリ（タイムスタンプ管理に使用する）
+chrono = { version = "0.4", features = ["serde"] }
