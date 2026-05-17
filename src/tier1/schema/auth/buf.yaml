@@ -1,0 +1,11 @@
+version: v1
+name: buf.build/k1s0/tier1-auth
+deps:
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - DEFAULT
+    - COMMENTS
+breaking:
+  use:
+    - FILE

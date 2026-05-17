@@ -1,0 +1,76 @@
+// tier1 OSS ライフサイクル適合仕様 v1 — OSS inventory 定義
+// 08_OSSライフサイクル適合仕様.md §v1 lifecycle_class セット（6 class）と
+// 02_採用OSS一覧.md との byte-equal 整合を確保する機械可読 schema を宣言する。
+syntax = "proto3";
+
+package tier1.oss_lifecycle.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/k1s0-io/k1s0/tier1/oss_lifecycle/v1;osslifecyclev1";
+option java_multiple_files = true;
+option java_package = "io.k1s0.tier1.oss_lifecycle.v1";
+
+// LifecycleClass は 08_OSSライフサイクル適合仕様.md §v1 lifecycle_class セット（6 class）を宣言する。
+enum LifecycleClass {
+  LIFECYCLE_CLASS_UNSPECIFIED = 0;
+  // 活発に開発・保守されているコア OSS
+  V1_ACTIVE_CORE = 1;
+  // 安定期に入り変化が少ないが保守中の OSS
+  V1_STABLE_MAINTENANCE = 2;
+  // LTS 版のみ保守している OSS
+  V1_LTS_ONLY = 3;
+  // EOL が宣言された OSS（移行計画必須）
+  V1_EOL_ANNOUNCED = 4;
+  // フォーク / community 移管済みの OSS
+  V1_FORKED_OR_TRANSFERRED = 5;
+  // 内製代替で置き換え済みの OSS
+  V1_REPLACED_INHOUSE = 6;
+}
+
+// LicenseKind は OSS ライセンスの種別を宣言する（GPL 汚染リスクを識別するため）。
+enum LicenseKind {
+  LICENSE_KIND_UNSPECIFIED = 0;
+  APACHE_2 = 1;
+  MIT = 2;
+  BSD_2 = 3;
+  BSD_3 = 4;
+  ISC = 5;
+  MPL_2 = 6;
+  LGPL_2_1 = 7;
+  AGPL_3 = 8;
+  PROPRIETARY = 9;
+}
+
+// OssEntry は 02_採用OSS一覧.md の 1 エントリに対応する機械可読 record を宣言する。
+message OssEntry {
+  // id: kebab-case の一意識別子（例: axum, kafka-broker）
+  string id = 1;
+  // name: 人間向け表示名
+  string name = 2;
+  // version_pin: cargo.lock / go.sum / pnpm-lock.yaml 等で固定したバージョン
+  string version_pin = 3;
+  // lifecycle_class: 現時点の OSS ライフサイクル状態
+  LifecycleClass lifecycle_class = 4;
+  // license: ライセンス種別
+  LicenseKind license = 5;
+  // used_by_axes: 使用している軸の一覧（例: [tier1, tier2]）
+  repeated string used_by_axes = 6;
+  // last_security_audit_at: 最終セキュリティ監査日時
+  google.protobuf.Timestamp last_security_audit_at = 7;
+  // eol_at: EOL 予定日時（EOL_ANNOUNCED 以上の class のみ）
+  google.protobuf.Timestamp eol_at = 8;
+  // migration_target: 置き換え先（EOL_ANNOUNCED / REPLACED_INHOUSE のみ）
+  string migration_target = 9;
+}
+
+// OssInventory は 02_採用OSS一覧.md 全体を機械可読な form に固定する。
+// oss_inventory.lock.yaml はこの schema の build artifact として生成される。
+message OssInventory {
+  // entries: 採用 OSS エントリの全リスト
+  repeated OssEntry entries = 1;
+  // generated_at: 生成日時
+  google.protobuf.Timestamp generated_at = 2;
+  // schema_version: このメッセージのバージョン
+  string schema_version = 3;
+}
