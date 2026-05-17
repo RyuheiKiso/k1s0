@@ -30,6 +30,16 @@ anyhow = { workspace = true }
 uuid = { workspace = true }
 # chrono: 日時ライブラリ（conformance テスト実行日時に使用する）
 chrono = { workspace = true }
+# opentelemetry: OTel SDK コア（spec 03 観測 - W3C traceparent 伝搬）
+opentelemetry = { version = "0.27", features = ["trace"] }
+# opentelemetry_sdk: OTel SDK ランタイム実装
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+# opentelemetry-otlp: OTLP exporter（Collector への送信）
+opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
+# tracing-opentelemetry: tracing と OTel のブリッジ
+tracing-opentelemetry = "0.28"
+# tonic: gRPC クライアント（OTLP gRPC transport に使用する）
+tonic = "0.12"
 
 [dev-dependencies]
 # reqwest: 統合テスト用 HTTP クライアント（HTTP/2 + rustls-tls で pkg-config 不要）

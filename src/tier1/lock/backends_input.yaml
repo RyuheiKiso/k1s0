@@ -1,0 +1,40 @@
+# tier1 鍵管理バックエンド検証結果（5 key_class）
+# generate_backends.py が本ファイルを読み込んで backends.lock.yaml を生成する
+# kind cluster 上での KeyHandle opaque 型 + OpenBao Transit 連携確認結果を記録する
+
+backends:
+  # v1_data_dek: column-level 暗号化 DEK（software_kms_wrapped）
+  - key_class: v1_data_dek
+    backend: software_kms_wrapped
+    purpose: data_encryption
+    # kind cluster 上で DEK 生成・ラップ・アンラップが KeyHandle 経由で動作することを確認した
+    drill_state: green
+    notes: "kind cluster: BFL /kek/dek endpoint generates KeyHandle (opaque, no raw bytes in response), DEK wrapping via OpenBao Transit encrypt API verified, crypto-shred via KEK delete confirmed"
+  # v1_data_kek: DEK ラップ鍵（OpenBao Transit + Shamir M-of-N 分散）
+  - key_class: v1_data_kek
+    backend: hsm_pkcs11_shamir_distributed
+    purpose: kek_wrapping
+    # kind cluster 上で OpenBao Shamir unseal と KeyHandle ラッピングが動作することを確認した
+    drill_state: green
+    notes: "kind cluster: OpenBao Transit aes256-gcm96 KEK, Shamir M=3 N=5 unseal simulated, KeyHandle wraps DEK without exposing raw KEK, per-tenant isolation verified"
+  # v1_token_signing: JWT 署名鍵（HSM PKCS#11 シミュレーション）
+  - key_class: v1_token_signing
+    backend: hsm_pkcs11
+    purpose: signing_jwt
+    # kind cluster 上で BFL トークン検証が AuthContext を返し生 token を露出しないことを確認した
+    drill_state: green
+    notes: "kind cluster: BFL /auth/verify returns AuthContext{is_valid, tenant_id, correlation_id}, raw JWT not in response, JWKS rotation 90-day cadence simulated"
+  # v1_audit_root_signing: 監査ログ年次 root 署名（外部公証付き）
+  - key_class: v1_audit_root_signing
+    backend: hsm_pkcs11
+    purpose: signing_audit_root
+    # kind cluster 上で audit_event ハッシュチェーンへの署名が動作することを確認した
+    drill_state: green
+    notes: "kind cluster: audit_event hash chain root computed, cosign keyless sign applied (OIDC token = kind service account), external notary simulation via SHA256 digest published"
+  # v1_mtls_workload: mTLS ワークロード ID（SPIRE SVID）
+  - key_class: v1_mtls_workload
+    backend: spire
+    purpose: mtls_identity
+    # kind cluster 上で SPIRE SVID の自動 rotation が動作することを確認した
+    drill_state: green
+    notes: "kind cluster: SPIRE server + agent deployed, X.509 SVID issued to gateway pod, 6-hour rotation simulated, mTLS handshake between gateway and BFL verified"

@@ -44,6 +44,10 @@ TOPO_ORDER: list[str] = [
     "oss_inventory",
     "enforcement_points",
     "idp_capabilities",
+    "dry_run",
+    "signals",
+    "backends",
+    "registries",
     "artifact_inventory",
     "release_gate",
 ]
@@ -79,6 +83,10 @@ def get_generator(name: str) -> type | None:
         "oss_inventory": ("tools.lock_yaml_generator.generate_oss_inventory", "OssInventoryGenerator"),
         "enforcement_points": ("tools.lock_yaml_generator.generate_enforcement_points", "EnforcementPointsGenerator"),
         "idp_capabilities": ("tools.lock_yaml_generator.generate_idp_capabilities", "IdpCapabilitiesGenerator"),
+        "dry_run": ("tools.lock_yaml_generator.generate_dry_run", "DryRunGenerator"),
+        "signals": ("tools.lock_yaml_generator.generate_signals", "SignalsGenerator"),
+        "backends": ("tools.lock_yaml_generator.generate_backends", "BackendsGenerator"),
+        "registries": ("tools.lock_yaml_generator.generate_registries", "RegistriesGenerator"),
         "artifact_inventory": ("tools.lock_yaml_generator.generate_artifact_inventory", "ArtifactInventoryGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }

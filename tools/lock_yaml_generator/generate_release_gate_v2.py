@@ -225,6 +225,31 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) == 40",
     ),
     (
+        "tier1.migration_pair_dry_run_green",
+        "../../tier1/lock/dry_run.lock.yaml",
+        "count(`../../tier1/lock/dry_run.lock.yaml`, pairs[?status=='green']) >= 4",
+    ),
+    (
+        "tier1.observation_signal_complete",
+        "../../tier1/lock/signals.lock.yaml",
+        "count(`../../tier1/lock/signals.lock.yaml`, signals[?status=='green']) >= 5",
+    ),
+    (
+        "tier1.auth_idp_capability_complete",
+        "../../tier1/lock/idp_capabilities.lock.yaml",
+        "count(`../../tier1/lock/idp_capabilities.lock.yaml`, capabilities[?status=='green']) >= 4",
+    ),
+    (
+        "tier1.kek_backend_drill_green",
+        "../../tier1/lock/backends.lock.yaml",
+        "count(`../../tier1/lock/backends.lock.yaml`, backends[?drill_state=='green']) >= 5",
+    ),
+    (
+        "tier1.schema_registry_drift_zero",
+        "../../tier1/lock/registries.lock.yaml",
+        "count(`../../tier1/lock/registries.lock.yaml`, registries[?drift_status=='zero']) >= 6",
+    ),
+    (
         "tier1.slo_compliance_quarterly_green",
         "../../tier1/lock/instruments.lock.yaml",
         "count(`../../tier1/lock/instruments.lock.yaml`, drills[?drill_state=='green']) >= 1",
