@@ -22,3 +22,13 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 # anyhow: エラーハンドリング
 anyhow = { workspace = true }
+# kube: Kubernetes API クライアント（CustomResource derive / runtime watcher に使用する）
+kube = { version = "0.95", features = ["runtime", "derive"] }
+# k8s-openapi: Kubernetes 標準型（kube が要求するバージョンと一致させる）
+k8s-openapi = { version = "0.23", features = ["v1_31"] }
+# futures-util: watcher stream の next() に使用する
+futures-util = { workspace = true }
+# tokio-stream: watcher を StreamExt で処理するために使用する
+tokio-stream = { workspace = true }
+# schemars: kube::CustomResource derive が要求する JSON Schema 生成ライブラリ
+schemars = "0.8"

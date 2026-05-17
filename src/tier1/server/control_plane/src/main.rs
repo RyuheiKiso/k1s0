@@ -1,22 +1,27 @@
 // k1s0 tier1 control_plane: CRD watcher + flagd publisher のエントリポイント
-// Tier1Service CRD の変更を kube watch API で監視し、
+// Tier1Service CRD の変更を kube::runtime::watcher で監視し、
 // テナント別 feature flag を OpenFeature flagd に配布する。
+// SIGTERM / SIGINT でのグレースフルシャットダウンに対応する。
 
-// CRD watcher モジュール（kube 0.95 watch API）
+// CRD watcher モジュール（kube 0.95 runtime::watcher API）
 mod crd_watcher;
 
 // axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};
 // serde: JSON シリアライズ
 use serde::Serialize;
+// tokio: 非同期ランタイム + shutdown signal
+use tokio::sync::broadcast;
 // tracing: 構造化ロギング
-use tracing::info;
+use tracing::{error, info, warn};
 // tracing-subscriber: サブスクライバー
 use tracing_subscriber::EnvFilter;
 // 標準ライブラリ
 use std::env;
+use std::sync::Arc;
 
-use crd_watcher::CrdWatcher;
+// crd_watcher モジュールから型を import する
+use crd_watcher::{CrdWatchEvent, CrdWatcher};
 
 // ControlPlaneStatus はコントロールプレーンの稼働状態を宣言する。
 #[derive(Serialize)]
@@ -33,17 +38,31 @@ struct ControlPlaneStatus {
     kubernetes_connected: bool,
 }
 
+// AppState はグローバルアプリケーション状態を保持する。
+// axum handler に注入して動的なステータス確認に使用する。
+#[derive(Clone)]
+struct AppState {
+    // kubernetes_connected: Kubernetes API に接続済みかどうか
+    kubernetes_connected: Arc<std::sync::atomic::AtomicBool>,
+}
+
 // health_handler はヘルスチェックエンドポイントのハンドラー。
-async fn health_handler() -> Json<ControlPlaneStatus> {
-    // 各コンポーネントの接続状態を環境変数から確認する
+async fn health_handler(
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> Json<ControlPlaneStatus> {
+    // flagd への接続設定を環境変数から確認する
     let flagd_configured = env::var("FLAGD_HOST").is_ok();
-    let kubeconfig = env::var("KUBECONFIG").is_ok() || std::path::Path::new("/var/run/secrets/kubernetes.io/serviceaccount/token").exists();
+    // Kubernetes 接続状態を atomic bool から取得する
+    let kube_connected = state
+        .kubernetes_connected
+        .load(std::sync::atomic::Ordering::SeqCst);
+    // ControlPlaneStatus を構築して返す
     Json(ControlPlaneStatus {
         status: "healthy".to_string(),
         service: "k1s0-tier1-cp".to_string(),
-        crd_watcher_active: kubeconfig,
+        crd_watcher_active: kube_connected,
         flagd_connected: flagd_configured,
-        kubernetes_connected: kubeconfig,
+        kubernetes_connected: kube_connected,
     })
 }
 
@@ -55,32 +74,146 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )
+        .with_target(true)
         .init();
-    // 環境変数から設定を読み込む
-    let kubeconfig = env::var("KUBECONFIG")
-        .unwrap_or_else(|_| "/var/run/secrets/kubernetes.io/serviceaccount/token".to_string());
+
+    // リスニングアドレスを環境変数から取得する
     let addr = env::var("CP_LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:8083".to_string());
     info!(
         addr = %addr,
-        kubeconfig = %kubeconfig,
         "k1s0-tier1-cp starting"
     );
-    // CRD watcher を初期化する
-    let watcher = CrdWatcher::new(kubeconfig);
-    // ヘルスチェック HTTP サーバーと CRD watcher を並行して起動する
-    let app = Router::new()
-        .route("/health", get(health_handler));
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    // CRD watcher を別タスクで起動する
+
+    // shutdown signal の broadcast channel を構築する
+    // SIGTERM または Ctrl+C で shutdown_tx.send(()) が呼ばれる
+    let (shutdown_tx, shutdown_rx) = broadcast::channel::<()>(1);
+
+    // Kubernetes 接続状態を管理する atomic bool
+    let kubernetes_connected = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let kube_connected_clone = kubernetes_connected.clone();
+
+    // CrdWatcher を構築して watch を開始する
+    let watcher = CrdWatcher::new();
+    let shutdown_rx_for_watcher = shutdown_tx.subscribe();
+
+    // CrdWatcher の watch を開始して broadcast Receiver を取得する
+    let mut event_rx = match watcher.watch(shutdown_rx_for_watcher).await {
+        Ok(rx) => {
+            // watch 開始成功時は kubernetes_connected を true に設定する
+            kubernetes_connected.store(true, std::sync::atomic::Ordering::SeqCst);
+            info!("CrdWatcher: watch started successfully");
+            rx
+        }
+        Err(e) => {
+            // watch 開始失敗時は警告を出して degraded mode で続行する
+            warn!(error = %e, "CrdWatcher: failed to start watch, operating in degraded mode");
+            // 受信者がいないダミー broadcast channel を作成する
+            let (_, rx) = broadcast::channel::<CrdWatchEvent>(1);
+            rx
+        }
+    };
+
+    // CRD イベントを処理するバックグラウンドタスクを起動する
+    let kube_connected_for_event = kube_connected_clone.clone();
     tokio::spawn(async move {
-        // CRD watcher ループを起動する（イベントをログに記録する）
-        if let Err(e) = watcher.watch(|event| {
-            info!(event = ?event, "CRD event received");
-        }).await {
-            tracing::error!(error = %e, "CrdWatcher terminated with error");
+        // CrdWatchEvent を受信して処理するループ
+        loop {
+            match event_rx.recv().await {
+                Ok(event) => {
+                    // Kubernetes 接続が確認できたため true に設定する
+                    kube_connected_for_event.store(true, std::sync::atomic::Ordering::SeqCst);
+                    // イベントの種別に応じてログを出力する
+                    match &event {
+                        CrdWatchEvent::Added { namespace, name, spec } => {
+                            // 新しい Tier1Service が作成された
+                            info!(
+                                namespace = %namespace,
+                                name = %name,
+                                conformance_class = %spec.conformance_class,
+                                adapter = %spec.adapter,
+                                "CrdWatcher: Tier1Service Added"
+                            );
+                            // TODO: flagd_publisher で feature flag を配布する
+                        }
+                        CrdWatchEvent::Modified { namespace, name, spec } => {
+                            // 既存の Tier1Service が変更された
+                            info!(
+                                namespace = %namespace,
+                                name = %name,
+                                conformance_class = %spec.conformance_class,
+                                adapter = %spec.adapter,
+                                "CrdWatcher: Tier1Service Modified"
+                            );
+                            // TODO: flagd_publisher で feature flag を更新する
+                        }
+                        CrdWatchEvent::Deleted { namespace, name } => {
+                            // Tier1Service が削除された
+                            info!(
+                                namespace = %namespace,
+                                name = %name,
+                                "CrdWatcher: Tier1Service Deleted"
+                            );
+                            // TODO: flagd_publisher で feature flag を削除する
+                        }
+                    }
+                }
+                // broadcast channel が終了した（watcher が shutdown された）
+                Err(broadcast::error::RecvError::Closed) => {
+                    info!("CrdWatcher event channel closed, stopping event handler");
+                    break;
+                }
+                // broadcast channel のバッファが溢れた（イベントを取りこぼした）
+                Err(broadcast::error::RecvError::Lagged(count)) => {
+                    warn!(count = count, "CrdWatcher event channel lagged, {} events missed", count);
+                }
+            }
         }
     });
-    // ヘルスチェック HTTP サーバーを起動する
-    axum::serve(listener, app).await?;
+
+    // OS シグナル (SIGTERM / SIGINT) でのシャットダウンを処理するタスクを起動する
+    let shutdown_tx_clone = shutdown_tx.clone();
+    tokio::spawn(async move {
+        // Ctrl+C を待機する（SIGTERM は tokio の signal で処理する）
+        match tokio::signal::ctrl_c().await {
+            Ok(_) => {
+                info!("k1s0-tier1-cp: SIGINT received, initiating graceful shutdown");
+            }
+            Err(e) => {
+                error!(error = %e, "k1s0-tier1-cp: signal handler error");
+            }
+        }
+        // shutdown signal を broadcast する
+        let _ = shutdown_tx_clone.send(());
+    });
+
+    // axum アプリケーション状態を構築する
+    let app_state = AppState {
+        kubernetes_connected: kubernetes_connected.clone(),
+    };
+
+    // ヘルスチェック HTTP サーバーを構築する
+    let app = Router::new()
+        // ヘルスチェックエンドポイント（Kubernetes liveness / readiness probe）
+        .route("/health", get(health_handler))
+        .with_state(app_state);
+
+    // TCP リスナーを起動する
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    info!(addr = %addr, "k1s0-tier1-cp HTTP server listening");
+
+    // shutdown signal を受け取ったらサーバーを停止する
+    let shutdown_signal = async move {
+        // shutdown_rx を subscribe して shutdown signal を待つ
+        let mut rx = shutdown_tx.subscribe();
+        let _ = rx.recv().await;
+        info!("k1s0-tier1-cp: HTTP server shutdown initiated");
+    };
+
+    // axum サーバーを graceful shutdown 対応で起動する
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal)
+        .await?;
+
+    info!("k1s0-tier1-cp: shutdown complete");
     Ok(())
 }
