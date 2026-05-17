@@ -267,8 +267,18 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     # tier2
     (
         "tier2.tenant_isolation_drill_green",
-        "coverage_matrix.lock.yaml",
-        "",
+        "../../tier2/lock/migration.lock.yaml",
+        "count(`../../tier2/lock/migration.lock.yaml`, classes[?rls_enabled=='true']) >= 3",
+    ),
+    (
+        "tier2.atomic_triple_write_verified",
+        "../../tier2/lock/migration.lock.yaml",
+        "count(`../../tier2/lock/migration.lock.yaml`, classes[?audit_required=='true']) >= 3",
+    ),
+    (
+        "tier2.cross_tenant_isolation_zero",
+        "../../tier2/lock/migration.lock.yaml",
+        "count(`../../tier2/lock/migration.lock.yaml`, classes[?rls_enabled=='true']) >= 3",
     ),
     # tier3
     (

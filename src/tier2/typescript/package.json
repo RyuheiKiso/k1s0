@@ -1,0 +1,14 @@
+{
+  "name": "@k1s0/tier2-tenant-context",
+  "version": "0.1.0",
+  "description": "k1s0 tier2 テナントコンテキスト TypeScript 実装（4 言語等価強度）",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

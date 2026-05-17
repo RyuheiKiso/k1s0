@@ -1,0 +1,35 @@
+# k1s0 tier2 Rust ライブラリクレート: テナント分離の Repository abstraction を提供する
+# tier2 は独立 Cargo workspace として管理する（tier1/server とは別 workspace）
+[workspace]
+# このディレクトリ自体が workspace メンバー
+members = ["."]
+# Cargo workspace resolver v2 を使用する
+resolver = "2"
+
+[package]
+# パッケージ名: k1s0-tier2
+name = "k1s0-tier2"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# serde: シリアライズ/デシリアライズフレームワーク
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON ライブラリ
+serde_json = "1"
+# uuid: UUID 生成（tenant_id / aggregate_id に使用する）
+uuid = { version = "1", features = ["v4", "serde"] }
+# tracing: 構造化ロギング（audit_event emit の trace context に使用する）
+tracing = "0.1"
+# anyhow: エラーハンドリング
+anyhow = "1"
+# chrono: 日時ライブラリ（created_at / updated_at / audit_event.timestamp に使用する）
+chrono = { version = "0.4", features = ["serde"] }
+# thiserror: エラー型定義ライブラリ（テナント境界違反エラーに使用する）
+thiserror = "1"
+
+[dev-dependencies]
+# tokio: 非同期テストランタイム
+tokio = { version = "1", features = ["full"] }
