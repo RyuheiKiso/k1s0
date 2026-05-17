@@ -64,8 +64,11 @@ async-stream = { workspace = true }
 rskafka = { workspace = true }
 # governor: token bucket rate limiter（テナント容量適合仕様 09 の library_token_bucket に使用する）
 governor = { workspace = true }
-# reqwest: HTTP クライアント（OpenBao Transit API 呼び出しに使用する — Phase F で追加予定）
-# reqwest = { workspace = true }
+# reqwest: HTTP クライアント（OpenBao Transit API 呼び出しに使用する — Phase F で有効化）
+# workspace = true で src/tier1/server/Cargo.toml の reqwest エントリを継承する
+reqwest = { workspace = true }
+# base64: OpenBao Transit API の input / plaintext フィールド用 Base64 エンコード
+base64 = { workspace = true }
 
 [dev-dependencies]
 # reqwest: 統合テスト用 HTTP クライアント（HTTP/2 + rustls-tls で pkg-config 不要）

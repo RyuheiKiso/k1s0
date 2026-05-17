@@ -1,0 +1,20 @@
+{
+  "name": "@k1s0/tier1-library",
+  "version": "0.1.0",
+  "description": "k1s0 tier1 Library: KeyHandle / AuthContext / Repository (TypeScript)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
