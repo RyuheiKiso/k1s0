@@ -88,6 +88,10 @@ LLM が生成したコード・proof・テストは human author の dual sign-o
 | `data` | P9 |
 | `tier1 → tier2 → tier3 → security → ops → client` | P10（sequential）|
 
+### 各行コメント記載義務
+
+src/ 配下の全コードは、各行の上に当該行の意図を説明する日本語コメントを記載すること。コメント欠落は CI fail（lint 強制）。
+
 ## 関連参照
 
 - `/CLAUDE.md` — project policy / Phase 表 / dual sign-off 規約
