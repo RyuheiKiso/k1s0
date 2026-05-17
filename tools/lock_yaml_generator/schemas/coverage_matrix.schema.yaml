@@ -1,0 +1,81 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for coverage_matrix.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: coverage_matrix
+description: >
+  18 軸 × 5 verification_class = 90 セルのカバレッジマトリクスを検証するスキーマ。
+  schema_version / axis_count / verification_class_count / total_cells は全て定数。
+type: object
+required:
+  - schema_version
+  - axis_count
+  - verification_class_count
+  - total_cells
+  - cells
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  schema_version:
+    type: string
+    const: "v1"
+    description: スキーマバージョン（固定値 "v1"）。
+  axis_count:
+    type: integer
+    const: 18
+    description: カバレッジ対象の軸数（固定値 18）。
+  verification_class_count:
+    type: integer
+    const: 5
+    description: 検証クラス数（固定値 5）。
+  total_cells:
+    type: integer
+    const: 90
+    description: 総セル数（axis_count × verification_class_count = 90、固定値）。
+  cells:
+    type: array
+    minItems: 90
+    maxItems: 90
+    description: カバレッジセルエントリ（固定 90 件）。
+    items:
+      $ref: "#/definitions/cell_entry"
+definitions:
+  cell_entry:
+    type: object
+    required:
+      - axis
+      - verification_class
+      - drill_state
+      - grace_window_days
+      - artifact_pointer
+    additionalProperties: false
+    properties:
+      axis:
+        type: string
+        description: 対応する軸 ID。
+      verification_class:
+        type: string
+        enum:
+          - v1_type_invariant
+          - v1_property_axiom
+          - v1_contract_pair
+          - v1_scenario_replay
+          - v1_fault_chaos
+        description: 検証クラスの種別（5 値 enum）。
+      drill_state:
+        type: string
+        enum:
+          - v1_baseline_green
+          - v1_drill_red_handled
+          - v1_pending_with_artifact
+        description: ドリル状態（3 値 enum）。
+      grace_window_days:
+        type: integer
+        minimum: 0
+        description: ステータス猶予期間（日数）。
+      artifact_pointer:
+        type: string
+        description: 根拠 artifact へのポインタ（ファイルパスまたは URI）。

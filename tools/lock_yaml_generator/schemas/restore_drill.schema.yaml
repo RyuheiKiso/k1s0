@@ -1,0 +1,54 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for restore_drill.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: restore_drill
+description: >
+  データリストアドリルの実施記録を管理するスキーマ。
+  PITR（Point-in-Time Recovery）ターゲットタイムスタンプを含む。
+type: object
+required:
+  - drills
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  drills:
+    type: array
+    description: リストアドリルエントリの配列。
+    items:
+      $ref: "#/definitions/restore_drill_entry"
+definitions:
+  restore_drill_entry:
+    type: object
+    required:
+      - drill_id
+      - preservation_class
+      - drill_state
+      - pitr_target_timestamp
+    additionalProperties: false
+    properties:
+      drill_id:
+        type: string
+        description: ドリルの一意識別子。
+      preservation_class:
+        type: string
+        enum:
+          - v1_local_only
+          - v1_zone_redundant
+          - v1_cross_region
+          - v1_cross_region_with_archive
+          - v1_global_replicated
+        description: ドリル対象の保全クラス（5 値 enum）。
+      drill_state:
+        type: string
+        enum:
+          - green
+          - red
+          - pending
+        description: ドリル実行状態（3 値 enum）。
+      pitr_target_timestamp:
+        type: string
+        description: PITR リストア目標時刻（ISO 8601 形式）。

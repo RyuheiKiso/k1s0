@@ -1,0 +1,67 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for preservation_substrates.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: preservation_substrates
+description: >
+  データ保全サブストレートクラス（5 種）とサブストレート情報を管理するスキーマ。
+  classes の件数は固定 5 件。
+type: object
+required:
+  - classes
+  - substrates
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  classes:
+    type: array
+    minItems: 5
+    maxItems: 5
+    description: 保全クラスエントリ（固定 5 件）。
+    items:
+      $ref: "#/definitions/preservation_class_entry"
+  substrates:
+    type: array
+    description: サブストレートエントリの配列。
+    items:
+      $ref: "#/definitions/substrate_entry"
+definitions:
+  preservation_class_entry:
+    type: object
+    required:
+      - class_id
+      - drill_state
+    additionalProperties: false
+    properties:
+      class_id:
+        type: string
+        enum:
+          - v1_local_only
+          - v1_zone_redundant
+          - v1_cross_region
+          - v1_cross_region_with_archive
+          - v1_global_replicated
+        description: 保全クラスの識別子（5 値 enum）。
+      drill_state:
+        type: string
+        enum:
+          - v1_baseline_green
+          - v1_drill_red_handled
+          - v1_pending_with_artifact
+        description: このクラスにおけるドリル状態（3 値 enum）。
+  substrate_entry:
+    type: object
+    required:
+      - substrate_id
+      - preservation_class_id
+    additionalProperties: false
+    properties:
+      substrate_id:
+        type: string
+        description: サブストレートの一意識別子。
+      preservation_class_id:
+        type: string
+        description: 対応する保全クラス ID。

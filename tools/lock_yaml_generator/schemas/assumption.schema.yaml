@@ -1,0 +1,54 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for assumption.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: assumption
+description: >
+  形式検証における仮定（assumption）を管理するスキーマ。
+  エントリ数の上限は 20 件で固定。
+type: object
+required:
+  - total_count
+  - entries
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  total_count:
+    type: integer
+    minimum: 0
+    maximum: 20
+    description: 登録済み assumption の総数（最大 20）。
+  entries:
+    type: array
+    maxItems: 20
+    description: assumption エントリの配列（最大 20 件）。
+    items:
+      $ref: "#/definitions/assumption_entry"
+definitions:
+  assumption_entry:
+    type: object
+    required:
+      - id
+      - description
+      - justification
+      - status
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        description: assumption の一意識別子。
+      description:
+        type: string
+        description: assumption の内容説明。
+      justification:
+        type: string
+        description: この assumption を受け入れる根拠・理由。
+      status:
+        type: string
+        enum:
+          - open
+          - accepted
+        description: assumption の受け入れ状態（open = 未確定 / accepted = 受け入れ済み）。

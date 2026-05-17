@@ -1,0 +1,71 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for clock_causality_proof.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: clock_causality_proof
+description: >
+  時刻整合性・因果順序の proof クラス（5 種）とドリル結果を管理するスキーマ。
+  classes の件数は固定 5 件。
+type: object
+required:
+  - classes
+  - drill_results
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  classes:
+    type: array
+    minItems: 5
+    maxItems: 5
+    description: 時刻整合クラスエントリ（固定 5 件）。
+    items:
+      $ref: "#/definitions/clock_class_entry"
+  drill_results:
+    type: array
+    description: ドリル結果エントリの配列。
+    items:
+      $ref: "#/definitions/drill_result_entry"
+definitions:
+  clock_class_entry:
+    type: object
+    required:
+      - class_id
+      - drill_state
+    additionalProperties: false
+    properties:
+      class_id:
+        type: string
+        enum:
+          - v1_intra_rack_ptp
+          - v1_dc_chrony_stratum1
+          - v1_multi_region_ntp
+          - v1_legacy_skew_tolerant
+          - v1_air_gapped_legacy
+        description: 時刻整合クラスの識別子（5 値 enum）。
+      drill_state:
+        type: string
+        description: このクラスにおけるドリルの現在状態。
+  drill_result_entry:
+    type: object
+    required:
+      - drill_id
+      - clock_class_id
+      - result
+      - executed_at
+    additionalProperties: false
+    properties:
+      drill_id:
+        type: string
+        description: ドリルの一意識別子。
+      clock_class_id:
+        type: string
+        description: 対応する時刻整合クラス ID。
+      result:
+        type: string
+        description: ドリル実行結果の概要。
+      executed_at:
+        type: string
+        description: ドリル実行日時（ISO 8601 形式）。

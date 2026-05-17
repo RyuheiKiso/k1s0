@@ -1,0 +1,47 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for artifact_inventory.schema.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: artifact_inventory
+description: >
+  cosign 署名済みアーティファクトと SLSA レベルを管理するスキーマ。
+  digest は sha256: + 64 桁小文字 16 進数のパターンを強制する。
+type: object
+required:
+  - artifacts
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  artifacts:
+    type: array
+    description: アーティファクトエントリの配列。
+    items:
+      $ref: "#/definitions/artifact_entry"
+definitions:
+  artifact_entry:
+    type: object
+    required:
+      - artifact_id
+      - digest
+      - cosign_signature_uri
+      - slsa_level
+    additionalProperties: false
+    properties:
+      artifact_id:
+        type: string
+        description: アーティファクトの一意識別子。
+      digest:
+        type: string
+        pattern: "^sha256:[a-f0-9]{64}$"
+        description: アーティファクトの SHA-256 ダイジェスト（sha256: プレフィックス付き）。
+      cosign_signature_uri:
+        type: string
+        description: cosign 署名への URI（OCI リファレンスまたはファイルパス）。
+      slsa_level:
+        type: integer
+        minimum: 0
+        maximum: 4
+        description: SLSA サプライチェーンセキュリティレベル（0〜4）。

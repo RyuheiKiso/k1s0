@@ -1,0 +1,63 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for cross_cutting_registry.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: cross_cutting_registry
+description: >
+  13 本の cross-cutting 適合仕様と 8 クラスターを検証するスキーマ。
+  specs と clusters の件数は固定値。
+type: object
+required:
+  - specs
+  - clusters
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  specs:
+    type: array
+    minItems: 13
+    maxItems: 13
+    description: cross-cutting 適合仕様エントリ（固定 13 件）。
+    items:
+      $ref: "#/definitions/spec_entry"
+  clusters:
+    type: array
+    minItems: 8
+    maxItems: 8
+    description: cross-cutting クラスターエントリ（固定 8 件）。
+    items:
+      $ref: "#/definitions/cluster_entry"
+definitions:
+  spec_entry:
+    type: object
+    required:
+      - spec_id
+      - cluster_id
+      - primary_axis
+    additionalProperties: false
+    properties:
+      spec_id:
+        type: string
+        description: 適合仕様の一意識別子。
+      cluster_id:
+        type: string
+        description: この仕様が属するクラスター ID。
+      primary_axis:
+        type: string
+        description: この仕様を主に担う軸 ID。
+  cluster_entry:
+    type: object
+    required:
+      - cluster_id
+      - cluster_name
+    additionalProperties: false
+    properties:
+      cluster_id:
+        type: string
+        description: クラスターの一意識別子。
+      cluster_name:
+        type: string
+        description: クラスターの人間可読名称。

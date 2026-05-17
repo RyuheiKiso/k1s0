@@ -1,0 +1,46 @@
+# AUTO_GENERATED: DO NOT EDIT. Schema for repository_layout.lock.yaml validation.
+$schema: "http://json-schema.org/draft-07/schema#"
+title: repository_layout
+description: >
+  monorepo ディレクトリレイアウト規則への適合状態と違反一覧を管理するスキーマ。
+type: object
+required:
+  - status
+  - violations
+additionalProperties: true
+properties:
+  _AUTO_GENERATED:
+    type: string
+    description: 生成ツール識別子（手書き禁止マーカー）。
+  generated_at:
+    type: string
+    description: 生成日時 ISO8601。
+  status:
+    type: string
+    enum:
+      - green
+      - red
+    description: レイアウト適合の全体ステータス（green = 違反なし / red = 違反あり）。
+  violations:
+    type: array
+    description: 違反エントリの配列（違反がない場合は空配列）。
+    items:
+      $ref: "#/definitions/violation_entry"
+definitions:
+  violation_entry:
+    type: object
+    required:
+      - path
+      - rule
+      - detail
+    additionalProperties: false
+    properties:
+      path:
+        type: string
+        description: 違反が発生したファイルまたはディレクトリのパス。
+      rule:
+        type: string
+        description: 違反したレイアウトルールの識別子または名称。
+      detail:
+        type: string
+        description: 違反内容の詳細説明。
