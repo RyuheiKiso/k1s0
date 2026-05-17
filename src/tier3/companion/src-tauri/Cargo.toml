@@ -1,0 +1,28 @@
+# k1s0 tier3 Tauri companion frontend glue crate
+# tier1 Cargo workspace member にしない（tier3/CLAUDE.md に明記）
+# sidecar exe の実装は src/_crosscutting/07_tauri_companion_sidecar/sidecar/ が primary
+# ここは Tauri framework が要求する frontend glue（window.invoke() 経由の IPC 層）
+
+# standalone workspace 宣言（tier1 workspace とは独立）
+[workspace]
+members = ["."]
+resolver = "2"
+
+[package]
+# crate 名（Tauri が要求する命名）
+name = "k1s0-tier3-companion"
+# バージョン
+version = "0.1.0"
+# Rust edition
+edition = "2021"
+# 説明
+description = "k1s0 tier3 Tauri companion frontend glue（IPC bridge）"
+
+[dependencies]
+# Tauri framework（v2 以降の依存は Tauri framework が管理する）
+# 実際のビルドは Tauri CLI が行うため、ここはプレースホルダーとして記述する
+serde = { version = "1", features = ["derive"] }
+
+[lib]
+# Tauri が要求するクレートタイプ
+crate-type = ["staticlib", "cdylib", "rlib"]
