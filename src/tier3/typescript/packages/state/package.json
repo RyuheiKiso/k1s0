@@ -1,0 +1,17 @@
+{
+  "name": "@k1s0/tier3-state",
+  "version": "0.1.0",
+  "description": "k1s0 tier3 4 layer client state reducer",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

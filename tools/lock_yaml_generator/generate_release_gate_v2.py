@@ -282,9 +282,22 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     # tier3
     (
+        # tier3 client state 適合仕様の 5 event 全 green を確認する
         "tier3.client_state_conformance_complete",
-        "coverage_matrix.lock.yaml",
-        "",
+        "../../tier3/lock/conflict_tree.lock.yaml",
+        "count(`../../tier3/lock/conflict_tree.lock.yaml`, events[?status=='green']) >= 5",
+    ),
+    (
+        # tier3 BusinessConflict subtype 4 種の actions 定義全 green を確認する
+        "tier3.conflict_tree_subtypes_green",
+        "../../tier3/lock/conflict_tree.lock.yaml",
+        "count(`../../tier3/lock/conflict_tree.lock.yaml`, subtypes[?status=='green']) >= 4",
+    ),
+    (
+        # tier3 禁止 export symbol の banned 件数が 3 件以上であることを確認する
+        "tier3.forbidden_export_symbols_enforced",
+        "../../tier3/lock/forbidden_export_symbols.lock.yaml",
+        "count(`../../tier3/lock/forbidden_export_symbols.lock.yaml`, symbols[?status=='banned']) >= 3",
     ),
     # client
     (

@@ -1,0 +1,146 @@
+# k1s0 tier3 headless browser integration test scenario カタログ SoT
+# 11_クライアント状態適合仕様.md の製造業 pack stress test 8 scenarios を機械可読形式で固定する
+# 手書き SoT（lock.yaml ではない）
+
+# 適合仕様 SoT リファレンス
+spec_ref: "docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md"
+# バージョン
+version: "v1"
+
+# 8 stress test scenario（整合 4 の物理根拠）
+scenarios:
+  # シナリオ 1: 発注承認 → ST advance
+  - scenario_id: s01_order_approval_st_advance
+    # シナリオ名
+    name: "業務担当 SPA 発注承認 → atomic 三表書込 ack → ST advance"
+    # 対象 layer
+    layers: [server_truth]
+    # 対象 event
+    event: optimistic_acknowledged
+    # 対象 subtype
+    subtype: none
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: server_truth_promoted_from_optimistic
+    # ステータス
+    status: defined
+
+  # シナリオ 2: 工場現場 5 件 offline 記録 → PQ resume → 全 ack
+  - scenario_id: s02_factory_offline_5_items_pq_resume
+    # シナリオ名
+    name: "工場現場の検査担当が 5 件 offline 記録 → 復帰時に PQ resume → 全 ack"
+    # 対象 layer
+    layers: [pending_queue]
+    # 対象 event
+    event: pending_queue_resume
+    # 対象 subtype
+    subtype: none
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: all_5_items_acked_in_order
+    # ステータス
+    status: defined
+
+  # シナリオ 3: 25h オフライン → Idempotency-Key TTL 超過 → user 確認 → 新 key で resend
+  - scenario_id: s03_25h_offline_idempotency_ttl
+    # シナリオ名
+    name: "React SPA 25h オフライン → Idempotency-Key TTL 超過 → user 確認 → 新 key で resend"
+    # 対象 layer
+    layers: [pending_queue]
+    # 対象 event
+    event: pending_queue_resume
+    # 対象 subtype
+    subtype: none
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: user_prompted_new_key_resent
+    # ステータス
+    status: defined
+
+  # シナリオ 4: 並行編集（disjoint field）→ stale_write 検出 → field-level rebase → auto resend
+  - scenario_id: s04_parallel_edit_stale_write_rebase
+    # シナリオ名
+    name: "並行編集（actor A: 数量 / actor B: 納期）→ stale_write → field-level rebase → auto resend"
+    # 対象 layer
+    layers: [optimistic_local, pending_queue]
+    # 対象 event
+    event: business_conflict_received
+    # 対象 subtype
+    subtype: stale_write
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: auto_resend_with_chained_idempotency_key
+    # ステータス
+    status: defined
+
+  # シナリオ 5: 並行編集（intersect field）→ lost_update 検出 → 3way merge UI
+  - scenario_id: s05_parallel_edit_lost_update_3way_merge
+    # シナリオ名
+    name: "並行編集（actor A: 数量 / actor B: 数量）→ lost_update → 3way merge UI"
+    # 対象 layer
+    layers: [optimistic_local, pending_queue]
+    # 対象 event
+    event: business_conflict_received
+    # 対象 subtype
+    subtype: lost_update
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: three_way_merge_ui_presented
+    # ステータス
+    status: defined
+
+  # シナリオ 6: 同 actor 同 aggregate 2 回更新 → supersede 検出 → silent toast
+  - scenario_id: s06_same_actor_supersede_silent
+    # シナリオ名
+    name: "同 actor が同 aggregate を 2 回更新 → supersede 検出 → silent toast"
+    # 対象 layer
+    layers: [pending_queue]
+    # 対象 event
+    event: business_conflict_received
+    # 対象 subtype
+    subtype: supersede
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: silent_toast_shown_queue_entry_deleted
+    # ステータス
+    status: defined
+
+  # シナリオ 7: presence indicator 表示中の編集衝突 → concurrent_edit → user choice
+  - scenario_id: s07_concurrent_edit_presence_conflict
+    # シナリオ名
+    name: "presence indicator 表示中の編集衝突 → concurrent_edit → user choice"
+    # 対象 layer
+    layers: [optimistic_local]
+    # 対象 event
+    event: business_conflict_received
+    # 対象 subtype
+    subtype: concurrent_edit
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: user_continue_or_abort_choice_shown
+    # ステータス
+    status: defined
+
+  # シナリオ 8: logout → 4 layer 全 purge + audit emit + device_bound_key rotate
+  - scenario_id: s08_logout_full_purge_audit_emit
+    # シナリオ名
+    name: "logout → 4 layer 全 purge + audit emit + device_bound_key rotate"
+    # 対象 layer
+    layers: [server_truth, optimistic_local, pending_queue, draft]
+    # 対象 event
+    event: server_truth_advance
+    # 対象 subtype
+    subtype: none
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: all_layers_purged_audit_emitted_key_rotated
+    # ステータス
+    status: defined

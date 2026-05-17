@@ -1,0 +1,13 @@
+{
+  "name": "@k1s0/tier3-spa",
+  "version": "0.1.0",
+  "description": "k1s0 tier3 Web SPA skeleton",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,142 @@
+# k1s0 tier3 クライアント状態 4 layer 定義 SoT
+# 11_クライアント状態適合仕様.md の v1 layer セットを機械可読形式で固定する
+# 手書き禁止 commit は禁止（この yaml は手書き SoT であり lock.yaml ではない）
+
+# 適合仕様 SoT リファレンス
+spec_ref: "docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md"
+# バージョン
+version: "v1"
+
+# 4 layer 定義（CI 整合 1 の物理根拠）
+layers:
+  # server_truth layer: tier2 atomic 三表書込確定値のキャッシュ
+  - layer_id: server_truth
+    # 省略記号
+    alias: ST
+    # データ起源
+    source: domain_event_subscription_or_api_response_2xx
+    # 永続化先
+    persisted_in: in_memory_query_cache
+    # PII 保管可否
+    pii_allowed: false
+    # ライフタイム
+    lifetime: session_until_logout_purge
+    # lineage タプル（layer / aggregate.version / trace_id / observed_at）
+    lineage:
+      - layer
+      - aggregate_version
+      - trace_id
+      - observed_at
+    # 不変条件
+    invariants:
+      # ログアウト / token expiry で全 ST cache を purge する
+      - logout_purge_required
+      # refresh_token_expiry で全 ST cache を purge する
+      - token_expiry_purge_required
+      # tenant_switch で全 ST cache を purge する
+      - tenant_switch_purge_required
+
+  # optimistic_local layer: mutation in-flight overlay
+  - layer_id: optimistic_local
+    # 省略記号
+    alias: OL
+    # データ起源
+    source: mutation_in_flight
+    # 永続化先
+    persisted_in: in_memory_query_cache_overlay
+    # PII 保管可否
+    pii_allowed: false
+    # ライフタイム
+    lifetime: until_ack_or_rollback
+    # lineage タプル
+    lineage:
+      - layer
+      - base_version
+      - predicted_next_version
+      - idempotency_key
+      - started_at
+    # 不変条件
+    invariants:
+      # 同一 aggregate に対し OL は同時 1 件まで
+      - max_one_in_flight_per_aggregate
+      # ack で promote、reject で rollback する
+      - promote_on_ack_rollback_on_reject
+
+  # pending_queue layer: offline 永続化 mutation 経路
+  - layer_id: pending_queue
+    # 省略記号
+    alias: PQ
+    # データ起源
+    source: user_action_including_offline
+    # 永続化先（IndexedDB + WebCrypto AES-GCM 暗号化）
+    persisted_in: indexeddb_encrypted
+    # PII 保管可否（enqueue 時に strip 必須）
+    pii_allowed: false
+    # ライフタイム
+    lifetime: until_ack_or_user_discard
+    # lineage タプル
+    lineage:
+      - layer
+      - base_version
+      - idempotency_key
+      - enqueued_at
+    # 不変条件
+    invariants:
+      # aggregate 単位で in-flight 1 件
+      - per_aggregate_in_flight_max_one
+      # enqueue 順を保つ
+      - enqueue_order_preserved
+      # PII を enqueue する前に strip する
+      - pii_strip_before_enqueue
+      # Idempotency-Key は ULID + tenant_id prefix + RPC method short hash
+      - idempotency_key_format_ulid_prefix
+      # 24h TTL
+      - idempotency_key_ttl_24h
+
+  # draft layer: 編集中フォームの dirty state
+  - layer_id: draft
+    # 省略記号
+    alias: DR
+    # データ起源
+    source: form_input
+    # 永続化先（IndexedDB + WebCrypto AES-GCM 暗号化）
+    persisted_in: indexeddb_encrypted
+    # PII 保管可否（IndexedDB 暗号化のみ例外）
+    pii_allowed: false
+    # ライフタイム
+    lifetime: until_confirm_success_or_user_discard
+    # lineage タプル
+    lineage:
+      - layer
+      - base_version
+      - form_id
+      - edited_at
+    # 不変条件
+    invariants:
+      # confirm 成功 / 明示破棄で消滅する
+      - purge_on_confirm_or_discard
+      # ST / OL / PQ から独立に保持する
+      - independent_from_other_layers
+
+# 5 purge trigger（全 layer に適用）
+purge_triggers:
+  # ログアウト時に全 layer を purge する
+  - trigger_id: logout
+    # audit emit 必須
+    audit_emit: client_purge_event
+  # refresh token 失効時に全 layer を purge する
+  - trigger_id: refresh_token_expiry
+    # audit emit 必須
+    audit_emit: client_purge_event
+  # テナント切り替え時に全 layer を purge する
+  - trigger_id: tenant_switch
+    # audit emit 必須
+    audit_emit: client_purge_event
+  # actor 切り替え時に全 layer を purge する
+  - trigger_id: actor_switch
+    # audit emit 必須
+    audit_emit: client_purge_event
+  # device_bound_key ローテーション時に全 layer を purge する
+  - trigger_id: device_bound_key_rotate
+    # audit emit 必須
+    audit_emit: client_purge_event

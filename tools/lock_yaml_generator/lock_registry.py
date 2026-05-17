@@ -49,6 +49,8 @@ TOPO_ORDER: list[str] = [
     "backends",
     "registries",
     "migration",
+    "conflict_tree",
+    "forbidden_export_symbols",
     "artifact_inventory",
     "release_gate",
 ]
@@ -89,6 +91,8 @@ def get_generator(name: str) -> type | None:
         "backends": ("tools.lock_yaml_generator.generate_backends", "BackendsGenerator"),
         "registries": ("tools.lock_yaml_generator.generate_registries", "RegistriesGenerator"),
         "migration": ("tools.lock_yaml_generator.generate_migration", "MigrationGenerator"),
+        "conflict_tree": ("tools.lock_yaml_generator.generate_conflict_tree", "ConflictTreeGenerator"),
+        "forbidden_export_symbols": ("tools.lock_yaml_generator.generate_forbidden_export_symbols", "ForbiddenExportSymbolsGenerator"),
         "artifact_inventory": ("tools.lock_yaml_generator.generate_artifact_inventory", "ArtifactInventoryGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }

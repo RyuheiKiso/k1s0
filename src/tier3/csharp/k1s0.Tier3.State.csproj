@@ -1,0 +1,24 @@
+<!-- k1s0 tier3 C# state lib（WPF .NET 8+ 等価強度実装） -->
+<!-- 適合仕様 11_クライアント状態適合仕様.md の v1 layer セットに準拠する -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- .NET 8 ターゲット -->
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- null 安全性を厳格に強制する -->
+    <Nullable>enable</Nullable>
+    <!-- implicit using を有効にする -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- 言語バージョン（C# 12） -->
+    <LangVersion>12</LangVersion>
+    <!-- アセンブリ名 -->
+    <AssemblyName>k1s0.Tier3.State</AssemblyName>
+    <!-- 名前空間 -->
+    <RootNamespace>K1s0.Tier3.State</RootNamespace>
+    <!-- バージョン -->
+    <Version>0.1.0</Version>
+    <!-- 説明 -->
+    <Description>k1s0 tier3 4 layer client state（C# 等価強度実装）</Description>
+  </PropertyGroup>
+
+</Project>
