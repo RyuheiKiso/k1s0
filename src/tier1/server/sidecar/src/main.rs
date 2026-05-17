@@ -60,8 +60,14 @@ async fn main() -> anyhow::Result<()> {
     // 環境変数から設定を読み込む
     let database_url = env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://k1s0:k1s0@localhost:5432/k1s0".to_string());
-    let kafka_brokers = env::var("KAFKA_BROKERS")
+    // kafka_brokers はカンマ区切りで複数 broker を指定できる（rskafka は Vec<String> を受け付ける）
+    let kafka_brokers_str = env::var("KAFKA_BROKERS")
         .unwrap_or_else(|_| "localhost:9092".to_string());
+    // カンマ区切りを Vec<String> に変換する
+    let kafka_brokers: Vec<String> = kafka_brokers_str
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect();
     let poll_interval_ms: u64 = env::var("OUTBOX_POLL_INTERVAL_MS")
         .ok()
         .and_then(|s| s.parse().ok())
@@ -70,19 +76,25 @@ async fn main() -> anyhow::Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(5);
+    // batch_size: 1 回のポーリングで取得する最大メッセージ数
+    let batch_size: i64 = env::var("OUTBOX_BATCH_SIZE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
     // Outbox relay を初期化する
     let relay = OutboxRelay::new(OutboxRelayConfig {
         database_url: database_url.clone(),
         kafka_brokers: kafka_brokers.clone(),
         poll_interval_ms,
         max_retry_count,
+        batch_size,
     });
     // リスニングアドレスを環境変数から取得する
     let addr = env::var("SIDECAR_LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:8081".to_string());
     info!(
         addr = %addr,
         database = %database_url,
-        kafka = %kafka_brokers,
+        kafka = ?kafka_brokers,
         "k1s0-tier1-sidecar starting"
     );
     // ヘルスチェック HTTP サーバーと Outbox relay を並行して起動する

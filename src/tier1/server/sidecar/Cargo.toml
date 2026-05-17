@@ -22,3 +22,13 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 # anyhow: エラーハンドリング
 anyhow = { workspace = true }
+# sqlx: PostgreSQL クライアント（outbox_message テーブルの SELECT FOR UPDATE SKIP LOCKED に使用する）
+# runtime-tokio: tokio 非同期 runtime 対応、postgres: PostgreSQL ドライバ
+# uuid / chrono / json: outbox_message 型のデコードに使用する
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid", "chrono", "json"] }
+# rskafka: pure Rust Kafka クライアント（outbox_message → Kafka relay に使用する; C ライブラリ不要）
+rskafka = { workspace = true }
+# uuid: idempotency_key / row id の型に使用する
+uuid = { workspace = true }
+# chrono: Kafka Record の timestamp に使用する
+chrono = { workspace = true }
