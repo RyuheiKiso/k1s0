@@ -2,8 +2,10 @@
 
 capabilities.lock.yaml 生成器。
 src/tier1/lock/capabilities_input.yaml を読み込む。
-存在しない場合は conformance_classes=5, adapters=8, total_cells=40 のスケルトンを生成する。
-全 status: pending。
+
+01_Bidi適合仕様.md §adapter↔class supports 対応 に基づき、
+5 conformance_class × 8 adapter の全 40 cell を構築する。
+supports 行列に含まれない cell は status: not_applicable となる（手書き禁止）。
 """
 
 from __future__ import annotations
@@ -14,28 +16,40 @@ from typing import Any
 
 from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 
-# capabilities_input.yaml は lock_dir 内に置かれる
 _INPUT_NAME = "capabilities_input.yaml"
 
-# スケルトン定義
+# 01_Bidi適合仕様.md §v1 conformance_class セット（5 class）
 _CONFORMANCE_CLASSES: list[str] = [
-    "v1_bidi_streaming",
-    "v1_unary_rpc",
-    "v1_server_streaming",
-    "v1_client_streaming",
-    "v1_connect_protocol",
+    "v1_interactive",
+    "v1_alert",
+    "v1_event_feed",
+    "v1_live_snapshot",
+    "v1_bulk_upload",
 ]
 
+# 01_Bidi適合仕様.md §capabilities.lock.yaml adapter 定義（8 adapter）
 _ADAPTERS: list[str] = [
-    "grpc_go",
-    "grpc_java",
-    "grpc_python",
-    "grpc_node",
-    "connect_go",
-    "connect_web",
-    "grpc_web",
-    "dotnet_grpc",
+    "grpc_native",
+    "connect_bidi",
+    "web_transport",
+    "sse_paired",
+    "paired_post_sse",
+    "long_poll",
+    "webhook",
+    "messaging_bridge",
 ]
+
+# 01_Bidi適合仕様.md §adapter↔class supports 対応 — adapter → supports 集合
+_SUPPORTS: dict[str, set[str]] = {
+    "grpc_native":      {"v1_interactive", "v1_alert", "v1_event_feed", "v1_live_snapshot", "v1_bulk_upload"},
+    "connect_bidi":     {"v1_interactive", "v1_alert", "v1_event_feed", "v1_live_snapshot", "v1_bulk_upload"},
+    "web_transport":    {"v1_interactive", "v1_alert", "v1_event_feed", "v1_live_snapshot", "v1_bulk_upload"},
+    "sse_paired":       {"v1_alert", "v1_event_feed", "v1_live_snapshot"},
+    "paired_post_sse":  {"v1_interactive", "v1_alert", "v1_event_feed", "v1_live_snapshot"},
+    "long_poll":        {"v1_event_feed"},
+    "webhook":          {"v1_alert", "v1_event_feed", "v1_live_snapshot"},
+    "messaging_bridge": {"v1_event_feed", "v1_live_snapshot", "v1_bulk_upload"},
+}
 
 
 class CapabilitiesGenerator(BaseGenerator):
@@ -54,20 +68,22 @@ class CapabilitiesGenerator(BaseGenerator):
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """conformance_classes × adapters の cell matrix を構築する。
-        inputs が空の場合はスケルトンを生成する。
+
+        applicable cell の status は inputs の status_map から読む。
+        not_applicable cell は _SUPPORTS 行列から自動決定（input 禁止）。
         """
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
 
         raw_cells: list[dict[str, Any]] = inputs.get("cells", [])
+        status_map: dict[str, str] = {
+            str(c.get("cell_id", "")): str(c.get("status", "pending"))
+            for c in raw_cells
+        }
 
-        if raw_cells:
-            cells = self._normalize_cells(raw_cells)
-        else:
-            cells = self._build_skeleton()
-
-        total_cells = len(cells)
+        cells = self._build_cells(status_map)
+        applicable = [c for c in cells if c["status"] != "not_applicable"]
 
         return {
             "_AUTO_GENERATED": (
@@ -76,35 +92,31 @@ class CapabilitiesGenerator(BaseGenerator):
             ),
             "conformance_classes": len(_CONFORMANCE_CLASSES),
             "adapters":            len(_ADAPTERS),
-            "total_cells":         total_cells,
+            "total_cells":         len(cells),
+            "applicable_cells":    len(applicable),
             "generated_at":        generated_at,
             "cells":               cells,
         }
 
-    @staticmethod
-    def _normalize_cells(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """capabilities cells エントリを正規化する。"""
-        result: list[dict[str, Any]] = []
-        for entry in raw:
-            result.append({
-                "cell_id":            str(entry.get("cell_id", "")),
-                "conformance_class":  str(entry.get("conformance_class", "")),
-                "adapter":            str(entry.get("adapter", "")),
-                "status":             str(entry.get("status", "pending")),
-            })
-        return result
+    @classmethod
+    def _build_cells(cls, status_map: dict[str, str]) -> list[dict[str, Any]]:
+        """spec の supports 行列から全 40 cell を構築する。
 
-    @staticmethod
-    def _build_skeleton() -> list[dict[str, Any]]:
-        """conformance_classes × adapters = 5 × 8 = 40 cell のスケルトンを生成する。"""
+        applicable cell は status_map に status があればそれを使用、無ければ pending。
+        not_applicable cell は _SUPPORTS から自動決定。
+        """
         result: list[dict[str, Any]] = []
         for cc in _CONFORMANCE_CLASSES:
             for adapter in _ADAPTERS:
                 cell_id = f"{cc}__{adapter}"
+                if cc in _SUPPORTS.get(adapter, set()):
+                    status = status_map.get(cell_id, "pending")
+                else:
+                    status = "not_applicable"
                 result.append({
                     "cell_id":           cell_id,
                     "conformance_class": cc,
                     "adapter":           adapter,
-                    "status":            "pending",
+                    "status":            status,
                 })
         return result

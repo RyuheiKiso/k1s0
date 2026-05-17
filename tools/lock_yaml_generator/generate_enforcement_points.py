@@ -16,16 +16,18 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 # enforcement_points_input.yaml の想定名
 _INPUT_NAME = "enforcement_points_input.yaml"
 
-# 4 階層の enforcement points スケルトン定義
+# 09_テナント容量適合仕様.md §v1 quota_class セット（5 class）に基づく enforcement point 定義
 _ENFORCEMENT_LAYERS: list[dict[str, str]] = [
-    # Envoy local rate limit（L4 transport 層での rate limit）
-    {"layer_id": "envoy_local_rate_limit", "layer_type": "transport"},
-    # Library token bucket（アプリケーション層での rate limit）
-    {"layer_id": "library_token_bucket", "layer_type": "library"},
-    # OSS native quota（Kafka broker quota / PostgreSQL statement timeout）
-    {"layer_id": "oss_native_quota", "layer_type": "infrastructure"},
-    # Storage and broker limits（PVC サイズ上限 / Kafka topic partition quota）
-    {"layer_id": "storage_broker_limits", "layer_type": "storage"},
+    # v1_per_tenant_qps: Envoy Local Rate Limit filter、burst 2x 許容、reject_429
+    {"layer_id": "v1_per_tenant_qps", "layer_type": "transport"},
+    # v1_per_tenant_concurrency: Library token bucket（in-process）、queue_with_timeout
+    {"layer_id": "v1_per_tenant_concurrency", "layer_type": "library"},
+    # v1_per_tenant_volume: storage layer（Rook+Ceph / CloudNativePG / ClickHouse / Kafka）、overflow_to_cold
+    {"layer_id": "v1_per_tenant_volume", "layer_type": "storage"},
+    # v1_per_tenant_compute: OSS native quota（Temporal / KEDA / pgvector）、shed_by_priority
+    {"layer_id": "v1_per_tenant_compute", "layer_type": "infrastructure"},
+    # v1_global_fair_queue: broker layer（Kafka partition rebalance / Istio destination rule）、partition_rebalance
+    {"layer_id": "v1_global_fair_queue", "layer_type": "broker"},
 ]
 
 

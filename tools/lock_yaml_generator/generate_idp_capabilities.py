@@ -16,16 +16,18 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 # idp_capabilities_input.yaml の想定名
 _INPUT_NAME = "idp_capabilities_input.yaml"
 
-# IdP capability のスケルトン定義
+# 04_認証適合仕様.md §v1 auth_class セット（5 class）に基づく IdP capability 定義
 _IDP_CAPABILITIES: list[dict[str, str]] = [
-    # Keycloak OIDC プロバイダー（メイン IdP）
-    {"idp_id": "keycloak_oidc", "auth_protocol": "oidc"},
-    # DPoP（Demonstrating Proof of Possession）トークン検証
-    {"idp_id": "dpop_token", "auth_protocol": "dpop"},
-    # mTLS クライアント証明書認証
-    {"idp_id": "mtls_client_cert", "auth_protocol": "mtls"},
-    # JWT ベアラートークン検証（Envoy jwt_authn フィルター経由）
-    {"idp_id": "jwt_bearer", "auth_protocol": "jwt"},
+    # v1_human_session: OIDC code flow + DPoP 鍵束縛（RFC 9449）、rotating refresh
+    {"idp_id": "v1_human_session", "auth_protocol": "oidc_dpop_bound"},
+    # v1_workload_jwt: K8s ServiceAccount projection or SPIFFE/SPIRE SVID、短 TTL
+    {"idp_id": "v1_workload_jwt", "auth_protocol": "jwt_svid"},
+    # v1_device_attest: TPM / HSM / WebAuthn platform authenticator device cert、長 TTL、one_shot refresh
+    {"idp_id": "v1_device_attest", "auth_protocol": "jwt_attested"},
+    # v1_federated_exchange: RFC 8693 token exchange、audience-restricted 短命 JWT
+    {"idp_id": "v1_federated_exchange", "auth_protocol": "token_exchange"},
+    # v1_emergency_step_up: break-glass、always step_up + always step_up WebAuthn/FIDO2、<10m、no refresh
+    {"idp_id": "v1_emergency_step_up", "auth_protocol": "oidc_dpop_stepup"},
 ]
 
 

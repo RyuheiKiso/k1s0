@@ -16,16 +16,20 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 # SLO instruments_input.yaml の想定パス
 _INPUT_NAME = "instruments_input.yaml"
 
-# SLO 計装クラスのスケルトン定義
+# 07_SLO適合仕様.md §v1 slo_class セット（6 class）
 _SLO_CLASSES: list[str] = [
-    # 高可用性クラス（99.9% 以上の SLO 目標）
-    "v1_high_availability",
-    # レイテンシ制約クラス（p99 ≤ 100ms 目標）
-    "v1_latency_constrained",
-    # バッチ処理クラス（スループット重視）
-    "v1_batch_throughput",
-    # ベストエフォートクラス（SLO 緩やか）
-    "v1_best_effort",
+    # HTTP/gRPC API 可用性（SLO 99.9%、monthly budget 43.2 分）
+    "v1_request_availability",
+    # request 経路 p99 latency（class 別 threshold_ms、30d window）
+    "v1_request_latency_p99",
+    # cross-region write p99 latency（典型 1500ms、v1_cross_region_replicated 経路必須）
+    "v1_request_latency_p99_cross_region",
+    # server-driven event 配信 freshness（p95 ≤ target、7d window）
+    "v1_event_freshness",
+    # Temporal Workflow / Saga 完了率（99.5%、30d window）
+    "v1_workflow_completion",
+    # tenant data 永続性（11 nines + freeze_on_any_loss、365d window）
+    "v1_data_durability",
 ]
 
 
