@@ -14,7 +14,6 @@ depends_on:
   - arch.data.lifecycle_policy
   - arch.data.recovery_drill_policy
   - arch.data.migration_policy
-  - detail.data.preservation_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []

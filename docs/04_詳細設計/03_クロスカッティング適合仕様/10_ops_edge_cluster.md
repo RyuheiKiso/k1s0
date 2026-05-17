@@ -6,9 +6,6 @@ kind: cross_cut_spec
 status: draft
 depends_on:
   - arch.ops.ops_index
-  - arch.ops.oncall_policy
-  - detail.ops.ops_loop_conformance
-  - detail.ops.ops_enforcement
   - detail.cross_pii.audit_ingest_gap_monitor
   - detail.meta.axis_registry_conformance
 covered_by:

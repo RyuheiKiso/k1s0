@@ -1,0 +1,116 @@
+# 各 service / module の 4 軸 owner 定義。generator が ownership_table.lock.yaml を生成する。
+# 4 owner 軸: dev_owner (実装責任), ops_owner (運用責任), security_owner (セキュリティ責任), formal_owner (形式検証責任)
+services:
+  - service_id: tier1_server
+    dev_owner: tier1-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: tier1_operator
+    dev_owner: tier1-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: tier2_repository
+    dev_owner: tier2-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: tier3_spa
+    dev_owner: tier3-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: tier3_companion
+    dev_owner: tier3-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: infra_helm
+    dev_owner: infra-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: infra_ebpf
+    dev_owner: infra-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: data_postgresql
+    dev_owner: data-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: data_kafka
+    dev_owner: data-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: data_apicurio
+    dev_owner: data-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: data_pii_cluster
+    dev_owner: data-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: security_kyverno
+    dev_owner: security-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: security_openbao
+    dev_owner: security-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: security_harbor
+    dev_owner: security-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: ops_escalation_engine
+    dev_owner: ops-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: client_sdk
+    dev_owner: client-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: cross_apicurio_controller
+    dev_owner: crosscutting-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: cross_audit_monitor
+    dev_owner: crosscutting-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team
+
+  - service_id: meta_tooling
+    dev_owner: meta-team
+    ops_owner: ops-team
+    security_owner: security-team
+    formal_owner: formal-team

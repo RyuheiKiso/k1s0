@@ -4,9 +4,7 @@ axis: test
 phase: architecture
 kind: index
 status: draft
-depends_on:
-  - detail.test.verification_conformance
-  - detail.test.test_enforcement
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []

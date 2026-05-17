@@ -147,4 +147,4 @@ covered_by:
 
 - [法務 DPO 担当者シナリオ index](README.md)
 - [DSAR対応最終承認](03_DSAR対応最終承認.md)
-- [data: crypto_erase_archive_to_offline](../../05_data担当者シナリオ/04_crypto_erase_archive_to_offline.md)
+- [data: crypto_erase_archive_to_offline](../05_data担当者シナリオ/04_crypto_erase_archive_to_offline.md)

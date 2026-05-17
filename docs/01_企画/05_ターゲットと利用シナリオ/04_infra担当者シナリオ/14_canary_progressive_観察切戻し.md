@@ -113,7 +113,7 @@ Argo Rollouts の canary analysis が fail を返した時（自動 rollback ト
 ## 関連適合仕様 / 関連 OSS
 
 - クラスタ位相適合仕様: [../../../04_詳細設計/01_適合仕様/12_クラスタ位相適合仕様.md](../../../04_詳細設計/01_適合仕様/12_クラスタ位相適合仕様.md)
-- infra 強制機構: [../../../04_詳細設計/02_強制機構/01_infra強制機構.md](../../../04_詳細設計/02_強制機構/01_infra強制機構.md)
+- infra 強制機構: [../../../04_詳細設計/02_強制機構/04_infra強制機構.md](../../../04_詳細設計/02_強制機構/04_infra強制機構.md)
 - 関連 OSS: Argo Rollouts（canary / blue-green）/ Argo CD（GitOps）/ Perses（SLI 観察）/ Istio（traffic split）
 
 ## 期待結果 / 観測指標

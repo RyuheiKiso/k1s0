@@ -25,9 +25,11 @@ _ALLOWED_ROOT_FILES: frozenset[str] = frozenset({
     "Makefile",
     "pyproject.toml",
     "requirements.txt",
+    # uv パッケージマネージャが生成するロックファイル
+    "uv.lock",
 })
 
-# root で許可されるディレクトリ名
+# root で許可されるディレクトリ名（dot-prefix hidden dir はスキップ）
 _ALLOWED_ROOT_DIRS: frozenset[str] = frozenset({
     "src",
     "docs",
@@ -103,6 +105,9 @@ class RepositoryLayoutGenerator(BaseGenerator):
             is_file = entry["is_file"]
 
             if is_dir:
+                # dot-prefix 隠しディレクトリ（.git/.venv/.pytest_cache 等）はスキップ
+                if name.startswith("."):
+                    continue
                 if name not in _ALLOWED_ROOT_DIRS:
                     violations.append({
                         "name":   name,

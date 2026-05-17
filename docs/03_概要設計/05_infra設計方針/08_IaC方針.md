@@ -7,7 +7,6 @@ status: draft
 depends_on:
   - arch.infra.infra_index
   - arch.infra.gitops_delivery_policy
-  - detail.infra.infra_enforcement
 covered_by:
   defense_in_depth_layers: [A, B, D]
   proof_classes: []

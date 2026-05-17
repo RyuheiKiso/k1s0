@@ -1,0 +1,5 @@
+checks:
+- check_name: full_lint
+  detail: 8 checks all green
+  result: pass
+status: green

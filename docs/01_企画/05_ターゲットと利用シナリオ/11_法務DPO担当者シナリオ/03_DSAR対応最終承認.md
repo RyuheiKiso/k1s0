@@ -151,4 +151,4 @@ DSAR 申請受領時
 
 - [法務 DPO 担当者シナリオ index](README.md)
 - [right_to_be_forgotten_KEK_destroy承認](04_right_to_be_forgotten_KEK_destroy承認.md)
-- [data: PII_DSAR_export対応](../../05_data担当者シナリオ/15_PII_DSAR_export対応.md)
+- [data: PII_DSAR_export対応](../05_data担当者シナリオ/15_PII_DSAR_export対応.md)

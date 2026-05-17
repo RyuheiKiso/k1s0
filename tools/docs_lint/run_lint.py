@@ -229,9 +229,13 @@ def check_empty_locked(path: Path, fm: dict, body: str) -> list[str]:
 ROOT_ALLOWED_FILES = frozenset([
     "CLAUDE.md", "README.md", "LICENSE", "ARCHITECTURE.md",
     ".claudeignore", ".gitignore",
+    # build/tooling 基盤（pyproject.toml / uv.lock / Makefile は P3 で追加）
+    "pyproject.toml", "uv.lock", "Makefile", "requirements.txt",
 ])
 ROOT_ALLOWED_DIRS = frozenset([
     ".claude", ".github", "docs", "img", "src", "tools",
+    # uv/pytest 自動生成（git管理外）
+    ".git",
 ])
 SRC_ALLOWED_AXES = frozenset([
     "tier1", "tier2", "tier3", "infra", "data",
@@ -250,9 +254,9 @@ def check_repository_layout() -> list[str]:
         if entry.is_file() and entry.name not in ROOT_ALLOWED_FILES:
             fails.append(f"root: 許可外ファイル: {entry.name}")
 
-    # root top-level directory allowlist
+    # root top-level directory allowlist（dot-prefix hidden dir は除外）
     for entry in REPO_ROOT.iterdir():
-        if entry.is_dir() and not entry.name.startswith(".git"):
+        if entry.is_dir() and not entry.name.startswith("."):
             if entry.name not in ROOT_ALLOWED_DIRS:
                 fails.append(f"root: 許可外ディレクトリ: {entry.name}")
 

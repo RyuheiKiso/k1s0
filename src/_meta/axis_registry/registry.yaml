@@ -1,0 +1,346 @@
+# 19 軸登録定義。00_軸登録適合仕様.md が SoT。
+# cap v1=20 / 現在 19 / 残 1 スロット（v2 以降で使用）
+# generator が axis_registry.lock.yaml を生成する（手書き禁止）
+axes:
+  - axis_id: "01"
+    axis_name: tier1
+    kind: primary_layer
+    legacy_id: ["07", "08", "09", "10", "11", "12", "13", "14", "15"]
+    conformance_specs:
+      - detail.tier1.bidi_conformance
+      - detail.tier1.migration_pair_conformance
+      - detail.tier1.observability_conformance
+      - detail.tier1.auth_conformance
+      - detail.tier1.key_management_conformance
+      - detail.tier1.schema_evolution_conformance
+      - detail.tier1.slo_conformance
+      - detail.tier1.oss_lifecycle_conformance
+      - detail.tier1.tenant_capacity_conformance
+    enforcement_spec: detail.tier1.tier1_enforcement
+    lock_artifacts:
+      - capabilities.lock.yaml
+      - instruments.lock.yaml
+      - oss_inventory.lock.yaml
+      - enforcement_points.lock.yaml
+    defense_in_depth_layers: [A, B, C, D, E]
+    proof_obligations:
+      - obligation_id: tier1_bidi_handshake_safety
+        proof_class: v1_temporal_safety_proof
+        tool_kind: tla_apalache
+    cap_slot: 1
+
+  - axis_id: "02"
+    axis_name: tier2
+    kind: primary_layer
+    legacy_id: ["32"]
+    conformance_specs:
+      - detail.tier2.tenant_isolation_conformance
+    enforcement_spec: detail.tier2.tier2_enforcement
+    lock_artifacts:
+      - migration.lock.yaml
+    defense_in_depth_layers: [B, C, D]
+    proof_obligations:
+      - obligation_id: tier2_rls_isolation_safety
+        proof_class: v1_program_correctness_proof
+        tool_kind: stainless
+    cap_slot: 2
+
+  - axis_id: "03"
+    axis_name: tier3
+    kind: primary_layer
+    legacy_id: ["39"]
+    conformance_specs:
+      - detail.tier3.client_state_conformance
+    enforcement_spec: detail.tier3.tier3_enforcement
+    lock_artifacts:
+      - conflict_tree.lock.yaml
+    defense_in_depth_layers: [B, C]
+    proof_obligations:
+      - obligation_id: tier3_crdt_convergence
+        proof_class: v1_program_correctness_proof
+        tool_kind: lean4
+    cap_slot: 3
+
+  - axis_id: "04"
+    axis_name: infra
+    kind: primary_layer
+    legacy_id: ["infra01", "infra16"]
+    conformance_specs:
+      - detail.infra.cluster_topology_conformance
+      - detail.infra.clock_integrity_conformance
+    enforcement_spec: detail.infra.infra_enforcement
+    lock_artifacts:
+      - topology_class.lock.yaml
+      - clock_causality_proof.lock.yaml
+      - cluster_inventory.lock.yaml
+    defense_in_depth_layers: [A, B, D]
+    proof_obligations:
+      - obligation_id: infra_clock_causality_safety
+        proof_class: v1_temporal_safety_proof
+        tool_kind: tla_apalache
+    cap_slot: 4
+
+  - axis_id: "05"
+    axis_name: data
+    kind: primary_layer
+    legacy_id: ["data01"]
+    conformance_specs:
+      - detail.data.preservation_conformance
+    enforcement_spec: detail.data.data_enforcement
+    lock_artifacts:
+      - preservation_substrates.lock.yaml
+      - restore_drill.lock.yaml
+    defense_in_depth_layers: [B, C, D, E]
+    proof_obligations:
+      - obligation_id: data_atomic_three_table_write
+        proof_class: v1_program_correctness_proof
+        tool_kind: stainless
+    cap_slot: 5
+
+  - axis_id: "06"
+    axis_name: security
+    kind: primary_layer
+    legacy_id: ["security15", "security16"]
+    conformance_specs:
+      - detail.security.threat_model_conformance
+      - detail.security.build_provenance_conformance
+    enforcement_spec: detail.security.security_enforcement
+    lock_artifacts:
+      - threat_model.lock.yaml
+      - artifact_inventory.lock.yaml
+    defense_in_depth_layers: [A, B, C, D, E, F]
+    proof_obligations:
+      - obligation_id: security_threat_model_completeness
+        proof_class: v1_property_axiom
+        tool_kind: kani
+    cap_slot: 6
+
+  - axis_id: "07"
+    axis_name: ops
+    kind: primary_layer
+    legacy_id: ["ops15"]
+    conformance_specs:
+      - detail.ops.ops_loop_conformance
+    enforcement_spec: detail.ops.ops_enforcement
+    lock_artifacts:
+      - ops_loop.lock.yaml
+    defense_in_depth_layers: [D, E]
+    proof_obligations:
+      - obligation_id: ops_loop_closure_safety
+        proof_class: v1_property_axiom
+        tool_kind: cbmc
+    cap_slot: 7
+
+  - axis_id: "08"
+    axis_name: client
+    kind: primary_layer
+    legacy_id: ["client15"]
+    conformance_specs:
+      - detail.client.sdk_distribution_conformance
+    enforcement_spec: detail.client.client_enforcement
+    lock_artifacts:
+      - sdk_conformance.lock.yaml
+    defense_in_depth_layers: [B, C]
+    proof_obligations:
+      - obligation_id: client_sdk_distribution_correctness
+        proof_class: v1_program_correctness_proof
+        tool_kind: dafny
+    cap_slot: 8
+
+  - axis_id: "09"
+    axis_name: test
+    kind: primary_layer
+    legacy_id: ["test15"]
+    conformance_specs:
+      - detail.test.verification_conformance
+    enforcement_spec: detail.test.test_enforcement
+    lock_artifacts:
+      - coverage_matrix.lock.yaml
+      - regression_corpus.lock.yaml
+    defense_in_depth_layers: [C, D]
+    proof_obligations:
+      - obligation_id: test_coverage_matrix_completeness
+        proof_class: v1_property_axiom
+        tool_kind: cbmc
+    cap_slot: 9
+
+  - axis_id: "10"
+    axis_name: formal
+    kind: primary_layer
+    legacy_id: ["formal15"]
+    conformance_specs:
+      - detail.formal.formal_conformance
+    enforcement_spec: detail.formal.formal_enforcement
+    lock_artifacts:
+      - proof_inventory.lock.yaml
+      - proof_status.lock.yaml
+      - proof_review.lock.yaml
+      - assumption.lock.yaml
+      - counter_example.lock.yaml
+      - proof_matrix.lock.yaml
+    defense_in_depth_layers: [C, D, E, F]
+    proof_obligations:
+      - obligation_id: formal_proof_completeness_meta
+        proof_class: v1_temporal_safety_proof
+        tool_kind: tla_apalache
+    cap_slot: 10
+
+  - axis_id: "11"
+    axis_name: cross_http2
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_http2.http2_enforcement
+    enforcement_spec: detail.cross_http2.cross_http2_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [A, B]
+    proof_obligations:
+      - obligation_id: cross_http2_h1_rejection_safety
+        proof_class: v1_property_axiom
+        tool_kind: kani
+    cap_slot: 11
+
+  - axis_id: "12"
+    axis_name: cross_kek
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_kek.kek_shamir_distribution
+    enforcement_spec: detail.cross_kek.cross_kek_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [A, B, C]
+    proof_obligations:
+      - obligation_id: cross_kek_shamir_threshold_safety
+        proof_class: v1_program_correctness_proof
+        tool_kind: stainless
+    cap_slot: 12
+
+  - axis_id: "13"
+    axis_name: cross_schema
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_schema.apicurio_gitops_sot
+    enforcement_spec: detail.cross_schema.cross_schema_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [B, C]
+    proof_obligations:
+      - obligation_id: cross_schema_apicurio_drift_zero
+        proof_class: v1_property_axiom
+        tool_kind: cbmc
+    cap_slot: 13
+
+  - axis_id: "14"
+    axis_name: cross_fsm
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_fsm.protoc_gen_go_fsm
+    enforcement_spec: detail.cross_fsm.cross_fsm_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [B, C]
+    proof_obligations:
+      - obligation_id: cross_fsm_typestate_codegen_correctness
+        proof_class: v1_program_correctness_proof
+        tool_kind: lean4
+    cap_slot: 14
+
+  - axis_id: "15"
+    axis_name: cross_slo
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_slo.slo_protection_layers
+    enforcement_spec: detail.cross_slo.cross_slo_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [B, C, D]
+    proof_obligations:
+      - obligation_id: cross_slo_4tier_protection_completeness
+        proof_class: v1_property_axiom
+        tool_kind: kani
+    cap_slot: 15
+
+  - axis_id: "16"
+    axis_name: cross_bff
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_bff.bff_auth_edge
+      - detail.cross_bff.tauri_companion_sidecar
+    enforcement_spec: detail.cross_bff.cross_bff_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [A, B, C]
+    proof_obligations:
+      - obligation_id: cross_bff_auth_isolation_safety
+        proof_class: v1_temporal_safety_proof
+        tool_kind: tla_apalache
+    cap_slot: 16
+
+  - axis_id: "17"
+    axis_name: cross_pii
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_pii.pii_dedicated_cluster
+      - detail.cross_pii.audit_ingest_gap_monitor
+    enforcement_spec: detail.cross_pii.cross_pii_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [A, B, C, D]
+    proof_obligations:
+      - obligation_id: cross_pii_isolation_safety
+        proof_class: v1_temporal_safety_proof
+        tool_kind: tla_apalache
+    cap_slot: 17
+
+  - axis_id: "18"
+    axis_name: cross_edge
+    kind: cross_cutting_cluster
+    legacy_id: []
+    conformance_specs:
+      - detail.cross_edge.ops_edge_cluster
+      - detail.cross_edge.companion_otel_extension
+      - detail.cross_edge.ua_aware_adapter
+      - detail.cross_edge.dotnet8_connect_inhouse
+    enforcement_spec: detail.cross_edge.cross_edge_enforcement
+    lock_artifacts:
+      - cross_cutting_registry.lock.yaml
+    defense_in_depth_layers: [C, D, E]
+    proof_obligations:
+      - obligation_id: cross_edge_otel_4stack_correctness
+        proof_class: v1_program_correctness_proof
+        tool_kind: dafny
+    cap_slot: 18
+
+  - axis_id: "19"
+    axis_name: meta
+    kind: meta
+    legacy_id: []
+    conformance_specs:
+      - detail.meta.axis_registry_conformance
+    enforcement_spec: detail.meta.meta_enforcement
+    lock_artifacts:
+      - axis_registry.lock.yaml
+      - cross_cutting_registry.lock.yaml
+      - ownership_table.lock.yaml
+      - docs_lint.lock.yaml
+      - repository_layout.lock.yaml
+      - release_gate.lock.yaml
+    defense_in_depth_layers: [A, B, C, D, E, F]
+    proof_obligations:
+      - obligation_id: meta_registry_completeness
+        proof_class: v1_property_axiom
+        tool_kind: kani
+    cap_slot: 19
+
+cap_slot_max: 20
+cap_slot_reserved:
+  - slot: 20
+    status: reserved
+    note: v2 以降で使用予定

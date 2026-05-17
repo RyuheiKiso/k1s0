@@ -6,8 +6,6 @@ kind: policy
 status: draft
 depends_on:
   - arch.infra.infra_index
-  - detail.infra.cluster_topology_conformance
-  - detail.infra.infra_enforcement
 covered_by:
   defense_in_depth_layers: [C, D]
   proof_classes: []

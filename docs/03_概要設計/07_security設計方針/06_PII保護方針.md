@@ -7,7 +7,6 @@ status: draft
 depends_on:
   - arch.security.security_index
   - arch.security.threat_model_policy
-  - detail.security.security_enforcement
 covered_by:
   defense_in_depth_layers: [A, B, D, E]
   proof_classes: []

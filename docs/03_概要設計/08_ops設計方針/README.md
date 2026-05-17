@@ -4,9 +4,7 @@ axis: ops
 phase: architecture
 kind: index
 status: draft
-depends_on:
-  - detail.ops.ops_loop_conformance
-  - detail.ops.ops_enforcement
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []

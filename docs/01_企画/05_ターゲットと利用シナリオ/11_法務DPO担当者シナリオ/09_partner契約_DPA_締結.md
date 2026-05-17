@@ -143,4 +143,4 @@ covered_by:
 
 - [法務 DPO 担当者シナリオ index](README.md)
 - [cross_region_data_locality対応](08_cross_region_data_locality対応.md)
-- [業務管理者: partner連携設定_IdP_federation](../../08_業務管理者シナリオ/04_partner連携設定_IdP_federation.md)
+- [業務管理者: partner連携設定_IdP_federation](../08_業務管理者シナリオ/04_partner連携設定_IdP_federation.md)

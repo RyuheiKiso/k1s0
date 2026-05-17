@@ -6,8 +6,6 @@ kind: policy
 status: draft
 depends_on:
   - arch.ops.ops_index
-  - detail.ops.ops_loop_conformance
-  - detail.ops.ops_enforcement
 covered_by:
   defense_in_depth_layers: [B, D, E]
   proof_classes: []

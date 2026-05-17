@@ -5,7 +5,6 @@ phase: cross_cutting
 kind: cross_cut_spec
 status: draft
 depends_on:
-  - arch.data.data_index
   - arch.data.preservation_policy
   - arch.data.encryption_policy
   - arch.security.pii_protection_policy

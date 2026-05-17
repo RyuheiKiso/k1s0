@@ -64,4 +64,4 @@ covered_by:
 ## 関連参照
 
 - [ターゲットと利用シナリオ index](README.md)
-- [drawio-authoring skill](.cache/skills/drawio-authoring/SKILL.md)
+- drawio-authoring skill（外部リソース）

@@ -6,10 +6,7 @@ kind: enforcement
 status: draft
 depends_on:
   - arch.tier1.tier1_index
-  - arch.tier1.libraries
   - arch.tier1.feature_categories
-  - detail.tier1.bidi_conformance
-  - detail.tier1.migration_pair_conformance
   - detail.tier1.observability_conformance
   - detail.tier1.auth_conformance
   - detail.tier1.key_management_conformance

@@ -7,7 +7,6 @@ status: draft
 depends_on:
   - arch.client.client_index
   - arch.client.codegen_policy
-  - detail.client.sdk_distribution_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

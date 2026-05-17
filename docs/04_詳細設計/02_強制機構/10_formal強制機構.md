@@ -9,7 +9,6 @@ depends_on:
   - arch.formal.proof_artifact_policy
   - arch.formal.counter_example_policy
   - arch.formal.proof_review_policy
-  - detail.formal.formal_conformance
   - detail.formal.proof_artifact_system
   - detail.formal.counter_example_system
 covered_by:

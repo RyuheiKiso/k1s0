@@ -4,10 +4,7 @@ axis: security
 phase: architecture
 kind: index
 status: draft
-depends_on:
-  - detail.security.threat_model_conformance
-  - detail.security.build_provenance_conformance
-  - detail.security.security_enforcement
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []

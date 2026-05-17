@@ -7,7 +7,6 @@ status: draft
 depends_on:
   - arch.tier1.tier1_index
   - detail.tier1.observability_conformance
-  - detail.tier1.tier1_enforcement
   - detail.data.preservation_conformance
   - detail.ops.ops_loop_conformance
   - detail.meta.axis_registry_conformance

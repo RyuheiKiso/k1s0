@@ -9,7 +9,6 @@ depends_on:
   - arch.tier3.responsibility
   - arch.tier3.auth_multi_tenant
   - arch.tier3.observability
-  - detail.tier3.client_state_conformance
   - detail.tier2.tier2_enforcement
   - detail.tier1.tier1_enforcement
 covered_by:
