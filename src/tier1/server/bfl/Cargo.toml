@@ -24,3 +24,7 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 # uuid: AuthContext の相関 ID 生成に使用する
 uuid = { workspace = true }
+# jsonwebtoken: JWT 検証（RS256 / ES256 / HS256 + JWKS リモート取得に使用する）
+jsonwebtoken = { workspace = true }
+# reqwest: HTTP クライアント（JWKS endpoint フェッチ / SPIRE bundle endpoint に使用する; TLS なし = envoy が終端する）
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
