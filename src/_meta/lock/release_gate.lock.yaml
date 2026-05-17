@@ -3,7 +3,7 @@ release_gate_status: yellow
 total_cells: 45
 red_count: 0
 yellow_count: 19
-generated_at: '2026-05-17T10:10:06Z'
+generated_at: '2026-05-17T12:27:26Z'
 cells:
 - axis_id: meta
   cell_id: meta.axis_registry_complete

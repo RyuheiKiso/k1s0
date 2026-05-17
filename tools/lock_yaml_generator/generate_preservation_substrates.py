@@ -56,12 +56,20 @@ class PreservationSubstratesGenerator(BaseGenerator):
 
     def load_inputs(self, lock_dir: Path) -> dict[str, Any]:
         """src/data/preservation/classes.yaml を読み込む。
+        ConfigMap 形式（kind: ConfigMap + data.classes_definition）も受け入れる。
         存在しない場合は空 dict を返す。
         """
         if _CLASSES_YAML.exists():
             import yaml  # type: ignore
             raw = yaml.safe_load(_CLASSES_YAML.read_text(encoding="utf-8"))
-            return raw if isinstance(raw, dict) else {}
+            if not isinstance(raw, dict):
+                return {}
+            # Kubernetes ConfigMap 形式の場合は data.classes_definition を再 parse する
+            if raw.get("kind") == "ConfigMap":
+                classes_def_str = raw.get("data", {}).get("classes_definition", "")
+                nested = yaml.safe_load(classes_def_str) if classes_def_str else {}
+                return nested if isinstance(nested, dict) else {}
+            return raw
         return {}
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
@@ -72,7 +80,10 @@ class PreservationSubstratesGenerator(BaseGenerator):
             "%Y-%m-%dT%H:%M:%SZ"
         )
 
-        raw_classes: list[dict[str, Any]] = inputs.get("classes", [])
+        # preservation_classes または classes キーを受け入れる
+        raw_classes: list[dict[str, Any]] = inputs.get(
+            "preservation_classes", inputs.get("classes", [])
+        )
         raw_substrates: list[dict[str, Any]] = inputs.get("substrates", [])
 
         if len(raw_classes) >= 5:

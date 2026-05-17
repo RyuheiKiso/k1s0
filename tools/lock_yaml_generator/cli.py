@@ -48,9 +48,8 @@ def _run_generator(name: str, output_dir: Path, check_only: bool) -> bool:
         return False
 
     if check_only:
-        # 既存ファイルと生成内容を比較
-        import io
-        import contextlib
+        # 既存ファイルと生成内容を比較（generated_at タイムスタンプは比較から除外する）
+        import re
 
         gen_instance = gen()
         inputs = gen_instance.load_inputs(output_dir)
@@ -61,7 +60,11 @@ def _run_generator(name: str, output_dir: Path, check_only: bool) -> bool:
             click.echo(f"FAIL: {existing_path} not found (check-only mode)", err=True)
             return False
         actual = existing_path.read_text(encoding="utf-8")
-        if hashlib.sha256(expected.encode()).hexdigest() != hashlib.sha256(actual.encode()).hexdigest():
+        # generated_at タイムスタンプを正規化してから比較する
+        _TS_PAT = re.compile(r"generated_at: '[^']*'")
+        expected_norm = _TS_PAT.sub("generated_at: '<NORMALIZED>'", expected)
+        actual_norm = _TS_PAT.sub("generated_at: '<NORMALIZED>'", actual)
+        if hashlib.sha256(expected_norm.encode()).hexdigest() != hashlib.sha256(actual_norm.encode()).hexdigest():
             click.echo(f"FAIL: {existing_path} is not bit-for-bit reproducible", err=True)
             return False
         click.echo(f"OK (bit-for-bit): {existing_path}")

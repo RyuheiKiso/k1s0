@@ -72,7 +72,7 @@ def get_generator(name: str) -> type | None:
         "restore_drill": ("tools.lock_yaml_generator.generate_restore_drill", "RestoreDrillGenerator"),
         "capabilities": ("tools.lock_yaml_generator.generate_capabilities", "CapabilitiesGenerator"),
         "artifact_inventory": ("tools.lock_yaml_generator.generate_artifact_inventory", "ArtifactInventoryGenerator"),
-        "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateGenerator"),
+        "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }
     if name not in module_map:
         return None
