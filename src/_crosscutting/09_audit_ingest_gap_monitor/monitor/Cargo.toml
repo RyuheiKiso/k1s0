@@ -18,8 +18,8 @@ serde_json = "1"
 sha2 = "0.10"
 # hex: 16 進数エンコード/デコードライブラリ
 hex = "0.4"
-# reqwest: HTTP クライアント (メトリクス送信に使用する)
-reqwest = { version = "0.12", features = ["json"] }
+# reqwest: HTTP クライアント (メトリクス送信に使用する / rustls-tls で pkg-config 不要)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 # tracing: 構造化ロギングフレームワーク
 tracing = "0.1"
 # tracing-subscriber: tracing のサブスクライバー実装

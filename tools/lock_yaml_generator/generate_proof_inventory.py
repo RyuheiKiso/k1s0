@@ -82,12 +82,14 @@ class ProofInventoryGenerator(BaseGenerator):
 
     @staticmethod
     def _normalize_obligations(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """obligations エントリを正規化する。"""
+        """obligations エントリを正規化する。axis_name または axis フィールドを受け入れる。"""
         result: list[dict[str, Any]] = []
         for entry in raw:
+            # axis_name フィールドを優先し、なければ axis フィールドを使う
+            axis_name = entry.get("axis_name") or entry.get("axis", "")
             result.append({
                 "obligation_id": str(entry.get("obligation_id", "")),
-                "axis_name":     str(entry.get("axis_name", "")),
+                "axis_name":     str(axis_name),
                 "proof_class":   str(entry.get("proof_class", "")),
                 "cell_state":    str(entry.get("cell_state", "v1_unverified_handled")),
             })

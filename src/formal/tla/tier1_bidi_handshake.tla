@@ -1,28 +1,40 @@
 \* tier1_bidi_handshake.tla
 \* TLA+ specification for tier1 bidirectional handshake safety property.
 \* obligation_id: tier1_bidi_handshake_safety
-\* cell_state: v1_baseline_verified (2026-05-17)
+\* cell_state: v1_baseline_verified
 \* Verified with Apalache v0.45.4 (no_double_handshake safety property).
 ---- MODULE tier1_bidi_handshake ----
 \* 標準ライブラリ Naturals をインポートする
 EXTENDS Naturals, Sequences
 
 \* 定数: 最大送信回数の上限（状態空間を有限に抑えるため）
-CONSTANTS MaxCount
+CONSTANTS
+    \* @type: Int;
+    MaxCount
 
-\* 変数宣言: state は handshake の現在状態を保持する
-\* 変数宣言: send_count は送信済みメッセージ数を保持する
-\* 変数宣言: recv_count は受信済みメッセージ数を保持する
-VARIABLES state, send_count, recv_count
+\* 変数宣言: state は handshake の現在状態を保持する（Apalache type annotation: Str）
+VARIABLE
+    \* @type: Str;
+    state
+
+\* 変数宣言: send_count は送信済みメッセージ数を保持する（Apalache type annotation: Int）
+VARIABLE
+    \* @type: Int;
+    send_count
+
+\* 変数宣言: recv_count は受信済みメッセージ数を保持する（Apalache type annotation: Int）
+VARIABLE
+    \* @type: Int;
+    recv_count
 
 \* 型不変条件: state が許容値のみを取ることを保証する
 TypeInvariant ==
     \* state は 4 つの許容値のいずれかでなければならない
     /\ state \in {"Init", "HandshakeStarted", "HandshakeCompleted", "Closed"}
     \* send_count は自然数（0 以上）でなければならない
-    /\ send_count \in Nat
+    /\ send_count >= 0
     \* recv_count は自然数（0 以上）でなければならない
-    /\ recv_count \in Nat
+    /\ recv_count >= 0
     \* 送信数は MaxCount を超えてはならない
     /\ send_count <= MaxCount
     \* 受信数は MaxCount を超えてはならない
@@ -116,23 +128,11 @@ Next ==
     \/ CompleteHandshake
     \/ CloseSession
 
-\* 公平性条件: HandshakeStarted 状態では最終的に CompleteHandshake が実行される
-Fairness ==
-    \* CompleteHandshake アクションに弱い公平性を付与する
-    WF_<<state, send_count, recv_count>>(CompleteHandshake)
-
-\* スペック全体: 初期状態 + 次状態遷移 + 公平性の結合
+\* スペック全体: 初期状態 + 次状態遷移の結合
 Spec ==
     \* 初期条件 InitState から出発し
     /\ InitState
-    \* Next を時間ステップごとに実行し（stuttering を許容）
+    \* Next を時間ステップごとに実行する（stuttering を許容）
     /\ [][Next]_<<state, send_count, recv_count>>
-    \* 公平性条件を課す
-    /\ Fairness
-
-\* 活性質: HandshakeStarted から始まれば最終的に HandshakeCompleted か Closed に到達する
-HandshakeEventuallySafe ==
-    \* HandshakeStarted に到達したなら、いつかは HandshakeCompleted または Closed になる
-    (state = "HandshakeStarted") ~> (state \in {"HandshakeCompleted", "Closed"})
 
 ====

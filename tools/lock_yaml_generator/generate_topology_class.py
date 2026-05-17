@@ -72,7 +72,8 @@ class TopologyClassGenerator(BaseGenerator):
             "%Y-%m-%dT%H:%M:%SZ"
         )
 
-        raw_classes: list[dict[str, Any]] = inputs.get("classes", [])
+        # topology_classes または classes キーを受け入れる
+        raw_classes: list[dict[str, Any]] = inputs.get("topology_classes", inputs.get("classes", []))
 
         if len(raw_classes) >= 5:
             classes = self._normalize_classes(raw_classes)
@@ -92,12 +93,14 @@ class TopologyClassGenerator(BaseGenerator):
 
     @staticmethod
     def _normalize_classes(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """topology_class エントリを正規化する。"""
+        """topology_class エントリを正規化する。class_id を class_name の代替として受け入れる。"""
         result: list[dict[str, Any]] = []
         for entry in raw:
+            # class_name が無い場合は class_id を使う
+            class_id = str(entry.get("class_id", ""))
             result.append({
-                "class_id":    str(entry.get("class_id", "")),
-                "class_name":  str(entry.get("class_name", "")),
+                "class_id":    class_id,
+                "class_name":  str(entry.get("class_name", class_id)),
                 "drill_state": str(entry.get("drill_state", "pending")),
             })
         return result

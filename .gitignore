@@ -5,3 +5,10 @@ __pycache__/
 cosign.key
 *.pem
 .pytest_cache/
+src/_crosscutting/06_bff_auth_edge/bff/target/debug/*
+src/_crosscutting/09_audit_ingest_gap_monitor/monitor/target/debug/*
+src/formal/tla/_apalache-out/
+src/_crosscutting/03_apicurio_gitops_sot/controller/apicurio-controller
+src/_crosscutting/06_bff_auth_edge/bff/target/release/*
+src/_crosscutting/07_tauri_companion_sidecar/sidecar/target/
+src/_crosscutting/09_audit_ingest_gap_monitor/monitor/target/release/*

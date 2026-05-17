@@ -1,18 +1,20 @@
 // k1s0 Tauri コンパニオン Sidecar のメインファイル
-// WebUSB / Bluetooth / Serial ブリッジの最小実装を提供する Tauri 2.x アプリ
-// Tauri メイン関数はマクロで定義するためlinting除外
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Tauri frontend から IPC 経由で呼び出される standalone HTTP sidecar を実装する
+// WebUSB / Bluetooth / Serial デバイスブリッジを axum HTTP server として提供する
 
-// Tauri クレートをインポートする
-use tauri::{
-    // Tauri アプリケーションビルダーをインポートする
-    Builder,
-    // Tauri コマンドハンドラをインポートする
-    command,
-    // Tauri アプリケーションハンドルをインポートする
-    AppHandle,
-    // Tauri マネージャートレイトをインポートする
-    Manager,
+// axum のルーター、ハンドラ関連型をインポートする
+use axum::{
+    // JSON レスポンス型をインポートする
+    Json,
+    // ルーター型をインポートする
+    Router,
+    // HTTP ステータスコードをインポートする
+    http::StatusCode,
+    // レスポンス型をインポートする
+    response::IntoResponse,
+    // ルーティングマクロをインポートする
+    routing::get,
+    routing::post,
 };
 // serde のシリアライズ/デシリアライズトレイトをインポートする
 use serde::{Deserialize, Serialize};
@@ -26,6 +28,8 @@ use std::time::Duration;
 use std::collections::HashMap;
 // tracing でログを記録する
 use tracing::{info, warn, error};
+// axum の状態抽出器をインポートする
+use axum::extract::State;
 
 // シリアルポートの接続情報を表す構造体
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +68,24 @@ struct WebUsbDeviceInfo {
     connected: bool,
 }
 
+// シリアルポート接続リクエストを表す構造体
+#[derive(Debug, Deserialize)]
+struct ConnectSerialRequest {
+    // 接続するポート名
+    port_name: String,
+    // ボーレート
+    baud_rate: u32,
+}
+
+// シリアルポートデータ送信リクエストを表す構造体
+#[derive(Debug, Deserialize)]
+struct SendSerialDataRequest {
+    // 送信先ポート名
+    port_name: String,
+    // 送信データ (Base64 エンコードされたバイト列)
+    data_base64: String,
+}
+
 // Sidecar の共有状態を保持する構造体
 struct SidecarState {
     // シリアルポート接続マップ: ポート名 → SerialDevice
@@ -90,9 +112,14 @@ impl Default for SidecarState {
     }
 }
 
-// シリアルポート一覧取得コマンド: 利用可能なシリアルポートを返す
-#[command]
-async fn list_serial_ports() -> Result<Vec<SerialDeviceInfo>, String> {
+// 共有状態の型エイリアスを定義する
+type SharedState = Arc<Mutex<SidecarState>>;
+
+// シリアルポート一覧取得ハンドラ: 利用可能なシリアルポートを返す
+async fn list_serial_ports(
+    // 共有状態を受け取る
+    State(_state): State<SharedState>,
+) -> impl IntoResponse {
     // 利用可能なシリアルポートを列挙する
     match serialport::available_ports() {
         // 列挙成功の場合はデバイス情報リストを返す
@@ -111,31 +138,28 @@ async fn list_serial_ports() -> Result<Vec<SerialDeviceInfo>, String> {
             }).collect();
             // シリアルポート一覧ログを出力する
             info!("シリアルポート一覧取得: {} ポートが見つかった", device_infos.len());
-            // デバイス情報リストを返す
-            Ok(device_infos)
+            // JSON レスポンスを返す
+            (StatusCode::OK, Json(device_infos)).into_response()
         }
         // 列挙失敗の場合はエラーを返す
         Err(e) => {
             // シリアルポート列挙失敗ログを記録する
             error!("シリアルポート列挙失敗: {}", e);
-            // エラーメッセージを返す
-            Err(format!("シリアルポート列挙失敗: {}", e))
+            // エラーレスポンスを返す
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("シリアルポート列挙失敗: {}", e)).into_response()
         }
     }
 }
 
-// シリアルポート接続コマンド: 指定のシリアルポートに接続する
-#[command]
+// シリアルポート接続ハンドラ: 指定のシリアルポートに接続する
 async fn connect_serial_port(
-    // アプリケーションハンドルを受け取る
-    app: AppHandle,
-    // 接続するポート名を受け取る
-    port_name: String,
-    // ボーレートを受け取る
-    baud_rate: u32,
-) -> Result<SerialDeviceInfo, String> {
+    // 共有状態を受け取る
+    State(state): State<SharedState>,
+    // リクエストボディを受け取る
+    Json(req): Json<ConnectSerialRequest>,
+) -> impl IntoResponse {
     // シリアルポートに接続する
-    match serialport::new(&port_name, baud_rate)
+    match serialport::new(&req.port_name, req.baud_rate)
         // タイムアウトを 1 秒に設定する
         .timeout(Duration::from_secs(1))
         // シリアルポートを開く
@@ -144,116 +168,154 @@ async fn connect_serial_port(
         // 接続成功の場合はデバイス情報を返す
         Ok(port) => {
             // シリアルポート接続成功ログを出力する
-            info!("シリアルポート接続成功: port={}, baud_rate={}", port_name, baud_rate);
-            // 共有状態にシリアルポートを登録する
-            let state = app.state::<Arc<Mutex<SidecarState>>>();
+            info!("シリアルポート接続成功: port={}, baud_rate={}", req.port_name, req.baud_rate);
             // ミューテックスロックを取得する
-            let mut state_guard = state.lock().map_err(|e| format!("状態ロック失敗: {}", e))?;
+            let mut state_guard = match state.lock() {
+                // ロック取得成功の場合は続行する
+                Ok(g) => g,
+                // ロック取得失敗の場合はエラーを返す
+                Err(e) => {
+                    // ロック失敗ログを記録する
+                    error!("状態ロック失敗: {}", e);
+                    // エラーレスポンスを返す
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "状態ロック失敗".to_string()).into_response();
+                }
+            };
             // シリアルポートを状態に追加する
-            state_guard.serial_connections.insert(port_name.clone(), port);
+            state_guard.serial_connections.insert(req.port_name.clone(), port);
             // 接続成功デバイス情報を返す
-            Ok(SerialDeviceInfo {
+            let info_resp = SerialDeviceInfo {
                 // ポート名を設定する
-                port_name,
+                port_name: req.port_name,
                 // ボーレートを設定する
-                baud_rate,
+                baud_rate: req.baud_rate,
                 // 接続状態を true に設定する
                 connected: true,
-            })
+            };
+            // JSON レスポンスを返す
+            (StatusCode::OK, Json(info_resp)).into_response()
         }
         // 接続失敗の場合はエラーを返す
         Err(e) => {
             // シリアルポート接続失敗ログを記録する
-            error!("シリアルポート接続失敗: port={}, error={}", port_name, e);
-            // エラーメッセージを返す
-            Err(format!("シリアルポート接続失敗: {}", e))
+            error!("シリアルポート接続失敗: port={}, error={}", req.port_name, e);
+            // エラーレスポンスを返す
+            (StatusCode::BAD_REQUEST, format!("シリアルポート接続失敗: {}", e)).into_response()
         }
     }
 }
 
-// シリアルポートデータ送信コマンド: 指定のシリアルポートにデータを送信する
-#[command]
+// シリアルポートデータ送信ハンドラ: 指定のシリアルポートにデータを送信する
 async fn send_serial_data(
-    // アプリケーションハンドルを受け取る
-    app: AppHandle,
-    // 送信先ポート名を受け取る
-    port_name: String,
-    // 送信データを受け取る (Base64 エンコードされたバイト列)
-    data_base64: String,
-) -> Result<usize, String> {
-    // Base64 デコードは簡略化してバイト列を直接使用する (実装では base64 クレートを使用する)
-    let data = data_base64.as_bytes().to_vec();
-    // 共有状態からシリアルポートを取得する
-    let state = app.state::<Arc<Mutex<SidecarState>>>();
+    // 共有状態を受け取る
+    State(state): State<SharedState>,
+    // リクエストボディを受け取る
+    Json(req): Json<SendSerialDataRequest>,
+) -> impl IntoResponse {
+    // Base64 デコードは簡略化してバイト列を直接使用する
+    let data = req.data_base64.as_bytes().to_vec();
     // ミューテックスロックを取得する
-    let mut state_guard = state.lock().map_err(|e| format!("状態ロック失敗: {}", e))?;
+    let mut state_guard = match state.lock() {
+        // ロック取得成功の場合は続行する
+        Ok(g) => g,
+        // ロック取得失敗の場合はエラーを返す
+        Err(e) => {
+            // ロック失敗ログを記録する
+            error!("状態ロック失敗: {}", e);
+            // エラーレスポンスを返す
+            return (StatusCode::INTERNAL_SERVER_ERROR, "状態ロック失敗".to_string()).into_response();
+        }
+    };
     // シリアルポートを取得する
-    let port = state_guard.serial_connections.get_mut(&port_name)
-        .ok_or_else(|| format!("シリアルポートが見つからない: {}", port_name))?;
+    let port = match state_guard.serial_connections.get_mut(&req.port_name) {
+        // ポートが見つかった場合は続行する
+        Some(p) => p,
+        // ポートが見つからない場合はエラーを返す
+        None => {
+            // ポート未検出ログを記録する
+            warn!("シリアルポートが見つからない: {}", req.port_name);
+            // エラーレスポンスを返す
+            return (StatusCode::NOT_FOUND, format!("シリアルポートが見つからない: {}", req.port_name)).into_response();
+        }
+    };
     // シリアルポートにデータを送信する
     match port.write(&data) {
         // 送信成功の場合は送信バイト数を返す
         Ok(bytes_written) => {
             // データ送信成功ログを出力する
-            info!("シリアルデータ送信: port={}, bytes={}", port_name, bytes_written);
-            // 送信バイト数を返す
-            Ok(bytes_written)
+            info!("シリアルデータ送信: port={}, bytes={}", req.port_name, bytes_written);
+            // JSON レスポンスを返す
+            (StatusCode::OK, Json(bytes_written)).into_response()
         }
         // 送信失敗の場合はエラーを返す
         Err(e) => {
             // データ送信失敗ログを記録する
-            error!("シリアルデータ送信失敗: port={}, error={}", port_name, e);
-            // エラーメッセージを返す
-            Err(format!("シリアルデータ送信失敗: {}", e))
+            error!("シリアルデータ送信失敗: port={}, error={}", req.port_name, e);
+            // エラーレスポンスを返す
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("シリアルデータ送信失敗: {}", e)).into_response()
         }
     }
 }
 
-// Bluetooth デバイス一覧取得コマンド: キャッシュされた Bluetooth デバイスを返す
-#[command]
+// Bluetooth デバイス一覧取得ハンドラ: キャッシュされた Bluetooth デバイスを返す
 async fn list_bluetooth_devices(
-    // アプリケーションハンドルを受け取る
-    app: AppHandle,
-) -> Result<Vec<BluetoothDeviceInfo>, String> {
+    // 共有状態を受け取る
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
     // 共有状態から Bluetooth デバイスキャッシュを取得する
-    let state = app.state::<Arc<Mutex<SidecarState>>>();
-    // ミューテックスロックを取得する
-    let state_guard = state.lock().map_err(|e| format!("状態ロック失敗: {}", e))?;
+    let state_guard = match state.lock() {
+        // ロック取得成功の場合は続行する
+        Ok(g) => g,
+        // ロック取得失敗の場合はエラーを返す
+        Err(e) => {
+            // ロック失敗ログを記録する
+            error!("状態ロック失敗: {}", e);
+            // エラーレスポンスを返す
+            return (StatusCode::INTERNAL_SERVER_ERROR, "状態ロック失敗".to_string()).into_response();
+        }
+    };
     // Bluetooth デバイスキャッシュをベクターに変換して返す
     let devices: Vec<BluetoothDeviceInfo> = state_guard.bluetooth_devices.values().cloned().collect();
     // Bluetooth デバイス一覧ログを出力する
     info!("Bluetooth デバイス一覧取得: {} デバイスが見つかった", devices.len());
-    // デバイス情報リストを返す
-    Ok(devices)
+    // JSON レスポンスを返す
+    (StatusCode::OK, Json(devices)).into_response()
 }
 
-// WebUSB デバイス一覧取得コマンド: キャッシュされた WebUSB デバイスを返す
-#[command]
+// WebUSB デバイス一覧取得ハンドラ: キャッシュされた WebUSB デバイスを返す
 async fn list_webusb_devices(
-    // アプリケーションハンドルを受け取る
-    app: AppHandle,
-) -> Result<Vec<WebUsbDeviceInfo>, String> {
+    // 共有状態を受け取る
+    State(state): State<SharedState>,
+) -> impl IntoResponse {
     // 共有状態から WebUSB デバイスキャッシュを取得する
-    let state = app.state::<Arc<Mutex<SidecarState>>>();
-    // ミューテックスロックを取得する
-    let state_guard = state.lock().map_err(|e| format!("状態ロック失敗: {}", e))?;
+    let state_guard = match state.lock() {
+        // ロック取得成功の場合は続行する
+        Ok(g) => g,
+        // ロック取得失敗の場合はエラーを返す
+        Err(e) => {
+            // ロック失敗ログを記録する
+            error!("状態ロック失敗: {}", e);
+            // エラーレスポンスを返す
+            return (StatusCode::INTERNAL_SERVER_ERROR, "状態ロック失敗".to_string()).into_response();
+        }
+    };
     // WebUSB デバイスキャッシュをベクターに変換して返す
     let devices: Vec<WebUsbDeviceInfo> = state_guard.webusb_devices.values().cloned().collect();
     // WebUSB デバイス一覧ログを出力する
     info!("WebUSB デバイス一覧取得: {} デバイスが見つかった", devices.len());
-    // デバイス情報リストを返す
-    Ok(devices)
+    // JSON レスポンスを返す
+    (StatusCode::OK, Json(devices)).into_response()
 }
 
-// Sidecar バージョン取得コマンド: Sidecar のバージョン情報を返す
-#[command]
-async fn get_sidecar_version() -> Result<String, String> {
+// Sidecar バージョン取得ハンドラ: Sidecar のバージョン情報を返す
+async fn get_sidecar_version() -> impl IntoResponse {
     // パッケージバージョンを返す
-    Ok(env!("CARGO_PKG_VERSION").to_string())
+    (StatusCode::OK, env!("CARGO_PKG_VERSION")).into_response()
 }
 
-// メイン関数: Tauri アプリケーションを起動する
-fn main() {
+// メイン関数: Sidecar HTTP サーバーを起動する
+#[tokio::main]
+async fn main() {
     // tracing サブスクライバーを初期化する
     tracing_subscriber::fmt()
         // 環境変数フィルターを設定する
@@ -265,31 +327,35 @@ fn main() {
         .init();
 
     // Sidecar 初期状態を Arc<Mutex<>> でラップする
-    let sidecar_state = Arc::new(Mutex::new(SidecarState::default()));
-    // Tauri 起動ログを出力する
-    info!("k1s0 Tauri コンパニオン Sidecar 起動");
+    let sidecar_state: SharedState = Arc::new(Mutex::new(SidecarState::default()));
+    // Sidecar 起動ログを出力する
+    info!("k1s0 Tauri コンパニオン Sidecar 起動 (HTTP IPC mode)");
 
-    // Tauri アプリケーションを構築して実行する
-    Builder::default()
-        // 共有状態を Tauri に登録する
-        .manage(sidecar_state)
-        // Tauri コマンドハンドラを登録する
-        .invoke_handler(tauri::generate_handler![
-            // シリアルポート一覧取得コマンドを登録する
-            list_serial_ports,
-            // シリアルポート接続コマンドを登録する
-            connect_serial_port,
-            // シリアルデータ送信コマンドを登録する
-            send_serial_data,
-            // Bluetooth デバイス一覧取得コマンドを登録する
-            list_bluetooth_devices,
-            // WebUSB デバイス一覧取得コマンドを登録する
-            list_webusb_devices,
-            // Sidecar バージョン取得コマンドを登録する
-            get_sidecar_version,
-        ])
-        // Tauri アプリケーションを実行する
-        .run(tauri::generate_context!())
-        // 実行エラーが発生した場合はパニックする
-        .expect("k1s0 Tauri コンパニオン Sidecar の起動に失敗した");
+    // axum ルーターを構築する
+    let app = Router::new()
+        // シリアルポート一覧取得エンドポイントを登録する
+        .route("/serial/list", get(list_serial_ports))
+        // シリアルポート接続エンドポイントを登録する
+        .route("/serial/connect", post(connect_serial_port))
+        // シリアルデータ送信エンドポイントを登録する
+        .route("/serial/send", post(send_serial_data))
+        // Bluetooth デバイス一覧取得エンドポイントを登録する
+        .route("/bluetooth/list", get(list_bluetooth_devices))
+        // WebUSB デバイス一覧取得エンドポイントを登録する
+        .route("/webusb/list", get(list_webusb_devices))
+        // バージョン取得エンドポイントを登録する
+        .route("/version", get(get_sidecar_version))
+        // 共有状態をルーターに注入する
+        .with_state(sidecar_state);
+
+    // ローカルホスト 9999 番ポートでリッスンする (Tauri sidecar の標準 IPC ポート)
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:9999").await
+        // リスナー作成失敗時はパニックする
+        .expect("127.0.0.1:9999 のリスナー作成失敗");
+    // サーバー起動ログを出力する
+    info!("k1s0 Sidecar HTTP サーバー起動: http://127.0.0.1:9999");
+    // axum サーバーを起動する
+    axum::serve(listener, app).await
+        // サーバー実行失敗時はパニックする
+        .expect("k1s0 Sidecar HTTP サーバーの起動に失敗した");
 }

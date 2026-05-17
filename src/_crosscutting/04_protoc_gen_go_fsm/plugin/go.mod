@@ -5,7 +5,5 @@ module github.com/k1s0/protoc-gen-go-fsm
 go 1.23
 
 // 依存関係: protobuf と protogen ライブラリを使用する
-require (
-	// google.golang.org/protobuf: Protocol Buffers Go 実装ライブラリ
-	google.golang.org/protobuf v1.36.0
-)
+// google.golang.org/protobuf: Protocol Buffers Go 実装ライブラリ
+require google.golang.org/protobuf v1.36.0
