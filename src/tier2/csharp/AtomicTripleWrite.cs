@@ -1,0 +1,224 @@
+// k1s0 tier2 atomic 三表書込 C# (.NET 8+) 実装
+// Rust 実装（atomic_triple_write.rs）と semantic 等価な C# 版
+// State change / Outbox / Audit event を同一 DB トランザクションで書く
+// TLA+ の P1-P4 invariant と double-bind する（src/formal/dafny/AtomicThreeTableWrite.dfy）
+//
+// P1: aggregate 状態変更時、必ず Outbox + Audit が同一 txn に書込
+// P2: Outbox 投入失敗時、aggregate 状態変更も rollback
+// P3: tenant_id が GUC と aggregate 行で一致しない場合、操作を reject
+// P4: pii_segregated の全アクセスを audit_event に記録
+
+// Guid / Exception / InvalidOperationException 等の基本型
+using System;
+// StringBuilder を使用する
+using System.Text;
+// 非同期処理に使用する
+using System.Threading;
+using System.Threading.Tasks;
+
+// k1s0 tier2 名前空間
+namespace K1s0.Tier2;
+
+/// <summary>
+/// 書込対象テーブルクラス（10_テナント分離適合仕様.md の 4 class と一致する）
+/// </summary>
+public enum TableClass
+{
+    /// <summary>tenant_scoped: tenant_id 必須、RLS FORCE</summary>
+    TenantScoped,
+    /// <summary>tenant_master: tenant_id 必須、role 制限付き RLS FORCE</summary>
+    TenantMaster,
+    /// <summary>platform_global: tenant_id 無し、RLS 無効</summary>
+    PlatformGlobal,
+    /// <summary>pii_segregated: tenant_id 必須 + purpose check + pgaudit 全アクセス</summary>
+    PiiSegregated,
+}
+
+/// <summary>
+/// aggregate の状態変更を表すデータクラス（P1 の state_change に対応する）
+/// </summary>
+public sealed record StateChange(
+    // 変更対象の aggregate ID
+    Guid AggregateId,
+    // 変更対象の tenant_id（TenantContext.TenantId と一致している必要がある）
+    Guid TenantId,
+    // テーブルクラス（どの class の table を書込むかを示す）
+    TableClass TableClass,
+    // 変更内容のシリアライズ済みペイロード（JSON 文字列）
+    string Payload,
+    // aggregate バージョン（楽観的ロックに使用する）
+    long Version
+);
+
+/// <summary>
+/// atomic 三表書込の結果
+/// </summary>
+public sealed record TripleWriteResult(
+    // 書込んだ aggregate ID
+    Guid AggregateId,
+    // 書込んだ outbox エントリの ID
+    Guid OutboxId,
+    // 書込んだ audit_event の ID
+    Guid AuditEventId,
+    // 書込完了日時（UTC）
+    DateTimeOffset CommittedAt
+);
+
+/// <summary>
+/// atomic 三表書込のインターフェース
+/// 4 言語等価強度を保証するために interface を定義する
+/// </summary>
+public interface IAtomicTripleWrite
+{
+    /// <summary>P3: tenant_id 一致を検証する</summary>
+    void VerifyTenantId(StateChange change);
+
+    /// <summary>P4: pii_segregated アクセスが audit_event 必須かを返す</summary>
+    bool VerifyPiiAuditRequired(StateChange change);
+
+    /// <summary>P1: 三表書込に必要な SQL 文字列を生成する</summary>
+    string BuildTripleWriteSQL(StateChange change);
+
+    /// <summary>P1-P4: atomic 三表書込を実行する非同期メソッド</summary>
+    Task<TripleWriteResult> ExecuteAsync(StateChange change, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// atomic 三表書込の実行エンジン
+/// Npgsql 8 の NpgsqlTransaction を受け取る ExecuteAsync を持つ
+/// TenantContext を使って GUC 注入と tenant_id 検証を行う
+/// </summary>
+public sealed class AtomicTripleWrite : IAtomicTripleWrite
+{
+    // テナントコンテキスト（GUC 注入・tenant_id 検証に使用する）
+    private readonly TenantContext _context;
+
+    /// <summary>
+    /// AtomicTripleWrite を生成する（TenantContext を受け取る）
+    /// </summary>
+    public AtomicTripleWrite(TenantContext context)
+    {
+        // TenantContext を格納する
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    /// <summary>
+    /// P3: tenant_id 一致を検証する
+    /// StateChange の TenantId が TenantContext の TenantId と一致しない場合は例外をスローする
+    /// </summary>
+    public void VerifyTenantId(StateChange change)
+    {
+        // null チェック
+        ArgumentNullException.ThrowIfNull(change);
+        // GUC の tenant_id と aggregate の tenant_id を比較する
+        var gucTenantId = _context.TenantId;
+        if (gucTenantId != change.TenantId)
+        {
+            // P3 違反: tenant_id 不一致で例外をスローする
+            throw new InvalidOperationException(
+                $"P3 TenantId mismatch: guc={gucTenantId:D}, row={change.TenantId:D}");
+        }
+    }
+
+    /// <summary>
+    /// P4: pii_segregated アクセスが audit_event 必須かを返す
+    /// </summary>
+    public bool VerifyPiiAuditRequired(StateChange change)
+    {
+        // null チェック
+        ArgumentNullException.ThrowIfNull(change);
+        // PiiSegregated の場合は必ず audit_event を記録する（true を返す）
+        return change.TableClass == TableClass.PiiSegregated;
+    }
+
+    /// <summary>
+    /// P1: 三表書込に必要な SQL 文字列を生成する
+    /// BEGIN 〜 COMMIT の間に state_change / outbox / audit_event の 3 INSERT を含む
+    /// </summary>
+    public string BuildTripleWriteSQL(StateChange change)
+    {
+        // null チェック
+        ArgumentNullException.ThrowIfNull(change);
+        // P3: tenant_id 一致を事前検証する
+        VerifyTenantId(change);
+        // outbox エントリの ID を生成する
+        var outboxId = Guid.NewGuid();
+        // audit_event の ID を生成する
+        var auditId = Guid.NewGuid();
+        // 現在時刻を ISO 8601 形式で取得する
+        var now = DateTimeOffset.UtcNow.ToString("o");
+        // SET LOCAL GUC 注入 SQL を取得する（4 GUC 全て）
+        var setGuc = _context.ToSetLocalSql();
+        // payload の single quote をエスケープする（SQL injection 対策）
+        var escapedPayload = change.Payload.Replace("'", "''");
+        // テーブルクラスを文字列に変換する
+        var tableClassStr = change.TableClass.ToString();
+        // P1: state_change + outbox + audit_event を BEGIN 〜 COMMIT の間に書く
+        var sb = new StringBuilder();
+        sb.AppendLine("BEGIN;");
+        sb.AppendLine(setGuc);
+        sb.AppendLine();
+        // P1: state_change (aggregate テーブルへの書込)
+        sb.AppendLine("-- P1: state_change (aggregate テーブルへの書込)");
+        sb.AppendLine($"INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)");
+        sb.AppendLine($"VALUES ('{auditId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, 'StateChange', '{escapedPayload}'::jsonb, {change.Version}, '{now}');");
+        sb.AppendLine();
+        // P1: outbox (Debezium CDC 経由で Kafka に転送される)
+        sb.AppendLine("-- P1: outbox (Debezium CDC 経由で Kafka に転送される)");
+        sb.AppendLine($"INSERT INTO k1s0.outbox (id, aggregate_id, tenant_id, event_kind, payload, created_at)");
+        sb.AppendLine($"VALUES ('{outboxId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '{escapedPayload}'::jsonb, '{now}');");
+        sb.AppendLine();
+        // P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
+        sb.AppendLine("-- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)");
+        sb.AppendLine($"INSERT INTO k1s0.audit_event (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)");
+        sb.AppendLine($"VALUES ('{auditId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, current_setting('app.actor_id'), current_setting('app.purpose'), '{tableClassStr}', '{escapedPayload}'::jsonb, '{now}');");
+        sb.AppendLine();
+        sb.AppendLine("COMMIT;");
+        // 生成した SQL 文字列を返す
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// P1-P4: atomic 三表書込を実行する非同期メソッド（型シグネチャのみ、実 txn は TODO）
+    /// TODO: Npgsql 統合時に NpgsqlTransaction を第 2 引数に追加する
+    /// P1: BEGIN 〜 COMMIT の中で state_change / outbox / audit_event の 3 INSERT を実行する
+    /// P2: outbox INSERT が失敗した場合は txn を rollback して例外をスローする
+    /// P3: tenant_id が GUC と一致しない場合は即座に reject して InvalidOperationException をスローする
+    /// P4: pii_segregated テーブルへのアクセスは audit_event に記録してから txn を実行する
+    /// </summary>
+    public async Task<TripleWriteResult> ExecuteAsync(
+        StateChange change,
+        CancellationToken cancellationToken = default)
+    {
+        // null チェック
+        ArgumentNullException.ThrowIfNull(change);
+        // cancellationToken の cancel を確認する
+        cancellationToken.ThrowIfCancellationRequested();
+        // P3: tenant_id 一致を事前検証する（GUC と aggregate 行の tenant_id が一致しない場合は即座に例外）
+        VerifyTenantId(change);
+        // P4: pii_segregated の場合は audit_event への記録が必須であることを確認する
+        _ = VerifyPiiAuditRequired(change);
+        // P1: 三表書込 SQL を生成する（実際の txn 実行は TODO）
+        // TODO: NpgsqlTransaction を受け取り、3 INSERT + SET LOCAL を同一 txn で実行する
+        var generatedSql = BuildTripleWriteSQL(change);
+        // SQL 生成結果は TODO 実装まで使用しない（コンパイラ警告抑制）
+        _ = generatedSql;
+        // P2: outbox INSERT が失敗した場合は rollback のためのエラーをスローする
+        // TODO: NpgsqlCommand.ExecuteNonQueryAsync() の失敗を InvalidOperationException にマッピングする
+        // 現時点では成功結果を構築して返す（実 DB 実行なし）
+        var outboxId = Guid.NewGuid();
+        // audit_event の ID を生成する
+        var auditEventId = Guid.NewGuid();
+        // 書込完了日時を記録する
+        var committedAt = DateTimeOffset.UtcNow;
+        // await Task.CompletedTask を使って async メソッドとして有効にする
+        await Task.CompletedTask.ConfigureAwait(false);
+        // TripleWriteResult を返す（実 txn 統合前の型シグネチャ確認用）
+        return new TripleWriteResult(
+            AggregateId: change.AggregateId,
+            OutboxId: outboxId,
+            AuditEventId: auditEventId,
+            CommittedAt: committedAt
+        );
+    }
+}

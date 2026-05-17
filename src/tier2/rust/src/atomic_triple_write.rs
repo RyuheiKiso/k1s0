@@ -84,10 +84,46 @@ pub struct AtomicTripleWrite {
     context: TenantContext,
 }
 
+// execute() の戻り値型: 実際の sqlx::Transaction を受け取る場合のプレースホルダー
+// TODO: sqlx 統合時に sqlx::PgPool を受け取る引数を追加する
+// P1: BEGIN 〜 COMMIT の中で state_change / outbox / audit_event の 3 INSERT を実行する
+// P2: outbox INSERT が失敗した場合は txn を rollback して OutboxInsertFailed を返す
+// P3: tenant_id が GUC と一致しない場合は即座に reject して TransactionError を返す
+// P4: pii_segregated テーブルへのアクセスは audit_event に記録してから txn を実行する
+pub type ExecuteResult = Result<TripleWriteResult, AtomicWriteError>;
+
 impl AtomicTripleWrite {
     // AtomicTripleWrite を生成する（TenantContext を受け取る）
     pub fn new(context: TenantContext) -> Self {
         Self { context }
+    }
+
+    // P1-P4: atomic 三表書込を実行する非同期メソッド（型シグネチャのみ、実 txn は TODO）
+    // TODO: sqlx 統合時に &mut sqlx::Transaction<'_, sqlx::Postgres> を第 2 引数に追加する
+    // 現時点では SQL 文字列生成と invariant 検証のみを行い、Ok(result) を返す
+    pub async fn execute(&self, change: &StateChange) -> ExecuteResult {
+        // P3: tenant_id 一致を事前検証する（GUC と aggregate 行の tenant_id が一致しない場合は即座にエラー）
+        self.verify_tenant_id(change)?;
+        // P4: pii_segregated の場合は audit_event への記録が必須であることを検証する
+        let _pii_audit_required = self.verify_pii_audit_required(change);
+        // P1: 三表書込 SQL を生成する（実際の txn 実行は TODO）
+        // TODO: sqlx::Transaction を受け取り、3 INSERT + SET LOCAL を同一 txn で実行する
+        let _sql = self.build_triple_write_sql(change)?;
+        // P2: outbox INSERT が失敗した場合は rollback のためのエラーを返す
+        // TODO: sqlx txn.execute(&sql) の失敗を OutboxInsertFailed にマッピングする
+        // 現時点では成功結果を構築して返す（実 DB 実行なし）
+        let outbox_id = Uuid::new_v4();
+        // audit_event の ID を生成する
+        let audit_event_id = Uuid::new_v4();
+        // 書込完了日時を記録する
+        let committed_at = Utc::now();
+        // TripleWriteResult を返す（実 txn 統合前の型シグネチャ確認用）
+        Ok(TripleWriteResult {
+            aggregate_id: change.aggregate_id,
+            outbox_id,
+            audit_event_id,
+            committed_at,
+        })
     }
 
     // P3: tenant_id 一致を検証する
