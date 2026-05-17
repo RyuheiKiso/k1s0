@@ -1,0 +1,13 @@
+{
+  "name": "@k1s0/playwright-tests",
+  "version": "0.1.0",
+  "description": "k1s0 manufacturing scenario e2e tests",
+  "scripts": {
+    "test": "playwright test",
+    "test:ci": "playwright test --reporter=github"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^20.0.0"
+  }
+}
