@@ -53,21 +53,21 @@ CREATE POLICY tenant_scoped_insert ON k1s0.domain_event
 -- ============================================================
 
 -- outbox テーブルの RLS を有効化する
-ALTER TABLE k1s0.outbox ENABLE ROW LEVEL SECURITY;
+ALTER TABLE k1s0.outbox_message ENABLE ROW LEVEL SECURITY;
 
 -- outbox テーブルに FORCE フラグを設定する
-ALTER TABLE k1s0.outbox FORCE ROW LEVEL SECURITY;
+ALTER TABLE k1s0.outbox_message FORCE ROW LEVEL SECURITY;
 
 -- outbox SELECT ポリシー
-DROP POLICY IF EXISTS tenant_scoped_select ON k1s0.outbox;
-CREATE POLICY tenant_scoped_select ON k1s0.outbox
+DROP POLICY IF EXISTS tenant_scoped_select ON k1s0.outbox_message;
+CREATE POLICY tenant_scoped_select ON k1s0.outbox_message
   FOR SELECT
   TO k1s0app
   USING (tenant_id = current_setting('app.tenant_id', true)::uuid);
 
 -- outbox INSERT ポリシー
-DROP POLICY IF EXISTS tenant_scoped_insert ON k1s0.outbox;
-CREATE POLICY tenant_scoped_insert ON k1s0.outbox
+DROP POLICY IF EXISTS tenant_scoped_insert ON k1s0.outbox_message;
+CREATE POLICY tenant_scoped_insert ON k1s0.outbox_message
   FOR INSERT
   TO k1s0app
   WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);

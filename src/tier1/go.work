@@ -3,6 +3,8 @@ go 1.23.0
 
 // operator モジュールをワークスペースに含める
 use (
+	// tier2 テナントコンテキスト（4 言語等価強度 Go 実装）
+	../tier2/go
 	// Tier1Service CRD Reconciler（controller-runtime 使用）
 	./operator
 )
