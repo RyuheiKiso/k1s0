@@ -83,6 +83,14 @@ class TestMatrixGenerator(BaseGenerator):
                 {"scenario_id": "s02_factory_offline_5_items_pq_resume", "status": "declared"},
             ]
 
+        # 検査総件数（各シナリオが 1 件の検査に相当する）
+        total_checks = len(scenarios)
+        # 合格件数（declared 状態は 0、verified は 1 とする）
+        # 現フェーズでは全シナリオが declared = 物理実装は Stage 4 のため 0
+        passed_checks = 0
+        # 違反件数（declared 状態では違反なし）
+        violations_count = 0
+
         # artifact dict を構築して返す
         return {
             # 自動生成ヘッダ（手書き禁止の明示）
@@ -92,7 +100,13 @@ class TestMatrixGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # 総シナリオ数
+            # 検査総件数（シナリオ数と同数）
+            "total_checks": total_checks,
+            # 合格件数（declared = 0、verified = 1 として計算する）
+            "passed_checks": passed_checks,
+            # 違反件数（declared 状態では 0）
+            "violations_count": violations_count,
+            # 総シナリオ数（後方互換のため残す）
             "total_scenarios": len(scenarios),
             # シナリオ一覧（全て declared）
             "scenarios": scenarios,

@@ -1,0 +1,99 @@
+// order.proto — k1s0 tier2 manufacturing procurement (調達) bounded context proto
+// docs/03_概要設計/03_tier2設計方針/04_ドメイン分割方針.md §procurement bounded context に準拠する。
+// tier2 業界中立語 (ProcurementOrder / OrderStatus) を使用し業界固有語を露出しない。
+
+syntax = "proto3";
+
+// パッケージ名: k1s0.tier2.manufacturing.procurement.v1（調達 bounded context の gRPC 定義）
+package k1s0.tier2.manufacturing.procurement.v1;
+
+// Java / Kotlin クライアント向けオプション
+option java_multiple_files = true;
+// Java パッケージ名（業界中立名前空間）
+option java_package = "io.k1s0.tier2.manufacturing.procurement.v1";
+// Go パッケージパス
+option go_package = "github.com/k1s0/tier2/manufacturing/procurement/v1;procurementv1";
+
+// OrderStatus は調達注文の状態を宣言する enum。
+// 業界語「発注状態」を中立語 OrderStatus で表現する。
+enum OrderStatus {
+  // ORDER_STATUS_UNSPECIFIED: 未設定
+  ORDER_STATUS_UNSPECIFIED = 0;
+  // ORDER_STATUS_DRAFT: 下書き（まだ確定していない）
+  ORDER_STATUS_DRAFT = 1;
+  // ORDER_STATUS_SUBMITTED: 提出済み（承認待ち）
+  ORDER_STATUS_SUBMITTED = 2;
+  // ORDER_STATUS_APPROVED: 承認済み（発注確定）
+  ORDER_STATUS_APPROVED = 3;
+  // ORDER_STATUS_REJECTED: 却下（差し戻し）
+  ORDER_STATUS_REJECTED = 4;
+  // ORDER_STATUS_RECEIVED: 受領済み（納品完了）
+  ORDER_STATUS_RECEIVED = 5;
+}
+
+// ProcurementOrder は調達注文集約の proto メッセージを宣言する。
+// エンティティ名は業界中立語（「発注書」は使わない）。
+message ProcurementOrder {
+  // id: 注文の識別子（UUID v7 文字列形式）
+  string id = 1;
+  // tenant_id: テナント識別子（RLS 境界を保証する）
+  string tenant_id = 2;
+  // order_code: 注文の識別コード（業界中立な番号）
+  string order_code = 3;
+  // item_spec_id: 注文品目の仕様 ID（ItemSpecification への参照）
+  string item_spec_id = 4;
+  // quantity: 注文数量
+  int64 quantity = 5;
+  // status: 現在の注文状態
+  OrderStatus status = 6;
+  // created_at: 作成日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）
+  string created_at = 7;
+  // updated_at: 更新日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）
+  string updated_at = 8;
+  // version: 楽観的ロックバージョン番号
+  int64 version = 9;
+}
+
+// CreateOrderRequest は調達注文作成リクエストを宣言する。
+message CreateOrderRequest {
+  // tenant_id: テナント識別子（JWT ClaimsSet から取得し bfl が検証する）
+  string tenant_id = 1;
+  // order_code: 注文の識別コード
+  string order_code = 2;
+  // item_spec_id: 注文品目の仕様 ID
+  string item_spec_id = 3;
+  // quantity: 注文数量（1 以上の整数）
+  int64 quantity = 4;
+}
+
+// CreateOrderResponse は調達注文作成レスポンスを宣言する。
+message CreateOrderResponse {
+  // order: 作成された注文
+  ProcurementOrder order = 1;
+}
+
+// UpdateOrderStatusRequest は調達注文状態更新リクエストを宣言する。
+message UpdateOrderStatusRequest {
+  // id: 更新対象注文の識別子
+  string id = 1;
+  // tenant_id: テナント識別子
+  string tenant_id = 2;
+  // new_status: 新しい注文状態
+  OrderStatus new_status = 3;
+  // expected_version: 楽観的ロック用期待バージョン番号
+  int64 expected_version = 4;
+}
+
+// UpdateOrderStatusResponse は調達注文状態更新レスポンスを宣言する。
+message UpdateOrderStatusResponse {
+  // order: 更新後の注文
+  ProcurementOrder order = 1;
+}
+
+// ProcurementService は調達 bounded context の gRPC サービスを宣言する。
+service ProcurementService {
+  // CreateOrder は調達注文を作成する。
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  // UpdateOrderStatus は調達注文の状態を更新する。
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+}

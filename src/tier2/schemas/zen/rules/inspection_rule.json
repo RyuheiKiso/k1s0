@@ -1,0 +1,60 @@
+{
+  "_comment": "inspection_rule.json — k1s0 tier2 manufacturing 検査合否判定 ZEN Engine ルール定義",
+  "_doc_ref": "docs/03_概要設計/03_tier2設計方針/10_表現手段.md §ZEN Engine 決定表",
+  "description": "品目仕様（ItemSpecification）の測定値（Measurement）に対する合否判定ルール。InspectionVerdict を返す。",
+  "rules": [
+    {
+      "id": "insp_001",
+      "name": "標準許容差内合格",
+      "description": "全測定値が許容差 ±2% 以内であれば合格とする",
+      "conditions": {
+        "all_measurements_within_tolerance": true,
+        "tolerance_pct": 2.0
+      },
+      "action": {
+        "verdict": "PASS",
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "insp_002",
+      "name": "測定値なし要再検査",
+      "description": "測定値が空の場合は自動判定不可として要再検査とする",
+      "conditions": {
+        "measurements_count": 0
+      },
+      "action": {
+        "verdict": "REQUIRES_REVIEW",
+        "confidence": 1.0,
+        "reason": "測定値が記録されていないため自動判定不可"
+      }
+    },
+    {
+      "id": "insp_003",
+      "name": "許容差超過不合格",
+      "description": "いずれかの測定値が許容差を超過した場合は不合格とする",
+      "conditions": {
+        "any_measurement_exceeds_tolerance": true,
+        "tolerance_pct": 5.0
+      },
+      "action": {
+        "verdict": "FAIL",
+        "confidence": 1.0,
+        "reason": "測定値が許容差（±5%）を超過している"
+      }
+    },
+    {
+      "id": "insp_004",
+      "name": "許容差内要再検査",
+      "description": "測定値が ±2%〜±5% の間にある場合は要再検査とする（グレーゾーン）",
+      "conditions": {
+        "any_measurement_within_range": { "min_pct": 2.0, "max_pct": 5.0 }
+      },
+      "action": {
+        "verdict": "REQUIRES_REVIEW",
+        "confidence": 0.7,
+        "reason": "測定値がグレーゾーン（±2%〜±5%）にあるため再検査推奨"
+      }
+    }
+  ]
+}

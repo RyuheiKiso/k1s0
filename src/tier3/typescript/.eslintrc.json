@@ -37,6 +37,10 @@
           {
             "group": ["*getAccessToken*", "*get_access_token*"],
             "message": "access_token getter の公開を禁止する（BFF cookie auth のみ）"
+          },
+          {
+            "group": ["*/admin/*", "**/admin/**"],
+            "message": "業務管理 API（admin 配下）を tier3 業務 UI から直接 import 禁止（tier2 SDK 経由必須）"
           }
         ]
       }

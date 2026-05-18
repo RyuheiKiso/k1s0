@@ -1,0 +1,200 @@
+# k1s0 tier2 manufacturing pack FA（Factory Automation）日次集計帳票テンプレート定義
+# 工場の日次生産実績 / 稼働率 / 不良率を集計して出力する帳票テンプレート
+# template_id / columns / filters / output_format を宣言する
+
+# テンプレートを一意に識別する ID（tier2 ReportService が管理する）
+template_id: manufacturing_fa_daily_summary_v1
+
+# テンプレートの表示名（i18n キー）
+display_name_key: report.manufacturing.fa_daily_summary.displayName
+
+# バージョン（セマンティックバージョニング）
+version: "1.0.0"
+
+# 対象 pack（このテンプレートが属する pack）
+pack_id: manufacturing
+
+# 帳票の列定義（出力 PDF / Excel の列構成）
+columns:
+  # 集計日列
+  - column_id: summary_date
+    # 列の表示名（i18n キー）
+    label_key: report.col.summary_date
+    # データ型（ISO 8601 日付文字列 YYYY-MM-DD）
+    data_type: date
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 工場 ID 列
+  - column_id: plant_id
+    # 列の表示名（i18n キー）
+    label_key: report.col.plant_id
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 工場名列
+  - column_id: plant_name
+    # 列の表示名（i18n キー）
+    label_key: report.col.plant_name
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 160
+    # null 許容
+    nullable: false
+
+  # ライン ID 列
+  - column_id: line_id
+    # 列の表示名（i18n キー）
+    label_key: report.col.line_id
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 計画生産数列
+  - column_id: planned_quantity
+    # 列の表示名（i18n キー）
+    label_key: report.col.planned_quantity
+    # データ型（整数）
+    data_type: integer
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 実績生産数列
+  - column_id: actual_quantity
+    # 列の表示名（i18n キー）
+    label_key: report.col.actual_quantity
+    # データ型（整数）
+    data_type: integer
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 不良品数列
+  - column_id: defect_quantity
+    # 列の表示名（i18n キー）
+    label_key: report.col.defect_quantity
+    # データ型（整数）
+    data_type: integer
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 稼働率列（0.0 〜 1.0 の小数）
+  - column_id: operation_rate
+    # 列の表示名（i18n キー）
+    label_key: report.col.operation_rate
+    # データ型（小数 / パーセント表示）
+    data_type: decimal
+    # 小数点以下桁数
+    decimal_places: 4
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 不良率列（0.0 〜 1.0 の小数）
+  - column_id: defect_rate
+    # 列の表示名（i18n キー）
+    label_key: report.col.defect_rate
+    # データ型（小数 / パーセント表示）
+    data_type: decimal
+    # 小数点以下桁数
+    decimal_places: 4
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 計画達成率列（0.0 〜 1.0 の小数）
+  - column_id: achievement_rate
+    # 列の表示名（i18n キー）
+    label_key: report.col.achievement_rate
+    # データ型（小数 / パーセント表示）
+    data_type: decimal
+    # 小数点以下桁数
+    decimal_places: 4
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 停止時間（分）列
+  - column_id: downtime_minutes
+    # 列の表示名（i18n キー）
+    label_key: report.col.downtime_minutes
+    # データ型（整数）
+    data_type: integer
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容（停止なしの場合は 0）
+    nullable: false
+
+# フィルター定義
+filters:
+  # 集計日フィルター（from）
+  - filter_id: summary_date_from
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.summary_date_from
+    # データ型（YYYY-MM-DD）
+    data_type: date
+    # 必須かどうか
+    required: true
+
+  # 集計日フィルター（to）
+  - filter_id: summary_date_to
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.summary_date_to
+    # データ型（YYYY-MM-DD）
+    data_type: date
+    # 必須かどうか
+    required: true
+
+  # 工場 ID フィルター（複数選択可）
+  - filter_id: plant_ids
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.plant_ids
+    # データ型（配列）
+    data_type: string_array
+    # 必須かどうか（省略時は全工場を対象にする）
+    required: false
+
+  # ライン ID フィルター（複数選択可）
+  - filter_id: line_ids
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.line_ids
+    # データ型（配列）
+    data_type: string_array
+    # 必須かどうか（省略時は全ラインを対象にする）
+    required: false
+
+# 出力フォーマット定義
+output_format:
+  # PDF 出力のサポート
+  - format: pdf
+    # PDF 出力が有効かどうか
+    enabled: true
+    # 用紙サイズ（A4 横）
+    page_size: A4
+    # 向き（横）
+    orientation: landscape
+
+  # Excel 出力のサポート
+  - format: xlsx
+    # Excel 出力が有効かどうか
+    enabled: true
+    # シート名
+    sheet_name: FA日次集計帳票

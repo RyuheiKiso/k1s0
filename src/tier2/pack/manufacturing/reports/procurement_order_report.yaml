@@ -1,0 +1,202 @@
+# k1s0 tier2 manufacturing pack 購買発注帳票テンプレート定義
+# 購買発注の明細一覧を PDF / Excel で出力する帳票テンプレート
+# template_id / columns / filters / output_format を宣言する
+
+# テンプレートを一意に識別する ID（tier2 ReportService が管理する）
+template_id: manufacturing_procurement_order_report_v1
+
+# テンプレートの表示名（i18n キー）
+display_name_key: report.manufacturing.procurement_order.displayName
+
+# バージョン（セマンティックバージョニング）
+version: "1.0.0"
+
+# 対象 pack（このテンプレートが属する pack）
+pack_id: manufacturing
+
+# 帳票の列定義（出力 PDF / Excel の列構成）
+columns:
+  # 発注番号列
+  - column_id: order_number
+    # 列の表示名（i18n キー）
+    label_key: report.col.order_number
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 発注日時列
+  - column_id: ordered_at
+    # 列の表示名（i18n キー）
+    label_key: report.col.ordered_at
+    # データ型（ISO 8601 日時文字列）
+    data_type: datetime
+    # 列幅（ポイント単位）
+    width_pt: 120
+    # null 許容
+    nullable: false
+
+  # 仕入先 ID 列
+  - column_id: supplier_id
+    # 列の表示名（i18n キー）
+    label_key: report.col.supplier_id
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 仕入先名列
+  - column_id: supplier_name
+    # 列の表示名（i18n キー）
+    label_key: report.col.supplier_name
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 160
+    # null 許容
+    nullable: false
+
+  # 品目コード列
+  - column_id: item_code
+    # 列の表示名（i18n キー）
+    label_key: report.col.item_code
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 品目名列
+  - column_id: item_name
+    # 列の表示名（i18n キー）
+    label_key: report.col.item_name
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 180
+    # null 許容
+    nullable: false
+
+  # 発注数量列
+  - column_id: quantity
+    # 列の表示名（i18n キー）
+    label_key: report.col.quantity
+    # データ型（整数）
+    data_type: integer
+    # 列幅（ポイント単位）
+    width_pt: 80
+    # null 許容
+    nullable: false
+
+  # 単位列（個 / kg / m 等）
+  - column_id: unit
+    # 列の表示名（i18n キー）
+    label_key: report.col.unit
+    # データ型
+    data_type: string
+    # 列幅（ポイント単位）
+    width_pt: 60
+    # null 許容
+    nullable: false
+
+  # 単価列（日本円 / ISO 4217 JPY）
+  - column_id: unit_price_jpy
+    # 列の表示名（i18n キー）
+    label_key: report.col.unit_price_jpy
+    # データ型（10 進数）
+    data_type: decimal
+    # 通貨コード（ISO 4217）
+    currency: JPY
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 合計金額列
+  - column_id: total_amount_jpy
+    # 列の表示名（i18n キー）
+    label_key: report.col.total_amount_jpy
+    # データ型（10 進数）
+    data_type: decimal
+    # 通貨コード（ISO 4217）
+    currency: JPY
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+  # 発注ステータス列
+  - column_id: status
+    # 列の表示名（i18n キー）
+    label_key: report.col.order_status
+    # データ型（enum 値）
+    data_type: enum
+    # 有効な列挙値（draft / confirmed / delivered / cancelled）
+    enum_values: [draft, confirmed, delivered, cancelled]
+    # 列幅（ポイント単位）
+    width_pt: 100
+    # null 許容
+    nullable: false
+
+# フィルター定義
+filters:
+  # 発注日時範囲フィルター（from）
+  - filter_id: ordered_at_from
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.ordered_at_from
+    # データ型
+    data_type: datetime
+    # 必須かどうか
+    required: true
+
+  # 発注日時範囲フィルター（to）
+  - filter_id: ordered_at_to
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.ordered_at_to
+    # データ型
+    data_type: datetime
+    # 必須かどうか
+    required: true
+
+  # 仕入先 ID フィルター（複数選択可）
+  - filter_id: supplier_ids
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.supplier_ids
+    # データ型（配列）
+    data_type: string_array
+    # 必須かどうか（省略時は全仕入先を対象にする）
+    required: false
+
+  # ステータスフィルター
+  - filter_id: status
+    # フィルターの表示名（i18n キー）
+    label_key: report.filter.order_status
+    # データ型（enum）
+    data_type: enum
+    # 有効な列挙値
+    enum_values: [draft, confirmed, delivered, cancelled]
+    # 必須かどうか（省略時は全ステータスを対象にする）
+    required: false
+
+# 出力フォーマット定義
+output_format:
+  # PDF 出力のサポート
+  - format: pdf
+    # PDF 出力が有効かどうか
+    enabled: true
+    # 用紙サイズ（A4 横）
+    page_size: A4
+    # 向き（横）
+    orientation: landscape
+
+  # Excel 出力のサポート
+  - format: xlsx
+    # Excel 出力が有効かどうか
+    enabled: true
+    # シート名
+    sheet_name: 購買発注帳票

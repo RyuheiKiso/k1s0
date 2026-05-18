@@ -1,0 +1,88 @@
+// operation.proto — k1s0 tier2 manufacturing FA (設備) bounded context proto
+// docs/03_概要設計/03_tier2設計方針/04_ドメイン分割方針.md §FA bounded context に準拠する。
+// tier2 業界中立語 (ResourceUnit / ResourceStatus) を使用し業界固有語を露出しない。
+// 05_環境構築/02_tier2/11_軸固有環境設定.md の buf lint 要件に準拠する。
+
+syntax = "proto3";
+
+// パッケージ名: k1s0.tier2.manufacturing.fa.v1（tier2 FA bounded context の gRPC 定義）
+package k1s0.tier2.manufacturing.fa.v1;
+
+// Java / Kotlin クライアント向けオプション
+option java_multiple_files = true;
+// Java パッケージ名（業界中立名前空間）
+option java_package = "io.k1s0.tier2.manufacturing.fa.v1";
+// Go パッケージパス
+option go_package = "github.com/k1s0/tier2/manufacturing/fa/v1;fav1";
+
+// ResourceStatus は設備（ResourceUnit）の操業状態を宣言する enum。
+// 業界語「設備稼働状態」を中立語 ResourceStatus で表現する。
+enum ResourceStatus {
+  // RESOURCE_STATUS_UNSPECIFIED: 未設定（proto の convention 通り 0 番は UNSPECIFIED）
+  RESOURCE_STATUS_UNSPECIFIED = 0;
+  // RESOURCE_STATUS_ACTIVE: 稼働中
+  RESOURCE_STATUS_ACTIVE = 1;
+  // RESOURCE_STATUS_INACTIVE: 停止中
+  RESOURCE_STATUS_INACTIVE = 2;
+  // RESOURCE_STATUS_MAINTENANCE: メンテナンス中
+  RESOURCE_STATUS_MAINTENANCE = 3;
+}
+
+// ResourceUnit はリソース（設備）集約の proto メッセージを宣言する。
+// エンティティ名は業界中立語（「設備」は使わない）。
+message ResourceUnit {
+  // id: リソースの識別子（UUID v7 文字列形式）
+  string id = 1;
+  // tenant_id: テナント識別子（RLS 境界を保証する）
+  string tenant_id = 2;
+  // resource_code: リソースの識別コード（業界中立な番号）
+  string resource_code = 3;
+  // status: 現在の操業状態
+  ResourceStatus status = 4;
+  // created_at: 作成日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）
+  string created_at = 5;
+  // updated_at: 更新日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）
+  string updated_at = 6;
+  // version: 楽観的ロックバージョン番号
+  int64 version = 7;
+}
+
+// GetResourceUnitRequest はリソース取得リクエストを宣言する。
+message GetResourceUnitRequest {
+  // id: 取得するリソースの識別子（UUID v7）
+  string id = 1;
+  // tenant_id: テナント識別子（JWT ClaimsSet から取得し bfl が検証する）
+  string tenant_id = 2;
+}
+
+// GetResourceUnitResponse はリソース取得レスポンスを宣言する。
+message GetResourceUnitResponse {
+  // resource_unit: 取得したリソース（存在しない場合は resource_unit は未設定）
+  ResourceUnit resource_unit = 1;
+}
+
+// UpdateResourceStatusRequest はリソース状態更新リクエストを宣言する。
+message UpdateResourceStatusRequest {
+  // id: 更新対象リソースの識別子（UUID v7）
+  string id = 1;
+  // tenant_id: テナント識別子
+  string tenant_id = 2;
+  // new_status: 新しい操業状態
+  ResourceStatus new_status = 3;
+  // expected_version: 楽観的ロック用期待バージョン番号
+  int64 expected_version = 4;
+}
+
+// UpdateResourceStatusResponse はリソース状態更新レスポンスを宣言する。
+message UpdateResourceStatusResponse {
+  // updated_resource_unit: 更新後のリソース
+  ResourceUnit updated_resource_unit = 1;
+}
+
+// ResourceService は FA bounded context の gRPC サービスを宣言する。
+service ResourceService {
+  // GetResourceUnit はリソースを ID で取得する。
+  rpc GetResourceUnit(GetResourceUnitRequest) returns (GetResourceUnitResponse);
+  // UpdateResourceStatus はリソースの操業状態を更新する。
+  rpc UpdateResourceStatus(UpdateResourceStatusRequest) returns (UpdateResourceStatusResponse);
+}

@@ -9,6 +9,8 @@ pub mod atomic_triple_write;
 pub mod repository;
 // Outbox relay モジュール
 pub mod outbox;
+// i18n formatter トレイト（ICU 風 number / date / currency / unit）
+pub mod i18n_formatter;
 
 // 公開型の再エクスポート（各行コメント: tier2 公開 API 表面を最小化する）
 pub use tenant_context::{TenantContext, SessionPurpose};

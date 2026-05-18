@@ -3,3 +3,5 @@
 
 // state モジュールを公開する
 pub mod state;
+// 添付ファイルストア trait モジュールを公開する
+pub mod attachments;

@@ -11,6 +11,7 @@
     "test:playwright": "playwright test"
   },
   "dependencies": {
+    "@k1s0/tier3-pack": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1"

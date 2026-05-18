@@ -38,15 +38,18 @@ var validQuotaClasses = []string{
 }
 
 // validConformanceClasses は 01_Bidi適合仕様.md §v1 conformance_class セットの有効値一覧
+// docs/04_詳細設計/01_適合仕様/01_Bidi適合仕様.md §3.2 v1 class セット（5 class）に準拠する
 var validConformanceClasses = []string{
-	// c1_bidirectional_full: 完全双方向通信対応クラス
-	"c1_bidirectional_full",
-	// c2_server_stream: サーバストリーミング対応クラス
-	"c2_server_stream",
-	// c3_client_stream: クライアントストリーミング対応クラス
-	"c3_client_stream",
-	// c4_unary: ユニアリ通信対応クラス
-	"c4_unary",
+	// v1_interactive: 対話型双方向通信クラス（ユーザー操作に対するリアルタイム応答）
+	"v1_interactive",
+	// v1_alert: アラート通知クラス（サーバ起点のプッシュ通知）
+	"v1_alert",
+	// v1_event_feed: イベントフィードクラス（ドメインイベントのストリーム配信）
+	"v1_event_feed",
+	// v1_live_snapshot: ライブスナップショットクラス（集計状態のリアルタイム同期）
+	"v1_live_snapshot",
+	// v1_bulk_upload: バルクアップロードクラス（クライアント起点の大量データ送信）
+	"v1_bulk_upload",
 }
 
 // Tier1ServiceValidator は Tier1Service リソースの admission validation を行う構造体
