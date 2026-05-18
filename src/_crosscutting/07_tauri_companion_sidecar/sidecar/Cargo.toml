@@ -26,6 +26,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1"
 # uuid: UUID 生成ライブラリ
 uuid = { version = "1", features = ["v4"] }
+# reqwest: 非同期 HTTP クライアント (BFF への状態転送に使用する、sidecar は localhost HTTP のみ TLS 不要)
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
 
 [profile.release]
 # リリースビルドでパニック時にアボートする

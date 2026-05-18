@@ -164,23 +164,44 @@ async fn state_write(layer: String, entry: Value) -> Result<(), String> {
     }
 }
 
-// state_sync コマンド: sidecar（port 9999）に ping して BFF との同期を開始する
+// state_sync コマンド: sidecar（port 9999）に GET /health でサービス確認後 sync 結果を返す
 // sidecar はポート 9999 で待機している（_crosscutting/07_tauri_companion_sidecar が実装）
-// 戻り値: sync 結果の説明文字列、失敗時はエラー文字列
+// 戻り値: sidecar のヘルス JSON 文字列、失敗時はエラー文字列
 #[tauri::command]
 async fn state_sync() -> Result<String, String> {
-    // sidecar の ping エンドポイント URL（localhost:9999 固定）
-    let sidecar_url = "http://localhost:9999/health";
-    // reqwest は Tauri v2 でサポートされているが、ここでは簡易実装を行う
-    // 実際の HTTP 呼び出しは tauri-plugin-http を使用する（Tauri v2 規約）
-    // プレースホルダー実装: sidecar への接続チェックをシミュレートする
-    // （本番実装は tauri-plugin-http の reqwest::get を使用する）
-    let result = format!(
-        "sync 開始: sidecar={}, 実際の接続は tauri-plugin-http で行う",
-        sidecar_url
-    );
-    // sync 結果の説明文字列を返す
-    Ok(result)
+    // sidecar のヘルスチェックエンドポイント URL（localhost:9999 固定）
+    let health_url = "http://localhost:9999/health";
+    // reqwest クライアントをタイムアウト 5 秒で生成する
+    let client = reqwest::Client::builder()
+        // タイムアウトを 5 秒に設定する（sidecar が応答しない場合の上限）
+        .timeout(std::time::Duration::from_secs(5))
+        // クライアントをビルドする
+        .build()
+        // クライアント生成失敗時はエラー文字列を返す
+        .map_err(|e| format!("reqwest クライアント生成失敗: {}", e))?;
+    // sidecar の /health エンドポイントに GET リクエストを送信する
+    let response = client
+        // ヘルスチェック URL に GET リクエストを送信する
+        .get(health_url)
+        // リクエストを実行する（非同期 await）
+        .send()
+        // 送信失敗時はエラー文字列を返す（sidecar 未起動等）
+        .await
+        .map_err(|e| format!("sidecar 接続失敗 (sidecar が起動しているか確認してください): {}", e))?;
+    // レスポンスステータスが成功 (2xx) かどうかを確認する
+    if !response.status().is_success() {
+        // sidecar のエラーステータスをエラー文字列として返す
+        return Err(format!("sidecar ヘルスチェック失敗: HTTP {}", response.status()));
+    }
+    // レスポンスボディをテキスト (JSON 文字列) として取得する
+    let body = response
+        // レスポンスボディをテキストとして取得する（非同期 await）
+        .text()
+        // ボディ取得失敗時はエラー文字列を返す
+        .await
+        .map_err(|e| format!("sidecar レスポンス読み取り失敗: {}", e))?;
+    // sync 成功結果として sidecar のヘルス JSON を返す
+    Ok(format!("sync 完了: sidecar={}, health={}", health_url, body))
 }
 
 // Tauri のアプリケーション初期化（invoke_handler に全コマンドを登録する）
