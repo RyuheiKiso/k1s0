@@ -3,7 +3,7 @@ conformance_classes: 5
 adapters: 8
 total_cells: 40
 applicable_cells: 29
-generated_at: '2026-05-17T22:04:42Z'
+generated_at: '2026-05-18T11:02:26Z'
 cells:
 - cell_id: v1_interactive__grpc_native
   conformance_class: v1_interactive

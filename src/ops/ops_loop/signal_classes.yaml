@@ -1,0 +1,143 @@
+# src/ops/ops_loop/signal_classes.yaml
+# ops_loop の signal_class 5 種を定義する (ops 適合仕様 17 の SoT)
+# dimension override 禁止: signal_class を変更する場合は dual sign-off 必須
+
+signal_classes:
+  # v1_slo_breach: 13 SLO の error budget burn rate ≥ 6x で発火するシグナル
+  - signal_class: v1_slo_breach
+    # デフォルト重大度: ページング（14.4x 以上で freeze）
+    severity_default: v1_page
+    # ページング予算重み係数 (1.0 = 標準)
+    paging_budget_weight: 1.0
+    # postmortem 種別
+    postmortem_class: v1_full
+    # v1 の最小アクション数
+    min_action_count_v1: 30
+    # 対応する drill 種別
+    drill_classes:
+      # カオス区画分離ドリル
+      - chaos_zone_partition
+      # 依存サービス障害ドリル
+      - chaos_dependency_failure
+      # RPO 復元テスト
+      - restore_rpo_test
+    # バインドする enforcement orchestrator
+    enforcement_orchestrators:
+      # SLO 違反時に Argo Rollouts が自動ロールバックを実行する
+      - argo_rollouts_canary
+      # Kyverno が admit block を実行する
+      - kyverno_admission_block
+      # Tekton Trigger が runbook pipeline を起動する
+      - tekton_runbook_pipeline
+      # Alertmanager がルーティングを実行する
+      - alertmanager_routing
+      # 自製 escalation engine が Mattermost に通知する
+      - self_escalation_engine
+
+  # v1_capacity_breach: per_tenant_volume / cluster headroom / partition capacity 違反シグナル
+  - signal_class: v1_capacity_breach
+    # デフォルト重大度: ページング
+    severity_default: v1_page
+    # ページング予算重み係数 (capacity は SLO より軽微)
+    paging_budget_weight: 0.8
+    # postmortem 種別
+    postmortem_class: v1_full
+    # v1 の最小アクション数
+    min_action_count_v1: 25
+    # 対応する drill 種別
+    drill_classes:
+      # ノイジーネイバーシミュレーション
+      - noisy_neighbor_simulation
+      # 容量予測超過ドリル
+      - capacity_forecast_breach
+    # バインドする enforcement orchestrator
+    enforcement_orchestrators:
+      # Kyverno が過負荷時に admit block を実行する
+      - kyverno_admission_block
+      # Tekton Trigger が容量回復 runbook を起動する
+      - tekton_runbook_pipeline
+      # Alertmanager がルーティングを実行する
+      - alertmanager_routing
+      # 自製 escalation engine が on-call に通知する
+      - self_escalation_engine
+
+  # v1_change_induced: deploy / migration / canary / topology 変更直後の SLO 急変シグナル
+  - signal_class: v1_change_induced
+    # デフォルト重大度: ページング（auto rollback trigger 時は freeze）
+    severity_default: v1_page
+    # ページング予算重み係数 (変更誘発は最も影響が大きい)
+    paging_budget_weight: 1.2
+    # postmortem 種別
+    postmortem_class: v1_full
+    # v1 の最小アクション数
+    min_action_count_v1: 30
+    # 対応する drill 種別
+    drill_classes:
+      # カナリアリリース SLO 違反ドリル
+      - canary_breach_simulation
+      # migration pair cutover ドリル
+      - migration_pair_cutover_drill
+      # topology drift ドリル
+      - topology_drift_drill
+    # バインドする enforcement orchestrator
+    enforcement_orchestrators:
+      # Argo Rollouts がカナリア進行を監視して自動ロールバックする (primary)
+      - argo_rollouts_canary
+      # Kyverno が rollback 完了まで新規 deploy を block する
+      - kyverno_admission_block
+      # Tekton Trigger が rollback runbook を起動する
+      - tekton_runbook_pipeline
+      # Alertmanager がルーティングを実行する
+      - alertmanager_routing
+      # 自製 escalation engine が on-call に即座に通知する
+      - self_escalation_engine
+
+  # v1_dependency_outage: 上位/下位 service / 外部 SaaS / IDP / DNS 障害シグナル
+  - signal_class: v1_dependency_outage
+    # デフォルト重大度: ページング
+    severity_default: v1_page
+    # ページング予算重み係数 (外部依存は影響が間接的)
+    paging_budget_weight: 0.7
+    # postmortem 種別
+    postmortem_class: v1_full
+    # v1 の最小アクション数
+    min_action_count_v1: 25
+    # 対応する drill 種別
+    drill_classes:
+      # 外部依存サービス強制停止ドリル
+      - external_dependency_kill_drill
+      # IDP 障害ドリル
+      - idp_outage_drill
+      # DNS 障害ドリル
+      - dns_outage_drill
+    # バインドする enforcement orchestrator
+    enforcement_orchestrators:
+      # Tekton Trigger が degraded mode runbook を起動する
+      - tekton_runbook_pipeline
+      # Alertmanager がルーティングを実行する
+      - alertmanager_routing
+      # 自製 escalation engine が on-call と vendor に通知する
+      - self_escalation_engine
+
+  # v1_drill_failure: chaos drill / restore drill / red team drill 想定外 failure mode シグナル
+  - signal_class: v1_drill_failure
+    # デフォルト重大度: 通知のみ（ドリル失敗は緊急ではない）
+    severity_default: v1_notify
+    # ページング予算重み係数 (ドリルは予算消費が少ない)
+    paging_budget_weight: 0.3
+    # postmortem 種別: ドリル失敗は軽量 postmortem で済ませる
+    postmortem_class: v1_lightweight
+    # v1 の最小アクション数
+    min_action_count_v1: 20
+    # 対応する drill 種別（ドリル失敗のドリルは再ドリルとして扱う）
+    drill_classes:
+      # 失敗したドリルの再実施
+      - drill_replay
+    # バインドする enforcement orchestrator
+    enforcement_orchestrators:
+      # Tekton Trigger がドリル失敗記録 pipeline を起動する
+      - tekton_runbook_pipeline
+      # Alertmanager がルーティングを実行する
+      - alertmanager_routing
+      # 自製 escalation engine が SRE チームに通知する
+      - self_escalation_engine

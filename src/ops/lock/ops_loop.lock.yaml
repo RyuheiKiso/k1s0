@@ -1,0 +1,216 @@
+_AUTO_GENERATED: true
+_generator: generate_ops_loop
+generated_at: '2026-05-18T11:02:26Z'
+spec_id: detail.ops.ops_loop_conformance
+total_cells: 25
+bound_count: 25
+unbound_count: 0
+all_cells_bound: true
+signal_classes:
+- v1_slo_breach
+- v1_capacity_breach
+- v1_change_induced
+- v1_dependency_outage
+- v1_drill_failure
+phases:
+- phase_1_detect
+- phase_2_triage
+- phase_3_mitigate
+- phase_4_resolve
+- phase_5_postmortem
+cells:
+- cell_id: v1_slo_breach.phase_1_detect
+  signal_class: v1_slo_breach
+  phase: phase_1_detect
+  sla: page_to_ack_le_5min
+  runbook_pointer: src/ops/runbook_catalog/v1_slo_breach.md
+  enforcement_orchestrators: &id001
+  - argo_rollouts_canary
+  - kyverno_admission_block
+  - tekton_runbook_pipeline
+  - alertmanager_routing
+  - self_escalation_engine
+  status: bound
+- cell_id: v1_slo_breach.phase_2_triage
+  signal_class: v1_slo_breach
+  phase: phase_2_triage
+  sla: ack_to_triage_le_30min
+  runbook_pointer: src/ops/runbook_catalog/v1_slo_breach.md
+  enforcement_orchestrators: *id001
+  status: bound
+- cell_id: v1_slo_breach.phase_3_mitigate
+  signal_class: v1_slo_breach
+  phase: phase_3_mitigate
+  sla: triage_to_mitigation_le_15min
+  runbook_pointer: src/ops/runbook_catalog/v1_slo_breach.md
+  enforcement_orchestrators: *id001
+  status: bound
+- cell_id: v1_slo_breach.phase_4_resolve
+  signal_class: v1_slo_breach
+  phase: phase_4_resolve
+  sla: mttr_per_signal_class
+  runbook_pointer: src/ops/runbook_catalog/v1_slo_breach.md
+  enforcement_orchestrators: *id001
+  status: bound
+- cell_id: v1_slo_breach.phase_5_postmortem
+  signal_class: v1_slo_breach
+  phase: phase_5_postmortem
+  sla: open_le_72h_merged_le_14d
+  runbook_pointer: src/ops/runbook_catalog/v1_slo_breach.md
+  enforcement_orchestrators: *id001
+  status: bound
+- cell_id: v1_capacity_breach.phase_1_detect
+  signal_class: v1_capacity_breach
+  phase: phase_1_detect
+  sla: page_to_ack_le_5min
+  runbook_pointer: src/ops/runbook_catalog/v1_capacity_breach.md
+  enforcement_orchestrators: &id002
+  - kyverno_admission_block
+  - tekton_runbook_pipeline
+  - alertmanager_routing
+  - self_escalation_engine
+  status: bound
+- cell_id: v1_capacity_breach.phase_2_triage
+  signal_class: v1_capacity_breach
+  phase: phase_2_triage
+  sla: ack_to_triage_le_30min
+  runbook_pointer: src/ops/runbook_catalog/v1_capacity_breach.md
+  enforcement_orchestrators: *id002
+  status: bound
+- cell_id: v1_capacity_breach.phase_3_mitigate
+  signal_class: v1_capacity_breach
+  phase: phase_3_mitigate
+  sla: triage_to_mitigation_le_15min
+  runbook_pointer: src/ops/runbook_catalog/v1_capacity_breach.md
+  enforcement_orchestrators: *id002
+  status: bound
+- cell_id: v1_capacity_breach.phase_4_resolve
+  signal_class: v1_capacity_breach
+  phase: phase_4_resolve
+  sla: mttr_per_signal_class
+  runbook_pointer: src/ops/runbook_catalog/v1_capacity_breach.md
+  enforcement_orchestrators: *id002
+  status: bound
+- cell_id: v1_capacity_breach.phase_5_postmortem
+  signal_class: v1_capacity_breach
+  phase: phase_5_postmortem
+  sla: open_le_72h_merged_le_14d
+  runbook_pointer: src/ops/runbook_catalog/v1_capacity_breach.md
+  enforcement_orchestrators: *id002
+  status: bound
+- cell_id: v1_change_induced.phase_1_detect
+  signal_class: v1_change_induced
+  phase: phase_1_detect
+  sla: page_to_ack_le_5min
+  runbook_pointer: src/ops/runbook_catalog/v1_change_induced.md
+  enforcement_orchestrators: &id003
+  - argo_rollouts_canary
+  - kyverno_admission_block
+  - tekton_runbook_pipeline
+  - alertmanager_routing
+  - self_escalation_engine
+  status: bound
+- cell_id: v1_change_induced.phase_2_triage
+  signal_class: v1_change_induced
+  phase: phase_2_triage
+  sla: ack_to_triage_le_30min
+  runbook_pointer: src/ops/runbook_catalog/v1_change_induced.md
+  enforcement_orchestrators: *id003
+  status: bound
+- cell_id: v1_change_induced.phase_3_mitigate
+  signal_class: v1_change_induced
+  phase: phase_3_mitigate
+  sla: triage_to_mitigation_le_15min
+  runbook_pointer: src/ops/runbook_catalog/v1_change_induced.md
+  enforcement_orchestrators: *id003
+  status: bound
+- cell_id: v1_change_induced.phase_4_resolve
+  signal_class: v1_change_induced
+  phase: phase_4_resolve
+  sla: mttr_per_signal_class
+  runbook_pointer: src/ops/runbook_catalog/v1_change_induced.md
+  enforcement_orchestrators: *id003
+  status: bound
+- cell_id: v1_change_induced.phase_5_postmortem
+  signal_class: v1_change_induced
+  phase: phase_5_postmortem
+  sla: open_le_72h_merged_le_14d
+  runbook_pointer: src/ops/runbook_catalog/v1_change_induced.md
+  enforcement_orchestrators: *id003
+  status: bound
+- cell_id: v1_dependency_outage.phase_1_detect
+  signal_class: v1_dependency_outage
+  phase: phase_1_detect
+  sla: page_to_ack_le_5min
+  runbook_pointer: src/ops/runbook_catalog/v1_dependency_outage.md
+  enforcement_orchestrators: &id004
+  - tekton_runbook_pipeline
+  - alertmanager_routing
+  - self_escalation_engine
+  status: bound
+- cell_id: v1_dependency_outage.phase_2_triage
+  signal_class: v1_dependency_outage
+  phase: phase_2_triage
+  sla: ack_to_triage_le_30min
+  runbook_pointer: src/ops/runbook_catalog/v1_dependency_outage.md
+  enforcement_orchestrators: *id004
+  status: bound
+- cell_id: v1_dependency_outage.phase_3_mitigate
+  signal_class: v1_dependency_outage
+  phase: phase_3_mitigate
+  sla: triage_to_mitigation_le_15min
+  runbook_pointer: src/ops/runbook_catalog/v1_dependency_outage.md
+  enforcement_orchestrators: *id004
+  status: bound
+- cell_id: v1_dependency_outage.phase_4_resolve
+  signal_class: v1_dependency_outage
+  phase: phase_4_resolve
+  sla: mttr_per_signal_class
+  runbook_pointer: src/ops/runbook_catalog/v1_dependency_outage.md
+  enforcement_orchestrators: *id004
+  status: bound
+- cell_id: v1_dependency_outage.phase_5_postmortem
+  signal_class: v1_dependency_outage
+  phase: phase_5_postmortem
+  sla: open_le_72h_merged_le_14d
+  runbook_pointer: src/ops/runbook_catalog/v1_dependency_outage.md
+  enforcement_orchestrators: *id004
+  status: bound
+- cell_id: v1_drill_failure.phase_1_detect
+  signal_class: v1_drill_failure
+  phase: phase_1_detect
+  sla: page_to_ack_le_5min
+  runbook_pointer: src/ops/runbook_catalog/v1_drill_failure.md
+  enforcement_orchestrators: &id005
+  - tekton_runbook_pipeline
+  - alertmanager_routing
+  - self_escalation_engine
+  status: bound
+- cell_id: v1_drill_failure.phase_2_triage
+  signal_class: v1_drill_failure
+  phase: phase_2_triage
+  sla: ack_to_triage_le_30min
+  runbook_pointer: src/ops/runbook_catalog/v1_drill_failure.md
+  enforcement_orchestrators: *id005
+  status: bound
+- cell_id: v1_drill_failure.phase_3_mitigate
+  signal_class: v1_drill_failure
+  phase: phase_3_mitigate
+  sla: triage_to_mitigation_le_15min
+  runbook_pointer: src/ops/runbook_catalog/v1_drill_failure.md
+  enforcement_orchestrators: *id005
+  status: bound
+- cell_id: v1_drill_failure.phase_4_resolve
+  signal_class: v1_drill_failure
+  phase: phase_4_resolve
+  sla: mttr_per_signal_class
+  runbook_pointer: src/ops/runbook_catalog/v1_drill_failure.md
+  enforcement_orchestrators: *id005
+  status: bound
+- cell_id: v1_drill_failure.phase_5_postmortem
+  signal_class: v1_drill_failure
+  phase: phase_5_postmortem
+  sla: open_le_72h_merged_le_14d
+  runbook_pointer: src/ops/runbook_catalog/v1_drill_failure.md
+  enforcement_orchestrators: *id005
+  status: bound
