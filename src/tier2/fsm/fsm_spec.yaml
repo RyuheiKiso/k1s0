@@ -1,0 +1,131 @@
+# k1s0 tier2 FSM 定義（状態遷移パターン 13）
+# ドメイン FSM を YAML で定義し、4 言語の型システムにコード生成する
+# 状態遷移の不正遷移は compile-time エラーで検出する（runtime エラーは許容しない）
+
+# FSM 定義バージョン
+apiVersion: k1s0/v1
+
+# リソース種別: fsm_catalog
+kind: FsmCatalog
+
+# メタデータ
+metadata:
+  # カタログ名
+  name: k1s0-tier2-fsm-catalog
+  # 設計パターンのリファレンス（状態遷移パターン 13）
+  spec_reference: docs/04_詳細設計/01_適合仕様/13_状態遷移パターン適合仕様.md
+
+# FSM 定義一覧
+state_machines:
+  # OrderStatus FSM: オーダーの状態遷移を定義する
+  # 業界固有語禁止: 「受注」等ではなく「Order」を使う（vocabulary.yaml の翻訳を使う）
+  - id: OrderStatus
+    # FSM の説明
+    description: オーダーの状態遷移（生成から完了 / 中止まで）
+    # 初期状態
+    initial_state: Draft
+    # 状態一覧
+    states:
+      # Draft: 下書き状態（作成直後、未確定）
+      - id: Draft
+        description: オーダー下書き（未確定、修正可能）
+      # Submitted: 提出済み状態（確定、以降は読み取り専用）
+      - id: Submitted
+        description: オーダー提出済み（確定、処理待ち）
+      # Processing: 処理中状態（バックエンドで実行中）
+      - id: Processing
+        description: オーダー処理中
+      # Completed: 完了状態（正常終了、終端状態）
+      - id: Completed
+        description: オーダー完了（正常終了、終端状態）
+      # Cancelled: 中止状態（異常終了 / ユーザーキャンセル、終端状態）
+      - id: Cancelled
+        description: オーダー中止（終端状態）
+    # 遷移一覧（不正遷移は compile-time エラーで検出する）
+    transitions:
+      # Draft → Submitted: 提出操作
+      - from: Draft
+        to: Submitted
+        event: Submit
+        description: 下書きを提出して確定する
+      # Draft → Cancelled: キャンセル操作（提出前）
+      - from: Draft
+        to: Cancelled
+        event: Cancel
+        description: 下書きを中止する
+      # Submitted → Processing: バックエンドが処理を開始する
+      - from: Submitted
+        to: Processing
+        event: StartProcessing
+        description: バックエンドが処理を開始する
+      # Submitted → Cancelled: 処理開始前のキャンセル
+      - from: Submitted
+        to: Cancelled
+        event: Cancel
+        description: 処理開始前にキャンセルする
+      # Processing → Completed: 処理正常完了
+      - from: Processing
+        to: Completed
+        event: Complete
+        description: 処理が正常に完了する
+      # Processing → Cancelled: 処理中のキャンセル（異常終了）
+      - from: Processing
+        to: Cancelled
+        event: Cancel
+        description: 処理中に異常またはユーザーキャンセルが発生する
+
+  # BatchStatus FSM: バッチ処理の状態遷移を定義する
+  - id: BatchStatus
+    # FSM の説明
+    description: バッチ処理の状態遷移（登録から完了 / 失敗まで）
+    # 初期状態
+    initial_state: Registered
+    # 状態一覧
+    states:
+      # Registered: 登録済み状態（バッチが登録されたが未開始）
+      - id: Registered
+        description: バッチ登録済み（処理待ちキューに追加された）
+      # Running: 実行中状態（バッチが実行中）
+      - id: Running
+        description: バッチ実行中
+      # Paused: 一時停止状態（運用操作で一時停止された）
+      - id: Paused
+        description: バッチ一時停止（運用操作による中断）
+      # Succeeded: 成功状態（正常終了、終端状態）
+      - id: Succeeded
+        description: バッチ成功（正常終了、終端状態）
+      # Failed: 失敗状態（異常終了、終端状態）
+      - id: Failed
+        description: バッチ失敗（異常終了、終端状態）
+    # 遷移一覧
+    transitions:
+      # Registered → Running: バッチ実行開始
+      - from: Registered
+        to: Running
+        event: Start
+        description: バッチの実行を開始する
+      # Running → Paused: 一時停止操作
+      - from: Running
+        to: Paused
+        event: Pause
+        description: バッチを一時停止する（運用操作）
+      # Paused → Running: 再開操作
+      - from: Paused
+        to: Running
+        event: Resume
+        description: 一時停止したバッチを再開する
+      # Running → Succeeded: 正常終了
+      - from: Running
+        to: Succeeded
+        event: Succeed
+        description: バッチが正常に完了する
+      # Running → Failed: 異常終了
+      - from: Running
+        to: Failed
+        event: Fail
+        description: バッチが異常終了する
+      # Paused → Failed: 一時停止中の異常終了
+      - from: Paused
+        to: Failed
+        event: Fail
+        description: 一時停止中に異常が発生して終了する

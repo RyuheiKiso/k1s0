@@ -1,0 +1,110 @@
+# k1s0 tier2 テナント容量シナリオ定義
+# テナント容量適合仕様 09 の容量シナリオを物理化する
+# 各 quota_class のシナリオを定義して enforcement の基準にする
+
+# シナリオ定義バージョン
+apiVersion: k1s0/v1
+
+# リソース種別: quota_scenario_catalog
+kind: QuotaScenarioCatalog
+
+# メタデータ
+metadata:
+  # ファイル名と一致させる
+  name: k1s0-tier2-quota-scenarios
+  # 適合仕様のリファレンス
+  spec_reference: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
+
+# テナント容量シナリオ一覧
+# 各シナリオは quota_class と組み合わせて enforcement_points に渡される
+scenarios:
+  # v1_lite の正常系シナリオ: API リクエストが上限内に収まる場合
+  - id: v1_lite_normal
+    # 対応する quota_class
+    quota_class: v1_lite
+    # シナリオの説明
+    description: v1_lite クラスで API リクエストが上限内に収まる正常系シナリオ
+    # 期待する結果: 全リクエストが通過する
+    expected_outcome: pass
+    # テスト用リクエスト量（1 時間あたり）
+    test_api_requests_per_hour: 800
+    # テスト用 DB コネクション数
+    test_db_connections: 4
+
+  # v1_lite の異常系シナリオ: API リクエストが上限を超過する場合
+  - id: v1_lite_throttle
+    # 対応する quota_class
+    quota_class: v1_lite
+    # シナリオの説明
+    description: v1_lite クラスで API リクエストが上限を超過するスロットリングシナリオ
+    # 期待する結果: 超過リクエストが拒否される
+    expected_outcome: throttle
+    # テスト用リクエスト量（上限 1000 を超過する）
+    test_api_requests_per_hour: 1200
+    # テスト用 DB コネクション数
+    test_db_connections: 4
+
+  # v1_standard の正常系シナリオ: 標準的な業務負荷
+  - id: v1_standard_normal
+    # 対応する quota_class
+    quota_class: v1_standard
+    # シナリオの説明
+    description: v1_standard クラスの標準業務負荷シナリオ
+    # 期待する結果: 全リクエストが通過する
+    expected_outcome: pass
+    # テスト用リクエスト量
+    test_api_requests_per_hour: 8000
+    # テスト用 DB コネクション数
+    test_db_connections: 15
+
+  # v1_standard の DB コネクション超過シナリオ
+  - id: v1_standard_db_limit
+    # 対応する quota_class
+    quota_class: v1_standard
+    # シナリオの説明
+    description: v1_standard クラスで DB コネクション数が上限を超過するシナリオ
+    # 期待する結果: 超過コネクションが拒否される
+    expected_outcome: reject
+    # テスト用リクエスト量（制限内）
+    test_api_requests_per_hour: 5000
+    # テスト用 DB コネクション数（上限 20 を超過する）
+    test_db_connections: 25
+
+  # v1_professional の高負荷シナリオ
+  - id: v1_professional_high_load
+    # 対応する quota_class
+    quota_class: v1_professional
+    # シナリオの説明
+    description: v1_professional クラスの高負荷シナリオ
+    # 期待する結果: 全リクエストが通過する
+    expected_outcome: pass
+    # テスト用リクエスト量
+    test_api_requests_per_hour: 80000
+    # テスト用 DB コネクション数
+    test_db_connections: 40
+
+  # v1_enterprise の大規模シナリオ
+  - id: v1_enterprise_large_scale
+    # 対応する quota_class
+    quota_class: v1_enterprise
+    # シナリオの説明
+    description: v1_enterprise クラスの大規模業務シナリオ
+    # 期待する結果: 全リクエストが通過する
+    expected_outcome: pass
+    # テスト用リクエスト量
+    test_api_requests_per_hour: 900000
+    # テスト用 DB コネクション数
+    test_db_connections: 150
+
+  # v1_dedicated の専有シナリオ
+  - id: v1_dedicated_exclusive
+    # 対応する quota_class
+    quota_class: v1_dedicated
+    # シナリオの説明
+    description: v1_dedicated クラスの専有インスタンスシナリオ（上限なし）
+    # 期待する結果: 制限なく通過する
+    expected_outcome: pass
+    # テスト用リクエスト量（上限なしのため任意の値）
+    test_api_requests_per_hour: 5000000
+    # テスト用 DB コネクション数（専有のため任意の値）
+    test_db_connections: 1000
