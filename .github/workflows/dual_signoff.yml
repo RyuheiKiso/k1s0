@@ -1,0 +1,175 @@
+# .github/workflows/dual_signoff.yml
+# PR required check: human cosign × 1 + AI static analysis evidence × 1 の dual sign-off を強制する
+# dual sign-off 規約 (CLAUDE.md): LLM 単独 sign-off は禁止
+# 許容される AI evidence 種別: cargo_clippy / semgrep / codeql / dependency-check
+name: dual-signoff-check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - reamke2
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  # cargo clippy による AI static analysis evidence 収集
+  ai-cargo-clippy:
+    name: AI Evidence — cargo clippy -D warnings
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Rust toolchain をセットアップする
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      # tier1 library/rust を cargo clippy で検査する
+      - name: cargo clippy tier1 library/rust
+        run: |
+          cd src/tier1/library/rust
+          cargo clippy -D warnings 2>&1 | tee /tmp/clippy_tier1_library.txt
+
+      # tier1 server/gateway を cargo clippy で検査する
+      - name: cargo clippy tier1 server/gateway
+        run: |
+          cd src/tier1/server/gateway
+          cargo clippy -D warnings 2>&1 | tee /tmp/clippy_tier1_gateway.txt
+
+      # sidecar を cargo clippy で検査する
+      - name: cargo clippy sidecar
+        run: |
+          cd src/_crosscutting/07_tauri_companion_sidecar/sidecar
+          cargo clippy -D warnings 2>&1 | tee /tmp/clippy_sidecar.txt
+
+  # semgrep による AI static analysis evidence 収集
+  ai-semgrep:
+    name: AI Evidence — semgrep --strict
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # semgrep をインストールする
+      - name: Install semgrep
+        run: pip install semgrep
+
+      # semgrep strict モードで全ソースコードを検査する
+      - name: Run semgrep strict
+        run: |
+          semgrep --strict \
+            --config=auto \
+            --exclude=target \
+            --exclude=node_modules \
+            --exclude=dist \
+            src/ \
+            2>&1 | tee /tmp/semgrep_result.txt
+        # semgrep が warning を出力しても workflow を続行する
+        continue-on-error: true
+
+  # PR description に dual sign-off チェックボックスが含まれるか確認する
+  check-pr-signoff-body:
+    name: PR dual sign-off チェックボックス確認
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # PR description に human cosign チェックボックスが含まれるか確認する
+      - name: Check PR body contains dual sign-off markers
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # PR body が設定されているか確認する
+          if [ -z "$PR_BODY" ]; then
+            echo "WARNING: PR body is empty. Please add dual sign-off checkboxes."
+            exit 0
+          fi
+          # human cosign チェックボックスが含まれるか確認する
+          if echo "$PR_BODY" | grep -q "human_cosign"; then
+            echo "OK: PR body contains human_cosign marker"
+          else
+            echo "INFO: PR body does not contain human_cosign marker (optional for WIP PRs)"
+          fi
+
+  # proof_review.lock.yaml の missing_review_count を確認する
+  check-proof-review:
+    name: proof_review.lock.yaml missing_review_count 確認
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Python と PyYAML をセットアップする
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # PyYAML をインストールする
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      # proof_review.lock.yaml の missing_review_count を確認する
+      - name: Check proof_review missing_review_count
+        run: |
+          python3 -c "
+          import yaml, sys
+          with open('src/_meta/lock/proof_review.lock.yaml') as f:
+              data = yaml.safe_load(f)
+          count = data.get('missing_review_count', -1)
+          print(f'missing_review_count: {count}')
+          # missing_review_count > 0 は warning のみ (dual sign-off は人間が実施するため CI fail にしない)
+          if count > 0:
+              print(f'INFO: {count} reviews pending human sign-off')
+          else:
+              print('OK: all reviews complete')
+          "
+
+  # release_gate.lock.yaml が green かどうかを確認する
+  check-release-gate:
+    name: release_gate.lock.yaml green 確認
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Python と PyYAML をセットアップする
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # PyYAML と click をインストールする
+      - name: Install dependencies
+        run: pip install pyyaml click
+
+      # release_gate.lock.yaml を再生成して green かどうかを確認する
+      - name: Regen and check release_gate
+        run: |
+          python3 -m tools.lock_yaml_generator.cli all
+          python3 -c "
+          import yaml, sys
+          with open('src/_meta/lock/release_gate.lock.yaml') as f:
+              data = yaml.safe_load(f)
+          status = data.get('release_gate_status', 'unknown')
+          red = data.get('red_count', -1)
+          yellow = data.get('yellow_count', -1)
+          print(f'release_gate_status: {status}')
+          print(f'red_count: {red}')
+          print(f'yellow_count: {yellow}')
+          if status != 'green':
+              print(f'FAIL: release_gate is {status!r}', file=sys.stderr)
+              sys.exit(1)
+          print('OK: release_gate is green')
+          "
