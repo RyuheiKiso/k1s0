@@ -1,0 +1,6 @@
+# virus_scan_config.yaml — ClamAV virus scan 設定
+scan_engine: clamav
+signature_update_cadence: daily
+quarantine_on_detection: true
+max_scan_file_size_mb: 100
+scan_timeout_seconds: 30

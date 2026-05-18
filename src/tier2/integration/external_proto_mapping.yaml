@@ -1,0 +1,17 @@
+# external_proto_mapping.yaml — External Proto field mapping 宣言
+# 16_外部システム統合: mapping は宣言的 YAML 管理、CI で双方向整合検査
+version: "1.0.0"
+mappings:
+  - source_system: "erp_legacy"
+    source_message: "PurchaseOrderV2"
+    target_proto: "manufacturing.procurement.v1.PurchaseOrder"
+    field_mappings:
+      - source: "order_no"
+        target: "order_id"
+        transform: "string_pad_left_zeros_10"
+      - source: "cust_cd"
+        target: "customer_code"
+        transform: "identity"
+      - source: "deliv_dt"
+        target: "delivery_date"
+        transform: "date_format_yyyymmdd_to_rfc3339"

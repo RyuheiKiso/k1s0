@@ -1,0 +1,16 @@
+# kek_shamir_config.yaml — KEK Shamir 分散閾値設定
+# 05_鍵管理適合仕様: v1_data_kek / hsm_pkcs11_shamir_distributed
+shamir_id: k1s0_kek_v1
+version: "1.0.0"
+threshold_m: 3           # M shares 必要
+total_n: 5              # N regions / HSM partitions
+regions:
+  - ap-northeast-1     # Tokyo
+  - ap-northeast-3     # Osaka
+  - eu-west-1          # Ireland (disaster recovery)
+  - us-east-1          # N. Virginia (compliance)
+  - ap-southeast-1     # Singapore
+hsm_backend: pkcs11_softtoken  # dev / test。prod は real HSM
+ceremony_required: true
+ceremony_quorum: 3
+audit_emit: mandatory

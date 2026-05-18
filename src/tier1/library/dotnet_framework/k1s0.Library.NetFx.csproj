@@ -1,0 +1,28 @@
+<!--
+  k1s0.Library.NetFx.csproj — k1s0 tier1 Library .NET Framework 4.6.2+ Companion プロジェクト定義
+  src/CLAUDE.md §言語スタック「tier3 Legacy: .NET Framework 4.6.2+」の AuthContext / KeyHandle 互換ラッパーを提供する。
+  docs/04_詳細設計/01_適合仕様/01_Bidi適合仕様.md §scenario assertion §TLS バージョン注記 に準拠する。
+  .NET Framework 4.6.2 以降を対象にする（TLS 1.2+ がデフォルトで有効になる最低バージョン）。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- .NET Framework 4.6.2 をターゲットにする（TLS 1.2+ デフォルト有効の最低バージョン） -->
+    <TargetFramework>net462</TargetFramework>
+    <!-- Null 参照型: .NET Framework では有効化できない（nullable 注釈は手動でコメントする） -->
+    <Nullable>disable</Nullable>
+    <!-- 暗黙的 using の無効化（明示的 import を強制して依存を可視化する） -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- C# 言語バージョン: 7.3（.NET Framework 4.6.2 でサポートされる最新） -->
+    <LangVersion>7.3</LangVersion>
+    <!-- ルート名前空間: K1s0.Tier1.Compat -->
+    <RootNamespace>K1s0.Tier1.Compat</RootNamespace>
+    <!-- アセンブリ名 -->
+    <AssemblyName>k1s0.library.netfx</AssemblyName>
+    <!-- NuGet パッケージ ID -->
+    <PackageId>k1s0.Library.NetFx</PackageId>
+    <!-- バージョン: 0.1.0（初期実装） -->
+    <Version>0.1.0</Version>
+    <!-- 説明: tier1 Library .NET Framework 4.6.2+ Companion（AuthContext / KeyHandle 互換ラッパー） -->
+    <Description>k1s0 tier1 Library .NET Framework 4.6.2+ Companion: AuthContext / KeyHandle compat wrappers</Description>
+  </PropertyGroup>
+</Project>

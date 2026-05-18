@@ -2,6 +2,9 @@
 // このファイルは pack/manufacturing と同型の公開 API を提供する
 // 業界固有語を一切含まないことを CI で検証する
 
+// usecase モジュール: stub service のユースケース層を公開する
+pub mod usecase;
+
 // リソース管理の抽象インターフェース
 pub trait ResourceManager {
     // リソースの作成: resource_type を受け取り、生成した ID を返す

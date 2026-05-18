@@ -1,0 +1,36 @@
+# audit_emit_required.yaml — Kyverno policy: admin 操作に audit emit 必須
+# tier2 適合仕様 10 テナント分離: admin namespace の全 Pod に audit emit annotation を強制する
+# spec: docs/04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md §audit event emit 強制
+# wire_convention.yaml admin_convention.audit_emit = mandatory と整合する
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（k1s0 プレフィックスで名前衝突を防止する）
+  name: k1s0-audit-emit-required
+  annotations:
+    # k1s0 spec 参照: tier2 テナント分離適合仕様と紐付ける
+    k1s0.dev/spec: "detail.tier2.tenant_isolation_conformance.audit_emit"
+spec:
+  # Enforce モード: audit emit annotation がない場合は admission を拒否する
+  validationFailureAction: Enforce
+  # background モード有効: 既存リソースも継続的に検証する
+  background: true
+  rules:
+    # admin 操作の audit emit annotation 強制ルール
+    - name: require-audit-annotation
+      match:
+        any:
+          - resources:
+              # Pod リソースを対象にする（tier2-admin-* namespace 配下の全 Pod）
+              kinds: [Pod]
+              # admin 専用 namespace パターン（wire_convention.yaml の admin_convention と整合）
+              namespaces: ["tier2-admin-*"]
+      validate:
+        # 違反メッセージ: audit emit annotation がない場合に表示するエラーメッセージ
+        message: "Admin operations must have audit emit annotation (k1s0.dev/audit-emit: 'true')"
+        # pattern マッチ: annotation が存在し "true" であることを強制する
+        pattern:
+          metadata:
+            annotations:
+              # k1s0.dev/audit-emit annotation が "true" であることを強制する
+              k1s0.dev/audit-emit: "true"

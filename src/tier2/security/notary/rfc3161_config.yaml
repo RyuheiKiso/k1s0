@@ -1,0 +1,12 @@
+# rfc3161_config.yaml — RFC 3161 trusted timestamp authority 連携設定
+# 鍵管理適合仕様 05: 外部公証で deletion を attest
+notary_id: rfc3161_tsa
+version: "1.0.0"
+tsa_url: "http://timestamp.digicert.com"
+hash_algorithm: SHA-256
+response_format: DER
+cadence: daily
+targets:
+  - description: "tier2 audit hash chain root"
+    source: "src/tier2/audit/hash_chain.rs"
+    output: "src/tier2/security/notary/attestations/"

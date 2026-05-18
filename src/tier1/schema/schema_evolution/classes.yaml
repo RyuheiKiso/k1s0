@@ -1,0 +1,52 @@
+# schema_evolution/classes.yaml — スキーマ進化適合仕様 schema_class 定義 (SoT)
+# spec: docs/04_詳細設計/01_適合仕様/06_スキーマ進化適合仕様.md
+
+spec_ref: "06_スキーマ進化適合仕様"
+schema_version: "v1"
+
+# aggregate qualified name の namespace 規則
+aggregate_qualified_name_pattern: "<industry>.<domain>.<aggregate>"
+
+# 6 schema_class。各 class は schema_kind / compat_mode / deprecation_period / breaking_change_policy / registry_backend を宣言する。
+schema_classes:
+  - id: v1_external_proto
+    schema_kind: proto_external
+    compat_mode: BACKWARD
+    deprecation_period: months_12
+    breaking_change_policy: major_only
+    registry_backend: buf_bsr
+
+  - id: v1_internal_proto
+    schema_kind: proto_internal
+    compat_mode: NONE
+    deprecation_period: not_applicable
+    breaking_change_policy: additive_with_migration
+    registry_backend: buf_bsr_internal
+
+  - id: v1_event_avro
+    schema_kind: event_avro
+    compat_mode: FULL
+    deprecation_period: months_24
+    breaking_change_policy: major_with_dual_write
+    registry_backend: apicurio
+
+  - id: v1_db_ddl
+    schema_kind: db_ddl
+    compat_mode: forward_backward_via_migration
+    deprecation_period: not_applicable
+    breaking_change_policy: additive_with_migration
+    registry_backend: sqlx_migrations
+
+  - id: v1_config_yaml
+    schema_kind: config_yaml
+    compat_mode: BACKWARD
+    deprecation_period: months_6
+    breaking_change_policy: additive_only
+    registry_backend: yaml_in_repo
+
+  - id: v1_otel_semconv
+    schema_kind: otel_semconv
+    compat_mode: FULL
+    deprecation_period: months_12
+    breaking_change_policy: additive_only
+    registry_backend: weaver

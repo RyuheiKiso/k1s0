@@ -25,3 +25,7 @@ sha2 = "0.10"
 hex = "0.4"
 # tracing: 構造化ロギング（Webhook 配信および Token Exchange の debug ログに使用する）
 tracing = "0.1"
+# reqwest: HTTP クライアント（Webhook HTTP POST および Token Exchange HTTP POST に使用する）
+reqwest = { version = "0.12", features = ["json"] }
+# tokio: 非同期ランタイム（reqwest の async HTTP 実行に使用する）
+tokio = { version = "1", features = ["full"] }

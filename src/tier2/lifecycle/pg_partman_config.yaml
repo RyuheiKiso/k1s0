@@ -1,0 +1,16 @@
+# pg_partman_config.yaml — pg_partman 宣言的 partition lifecycle 設定
+# 17_データ保持: partition lifecycle declarative config
+version: "1.0.0"
+partitioned_tables:
+  - table: public.domain_event
+    partition_type: range
+    partition_key: created_at
+    interval: "monthly"
+    retention_months: 13
+    premake: 3
+  - table: public.outbox_event
+    partition_type: range
+    partition_key: created_at
+    interval: "weekly"
+    retention_months: 1
+    premake: 2

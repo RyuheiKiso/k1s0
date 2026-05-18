@@ -1,0 +1,36 @@
+# tenant_capacity/scenarios.yaml — テナント容量適合仕様 scenario 定義 (SoT)
+# spec: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
+
+spec_ref: "09_テナント容量適合仕様"
+schema_version: "v1"
+
+# 6 primary scenario (Litmus chaos ベース)。各 scenario は対象 quota_class を宣言する。
+scenarios:
+  - id: noisy_neighbor_burst_does_not_break_neighbor_slo
+    # 全 quota_class が対象 (隣接テナントへの SLO 影響がないことを保証)
+    classes:
+      - v1_per_tenant_qps
+      - v1_per_tenant_concurrency
+      - v1_per_tenant_volume
+      - v1_per_tenant_compute
+      - v1_global_fair_queue
+
+  - id: qps_burst_returns_429
+    classes:
+      - v1_per_tenant_qps
+
+  - id: concurrency_queue_drains_under_deadline
+    classes:
+      - v1_per_tenant_concurrency
+
+  - id: volume_overflow_to_cold_succeeds
+    classes:
+      - v1_per_tenant_volume
+
+  - id: compute_priority_shed_correct_order
+    classes:
+      - v1_per_tenant_compute
+
+  - id: kafka_partition_rebalance_under_global_share
+    classes:
+      - v1_global_fair_queue

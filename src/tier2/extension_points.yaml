@@ -1,0 +1,16 @@
+# extension_points.yaml — 業界横断 extension_points 宣言 (SoT)
+# 06_業務資産所有権: 拡張点宣言の単一の真
+version: "1.0.0"
+extension_points:
+  - id: domain_event_envelope
+    description: "Domain Event の envelope 形式。pack が拡張フィールドを追加可能"
+    base_schema: "manufacturing.common.v1.DomainEventEnvelope"
+    extension_field: "pack_extensions"
+
+  - id: aggregate_lifecycle_hook
+    description: "Aggregate の lifecycle hook (create/update/delete/archive)"
+    hook_interface: "tier2.lifecycle.AggregateLifecycleHook"
+
+  - id: report_template
+    description: "帳票テンプレート拡張点: pack が新テンプレートを登録"
+    template_registry: "src/tier2/attachment/template_engine/"

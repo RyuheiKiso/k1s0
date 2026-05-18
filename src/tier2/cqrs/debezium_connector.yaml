@@ -1,0 +1,29 @@
+# debezium_connector.yaml — Debezium Outbox connector: PostgreSQL outbox → Kafka
+# 15_読み取りモデル方針: Outbox → Debezium CDC → Kafka パイプライン
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: k1s0-tier2-outbox-connector
+  namespace: tier2
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    connector.class: io.debezium.connector.postgresql.PostgresConnector
+    database.hostname: postgres
+    database.port: "5432"
+    database.user: tier2
+    database.dbname: tier2
+    database.server.name: tier2
+    table.include.list: "public.outbox_event"
+    plugin.name: pgoutput
+    slot.name: debezium_outbox
+    topic.prefix: tier2
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.table.field.event.id: aggregate_id
+    transforms.outbox.table.field.event.key: aggregate_id
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.route.by.field: event_type

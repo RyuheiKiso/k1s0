@@ -1,0 +1,44 @@
+# key_management/classes.yaml — 鍵管理適合仕様 key_class 定義 (SoT)
+# spec: docs/04_詳細設計/01_適合仕様/05_鍵管理適合仕様.md
+
+spec_ref: "05_鍵管理適合仕様"
+schema_version: "v1"
+
+# 5 key_class。各 class は purpose / rotation_cadence / scope / backend / destruction_method を宣言する。
+key_classes:
+  - id: v1_data_dek
+    purpose: data_encryption
+    rotation_cadence: days_90
+    scope: per_tenant
+    backend: software_kms_wrapped
+    destruction_method: crypto_shred
+    # DEK は KEK でラップされる (wrapped_by 参照)
+    wrapped_by: v1_data_kek
+
+  - id: v1_data_kek
+    purpose: kek_wrapping
+    rotation_cadence: years_1
+    scope: per_tenant_or_platform
+    backend: hsm_pkcs11_shamir_distributed
+    destruction_method: hsm_zeroize_all_shares
+
+  - id: v1_token_signing
+    purpose: signing_jwt
+    rotation_cadence: days_90
+    scope: platform
+    backend: hsm_pkcs11
+    destruction_method: jwks_revoke
+
+  - id: v1_audit_root_signing
+    purpose: signing_audit_root
+    rotation_cadence: years_1
+    scope: per_tenant
+    backend: hsm_pkcs11
+    destruction_method: external_notary_attest
+
+  - id: v1_mtls_workload
+    purpose: mtls_identity
+    rotation_cadence: hours_6
+    scope: per_workload
+    backend: spire
+    destruction_method: spire_revoke

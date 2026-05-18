@@ -3,7 +3,12 @@ conformance_classes: 5
 adapters: 8
 total_cells: 40
 applicable_cells: 29
-generated_at: '2026-05-18T11:28:07Z'
+generated_at: '2026-05-18T15:16:21Z'
+metadata:
+  catalog_validation_status: passed
+  catalog_sot_hash: sha256:fd2f9c68412c131548dec562662b6eab654be14232ea4b4e7b2bf2f1032d3a9a
+  catalog_classes_path: src/tier1/schema/bidi/classes.yaml
+  catalog_scenarios_path: src/tier1/schema/bidi/scenarios.yaml
 cells:
 - cell_id: v1_interactive__grpc_native
   conformance_class: v1_interactive

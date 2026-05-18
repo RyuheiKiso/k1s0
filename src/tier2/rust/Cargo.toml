@@ -39,3 +39,33 @@ tokio = { version = "1", features = ["full"] }
 [dev-dependencies]
 # tokio: 非同期テストランタイム（#[tokio::test] アトリビュートに使用する）
 tokio = { version = "1", features = ["full"] }
+
+[features]
+# integration feature gate: --features integration で有効化される統合テスト群
+# 通常の unit test 実行（cargo test）では統合テストをスキップする
+integration = []
+
+# P1-P4 invariant の統合 property test
+# 環境構築 07 検収コマンド: cargo test --test atomic_write_test
+[[test]]
+name = "atomic_write_test"
+path = "tests/atomic_write_test.rs"
+
+# Domain Event / Aggregate の contract test (integration feature gate)
+# 環境構築 07 検収コマンド: cargo test --test domain_ct --features integration
+[[test]]
+name = "domain_ct"
+path = "tests/domain_ct.rs"
+required-features = ["integration"]
+
+# cross-tenant isolation の property test
+# 環境構築 07 検収コマンド: cargo test --test cross_tenant_property_test
+[[test]]
+name = "cross_tenant_property_test"
+path = "tests/cross_tenant_property_test.rs"
+
+# cross-tenant integration test (PostgreSQL RLS FORCE 環境が必要)
+# 環境構築 07 検収コマンド: TEST_DATABASE_URL=... cargo test --test cross_tenant_test -- --ignored
+[[test]]
+name = "cross_tenant_test"
+path = "tests/cross_tenant_test.rs"
