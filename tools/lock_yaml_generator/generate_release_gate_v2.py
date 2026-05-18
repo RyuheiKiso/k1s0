@@ -217,7 +217,7 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         # (Phase J の cosign sign-blob 後に total_signed > 0 に昇格する)
         "security.build_provenance_slsa_l3plus",
         "artifact_inventory.lock.yaml",
-        "field(`artifact_inventory.lock.yaml`, total_signed) >= 0",
+        "field(`artifact_inventory.lock.yaml`, total_signed) >= 0 AND evidence(`build_evidence.lock.yaml`, security.build_provenance_slsa_l3plus, cosign_verify_pass) == green",
     ),
     # ops
     (
@@ -238,85 +238,85 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         # (not_applicable 11 cell は _SUPPORTS 行列から自動決定、green 対象外)
         "tier1.bidi_conformance_complete",
         "../../tier1/lock/capabilities.lock.yaml",
-        "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) == 29",
+        "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) == 29 AND evidence(`build_evidence.lock.yaml`, tier1.bidi_conformance_complete, testcontainers_e2e_pass) == green",
     ),
     (
         "tier1.migration_pair_dry_run_green",
         "../../tier1/lock/dry_run.lock.yaml",
-        "count(`../../tier1/lock/dry_run.lock.yaml`, pairs[?status=='green']) >= 4",
+        "count(`../../tier1/lock/dry_run.lock.yaml`, pairs[?status=='green']) >= 4 AND evidence(`build_evidence.lock.yaml`, tier1.migration_pair_dry_run_green, cargo_test_migration_pair_pass) == green",
     ),
     (
         "tier1.observation_signal_complete",
         "../../tier1/lock/signals.lock.yaml",
-        "count(`../../tier1/lock/signals.lock.yaml`, signals[?status=='green']) >= 5",
+        "count(`../../tier1/lock/signals.lock.yaml`, signals[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier1.observation_signal_complete, buf_lint_observability_pii_pass) == green",
     ),
     (
         # 04_認証適合仕様.md 5 auth_class 全て green を確認
         "tier1.auth_idp_capability_complete",
         "../../tier1/lock/idp_capabilities.lock.yaml",
-        "count(`../../tier1/lock/idp_capabilities.lock.yaml`, capabilities[?status=='green']) >= 5",
+        "count(`../../tier1/lock/idp_capabilities.lock.yaml`, capabilities[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier1.auth_idp_capability_complete, bfl_oidc_e2e_pass) == green",
     ),
     (
         "tier1.kek_backend_drill_green",
         "../../tier1/lock/backends.lock.yaml",
-        "count(`../../tier1/lock/backends.lock.yaml`, backends[?drill_state=='green']) >= 5",
+        "count(`../../tier1/lock/backends.lock.yaml`, backends[?drill_state=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier1.kek_backend_drill_green, openbao_transit_sign_verify_pass) == green",
     ),
     (
         "tier1.schema_registry_drift_zero",
         "../../tier1/lock/registries.lock.yaml",
-        "count(`../../tier1/lock/registries.lock.yaml`, registries[?drift_status=='zero']) >= 6",
+        "count(`../../tier1/lock/registries.lock.yaml`, registries[?drift_status=='zero']) >= 6 AND evidence(`build_evidence.lock.yaml`, tier1.schema_registry_drift_zero, buf_generate_drift_zero) == green",
     ),
     (
         # 07_SLO適合仕様.md 6 slo_class 全ての drill が green を確認
         "tier1.slo_compliance_quarterly_green",
         "../../tier1/lock/instruments.lock.yaml",
-        "count(`../../tier1/lock/instruments.lock.yaml`, drills[?drill_state=='green']) >= 6",
+        "count(`../../tier1/lock/instruments.lock.yaml`, drills[?drill_state=='green']) >= 6 AND evidence(`build_evidence.lock.yaml`, tier1.slo_compliance_quarterly_green, slo_burn_rate_test_pass) == green",
     ),
     (
         "tier1.oss_lifecycle_drill_green",
         "../../tier1/lock/oss_inventory.lock.yaml",
-        "count(`../../tier1/lock/oss_inventory.lock.yaml`, drills[?drill_state=='green']) >= 1",
+        "count(`../../tier1/lock/oss_inventory.lock.yaml`, drills[?drill_state=='green']) >= 1 AND evidence(`build_evidence.lock.yaml`, tier1.oss_lifecycle_drill_green, cargo_deny_pass) == green",
     ),
     (
         # 09_テナント容量適合仕様.md 5 quota_class 全ての drill が green を確認
         "tier1.tenant_capacity_drill_green",
         "../../tier1/lock/enforcement_points.lock.yaml",
-        "count(`../../tier1/lock/enforcement_points.lock.yaml`, drills[?drill_state=='green']) >= 5",
+        "count(`../../tier1/lock/enforcement_points.lock.yaml`, drills[?drill_state=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier1.tenant_capacity_drill_green, quota_enforcement_e2e_pass) == green",
     ),
     # tier2
     (
         "tier2.tenant_isolation_drill_green",
         "../../tier2/lock/migration.lock.yaml",
-        "count(`../../tier2/lock/migration.lock.yaml`, classes[?rls_enabled=='true']) >= 3",
+        "count(`../../tier2/lock/migration.lock.yaml`, classes[?rls_enabled=='true']) >= 3 AND evidence(`build_evidence.lock.yaml`, tier2.tenant_isolation_drill_green, pgtap_rls_force_pass) == green",
     ),
     (
         "tier2.atomic_triple_write_verified",
         "../../tier2/lock/migration.lock.yaml",
-        "count(`../../tier2/lock/migration.lock.yaml`, classes[?audit_required=='true']) >= 3",
+        "count(`../../tier2/lock/migration.lock.yaml`, classes[?audit_required=='true']) >= 3 AND evidence(`build_evidence.lock.yaml`, tier2.atomic_triple_write_verified, atomic_triple_write_4lang_pass) == green",
     ),
     (
         "tier2.cross_tenant_isolation_zero",
         "../../tier2/lock/migration.lock.yaml",
-        "count(`../../tier2/lock/migration.lock.yaml`, classes[?rls_enabled=='true']) >= 3",
+        "count(`../../tier2/lock/migration.lock.yaml`, classes[?rls_enabled=='true']) >= 3 AND evidence(`build_evidence.lock.yaml`, tier2.cross_tenant_isolation_zero, cross_tenant_e2e_4lang_pass) == green",
     ),
     # tier3
     (
         # tier3 client state 適合仕様の 5 event 全 green を確認する
         "tier3.client_state_conformance_complete",
         "../../tier3/lock/conflict_tree.lock.yaml",
-        "count(`../../tier3/lock/conflict_tree.lock.yaml`, events[?status=='green']) >= 5",
+        "count(`../../tier3/lock/conflict_tree.lock.yaml`, events[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier3.client_state_conformance_complete, playwright_8_scenario_pass) == green",
     ),
     (
         # tier3 BusinessConflict subtype 4 種の actions 定義全 green を確認する
         "tier3.conflict_tree_subtypes_green",
         "../../tier3/lock/conflict_tree.lock.yaml",
-        "count(`../../tier3/lock/conflict_tree.lock.yaml`, subtypes[?status=='green']) >= 4",
+        "count(`../../tier3/lock/conflict_tree.lock.yaml`, subtypes[?status=='green']) >= 4 AND evidence(`build_evidence.lock.yaml`, tier3.conflict_tree_subtypes_green, vitest_reducer_4subtype_pass) == green",
     ),
     (
         # tier3 禁止 export symbol の banned 件数が 3 件以上であることを確認する
         "tier3.forbidden_export_symbols_enforced",
         "../../tier3/lock/forbidden_export_symbols.lock.yaml",
-        "count(`../../tier3/lock/forbidden_export_symbols.lock.yaml`, symbols[?status=='banned']) >= 3",
+        "count(`../../tier3/lock/forbidden_export_symbols.lock.yaml`, symbols[?status=='banned']) >= 3 AND evidence(`build_evidence.lock.yaml`, tier3.forbidden_export_symbols_enforced, eslint_boundaries_pass) == green",
     ),
     # client
     (
@@ -324,7 +324,7 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         # = client SDK の 5 transport class が動作可能なことの proxy 確認
         "client.sdk_distribution_5class_green",
         "../../tier1/lock/capabilities.lock.yaml",
-        "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) >= 5",
+        "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, client.sdk_distribution_5class_green, sdk_dist_5class_e2e_pass) == green",
     ),
 ]
 
