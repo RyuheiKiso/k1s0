@@ -3,7 +3,7 @@
 // lag≤5000ms target、reconnect 時に resume_token を再発行する。
 // 厳格な lag 要件（v1_alert lag≤200ms）や複雑な ordering は担えないため v1_event_feed 専用。
 
-// axum から JSON・ルーティング・レスポンス型を import する
+// axum から JSON・ルーティング・レスポンス型・State を import する
 use axum::{
     // Json: JSON リクエストボディの Extractor・JSON レスポンスの生成に使用する
     Json,
@@ -15,6 +15,8 @@ use axum::{
     http::StatusCode,
     // routing::post: POST メソッドルーター関数
     routing::post,
+    // extract::State: axum State 依存性注入（EventBus を handler に注入する）
+    extract::State,
 };
 // serde: シリアライズ / デシリアライズトレイトを import する
 use serde::{Deserialize, Serialize};
@@ -26,6 +28,10 @@ use tokio::time::timeout;
 use uuid::Uuid;
 // AdapterManifest: adapter の capability 自己宣言型
 use super::AdapterManifest;
+// std::sync::Arc: EventBus の shared state 共有に使用する
+use std::sync::Arc;
+// crate::event_bus::EventBus: セッションごとの broadcast channel 管理
+use crate::event_bus::EventBus;
 
 // MANIFEST は long_poll adapter の capability 自己宣言。
 pub const MANIFEST: AdapterManifest = AdapterManifest {
@@ -87,7 +93,10 @@ impl LongPollAdapter {
 // handle_long_poll は POST /poll の handler。
 // tokio::time::timeout で 30s のタイムアウトを実装する。
 // wall clock を使わない（TTL 計算には HLC を使う — 本 handler は TTL 計算なし）。
+// EventBus から session_id の broadcast Receiver を取得してイベントを待機する。
 pub async fn handle_long_poll(
+    // event_bus: Gateway の shared EventBus（axum State 依存性注入）
+    State(event_bus): State<Arc<EventBus>>,
     // body: JSON リクエストボディを LongPollRequest 型として受け取る
     Json(body): Json<LongPollRequest>,
 ) -> impl IntoResponse {
@@ -103,9 +112,6 @@ pub async fn handle_long_poll(
         // デフォルトは 30000ms
         .unwrap_or(30_000);
 
-    // resume_token をリクエストボディから取得する（None の場合は新規セッション扱い）
-    let _resume_token = body.resume_token.clone();
-
     // tracing で long-poll リクエストの受け取りをログに記録する
     tracing::info!(
         // session_id フィールドを構造化ログに含める
@@ -117,18 +123,47 @@ pub async fn handle_long_poll(
         "long_poll request received"
     );
 
+    // EventBus から session_id の broadcast Receiver を取得する
+    // subscribe は session が存在しない場合は新規作成する
+    let mut rx = event_bus.subscribe(&session_id);
+
     // timeout_ms を Duration に変換する
     let poll_duration = Duration::from_millis(timeout_ms);
 
-    // tokio::time::timeout で poll 操作にタイムアウトを設定する
-    // 実際の event poll は broadcast channel から receive する（現在は stub として即時完了）
-    let poll_result = timeout(poll_duration, async {
-        // NOTE: 実際の event polling は broadcast channel から receive する
-        // 現在はデモ用 stub として空の events リストを即時返す
-        // 将来実装: session_id に対応する channel から event を受信する
-        let events: Vec<serde_json::Value> = vec![];
-        // poll が成功した場合は events リストを返す
-        events
+    // async move クロージャ内でも session_id を使用するためにクローンする
+    let session_id_inner = session_id.clone();
+
+    // tokio::time::timeout で broadcast channel からのイベント受信を待機する
+    // session にイベントが届くか timeout になるまでブロックする
+    let poll_result = timeout(poll_duration, async move {
+        // broadcast channel からイベントを受信する
+        match rx.recv().await {
+            Ok(event) => {
+                // イベントを受信した場合は JSON Value に変換して返す
+                let event_json = serde_json::json!({
+                    "event_type": event.event_type,
+                    "session_id": event.session_id,
+                    "payload": event.payload,
+                    "sequence": event.sequence,
+                });
+                // 受信したイベントを単一要素のリストとして返す
+                vec![event_json]
+            }
+            Err(tokio::sync::broadcast::error::RecvError::Lagged(count)) => {
+                // イベントを取りこぼした（channel バッファ溢れ）場合は空で返す
+                tracing::warn!(
+                    session_id = %session_id_inner,
+                    count = count,
+                    "long_poll: event channel lagged, {} events missed"
+                , count);
+                vec![]
+            }
+            Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                // channel が閉じられた場合は空で返す
+                tracing::debug!(session_id = %session_id_inner, "long_poll: event channel closed");
+                vec![]
+            }
+        }
     })
     .await;
 
@@ -192,10 +227,12 @@ pub async fn handle_long_poll(
 }
 
 // router は long_poll adapter の axum Router を構築して返す。
-// /poll に POST ハンドラーを登録する。
-pub fn router() -> Router {
-    // Router::new() で空のルーターを作成し、route を追加する
+// EventBus を State として注入し、/poll に POST ハンドラーを登録する。
+pub fn router(event_bus: Arc<EventBus>) -> Router {
+    // Router::new() で空のルーターを作成し、EventBus State と POST route を追加する
     Router::new()
         // POST /poll: long-poll リクエスト受付エンドポイント
         .route("/poll", post(handle_long_poll))
+        // EventBus を axum State として注入する（handle_long_poll が State<Arc<EventBus>> で受け取る）
+        .with_state(event_bus)
 }

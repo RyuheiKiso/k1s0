@@ -6,3 +6,5 @@ directories:
   - tenant_capacity
   - oss_lifecycle
   - tier2
+  - pii
+  - observability

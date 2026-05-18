@@ -12,6 +12,8 @@ pub mod key_handle;
 pub mod capability_negotiation;
 // 8 adapter モジュール群
 pub mod adapters;
+// event_bus モジュール（セッションごとの broadcast channel 管理 — long_poll adapter が使用）
+pub mod event_bus;
 
 // axum: HTTP ルーター（use される識別子のみインポートする）
 use axum::{Json, Router, routing::get, extract::Query};
@@ -26,6 +28,8 @@ use std::env;
 use capability_negotiation::{NegotiationRequest, NegotiationResult, negotiate};
 // key_handle の公開型をインポートする
 use key_handle::{KeyClass, KeyHandle};
+// event_bus の EventBus をインポートする（long_poll adapter に注入する）
+use event_bus::EventBus;
 
 // ヘルスチェックレスポンスの構造体
 #[derive(Serialize, Deserialize)]
@@ -121,7 +125,10 @@ async fn key_handle_demo_handler() -> Json<KeyHandle> {
 
 // build_router は gateway の axum Router を構築して返す。
 // pub: integration test（tests/ 配下）と main.rs の両方から参照する。
+// EventBus を作成して long_poll adapter に注入する。
 pub fn build_router() -> Router {
+    // EventBus を生成する（gateway 全体で 1 インスタンス共有）
+    let event_bus = EventBus::new();
     // 全エンドポイントを登録する
     Router::new()
         // ヘルスチェックエンドポイント（Kubernetes liveness / readiness probe）
@@ -142,8 +149,8 @@ pub fn build_router() -> Router {
         .nest("/post-sse", adapters::paired_post_sse::router())
         // adapter 5: sse_paired — EventSource SSE（/sse-stream/...）
         .nest("/sse-stream", adapters::sse_paired::router())
-        // adapter 6: long_poll — fetch long-poll（/long-poll/...）
-        .nest("/long-poll", adapters::long_poll::router())
+        // adapter 6: long_poll — fetch long-poll（EventBus を注入して broadcast channel を配線する）
+        .nest("/long-poll", adapters::long_poll::router(event_bus))
         // adapter 7: messaging_bridge — Kafka idempotent producer（/kafka/...）
         .nest("/kafka", adapters::messaging_bridge::router())
 }
