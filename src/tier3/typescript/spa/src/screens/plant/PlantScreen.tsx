@@ -2,20 +2,11 @@
 // manufacturing pack の工場（plant）一覧を表示する画面コンポーネント
 // WCAG 2.1 AA 準拠: ランドマーク / heading 階層 / aria-label を使用する
 
+// React をインポートする
 import React from "react";
-
-// 工場エンティティの型（tier2 生成 stub の代替として最小定義）
-// 実際の実装では tier2 生成 stub を使用する（独自再宣言型禁止ポリシーに注意）
-export interface PlantSummary {
-  // 工場 ID（UUID）
-  readonly plantId: string;
-  // 工場名
-  readonly name: string;
-  // 所在地（都市名）
-  readonly location: string;
-  // アクティブかどうか
-  readonly active: boolean;
-}
+// PlantSummary 型を @k1s0/pack（tier2 stub ファサード）からインポートする
+// 独自再宣言型禁止ポリシーに準拠: tier2 生成 stub 経由の型を使用する
+import type { PlantSummary } from "@k1s0/tier3-pack";
 
 // PlantScreen のプロパティ型
 export interface PlantScreenProps {

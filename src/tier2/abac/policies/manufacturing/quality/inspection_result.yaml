@@ -1,0 +1,42 @@
+# inspection_result.yaml — ABAC policy (industry/domain/aggregate SoT)
+# spec: docs/04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md §ABAC policy 定義
+# axis_id: tier2 / industry: manufacturing / domain: quality / aggregate: inspection_result
+
+# ポリシー識別子（OPA policy module の id として参照される）
+policy_id: manufacturing.quality.inspection_result
+# 軸 ID（release_gate の tier2 cell と対応する）
+axis_id: tier2
+# 集約クラス（abac/delegation_policy.yaml と整合させる）
+aggregate_class: inspection_result
+# 業界区分（pack/manufacturing/ と対応する）
+industry: manufacturing
+# ドメイン区分（inspection bounded context と対応する）
+domain: quality
+# バージョン（wire_convention.yaml と同じ semver 管理）
+version: "1.0.0"
+
+# 操作別 ABAC 許可ルール
+permissions:
+  # 読取操作: inspector / supervisor / admin 役割が business_op 目的で実行可能
+  - operation: read
+    required_roles: [inspector, supervisor, admin]
+    required_purpose: business_op
+    # tenant_scope: 必須（テナント外アクセスは物理拒否する）
+    tenant_scope: required
+  # 書込操作: inspector / supervisor 役割のみ business_op 目的で実行可能
+  - operation: write
+    required_roles: [inspector, supervisor]
+    required_purpose: business_op
+    # tenant_scope: 必須（テナント外書込は物理拒否する）
+    tenant_scope: required
+    # 書込操作は audit_event emit が必須
+    requires_audit: true
+  # 管理者上書き操作: admin 役割のみ、緊急昇格認証 + dual sign-off が必須
+  - operation: admin_override
+    required_roles: [admin]
+    # v1_emergency_step_up: wire_convention.yaml admin_convention.required_auth_classes と整合する
+    required_auth_class: v1_emergency_step_up
+    # dual_approval: lifecycle/dual_signoff_workflow.yaml による承認が必須
+    requires_dual_approval: true
+    # admin_override は必ず audit_event を emit する
+    requires_audit: true

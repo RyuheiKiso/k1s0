@@ -1,0 +1,80 @@
+# oss_lifecycle/classes.yaml — OSS ライフサイクル適合仕様 lifecycle_class 定義 (SoT)
+# spec: docs/04_詳細設計/01_適合仕様/08_OSSライフサイクル適合仕様.md
+
+spec_ref: "08_OSSライフサイクル適合仕様"
+schema_version: "v1"
+
+# 8 signal の定義 (lifecycle_class が参照する trigger の候補)
+signals:
+  - id: license_change
+    description: "ライセンス変更 (Apache 2.0→BUSL 等)"
+  - id: eol_announced
+    description: "EOL 公式宣言"
+  - id: cve_backlog_threshold
+    description: "critical/high CVE SLA 超過"
+  - id: maintainer_turnover
+    description: "コア maintainer 交代閾値超過"
+  - id: fork_event
+    description: "コミュニティ分裂 (hard fork)"
+  - id: conformance_drift
+    description: "L2* 同族 / Conformance Suite で drift 検出"
+  - id: major_up
+    description: "semver major version up"
+  - id: spec_drift
+    description: "公開 spec 改訂 (v1_inhouse_authoritative 限定)"
+
+# 6 lifecycle_class。各 class は adoption_status / health_check_cadence / primary_trigger / response_action を宣言する。
+lifecycle_classes:
+  - id: v1_l1plus_primary
+    adoption_status: primary_l1plus
+    health_check_cadence: quarterly
+    primary_triggers:
+      - license_change
+      - eol_announced
+      - cve_backlog_threshold
+      - maintainer_turnover
+      - fork_event
+    response_action: pair_switch_to_target
+
+  - id: v1_l1plus_pair_target
+    adoption_status: pair_l1plus
+    health_check_cadence: annual
+    primary_triggers:
+      - dry_run_cadence_elapsed
+    response_action: conformance_dry_run_run
+
+  - id: v1_l2star_member
+    adoption_status: l2star_member
+    health_check_cadence: quarterly
+    primary_triggers:
+      - conformance_drift
+      - license_change
+      - eol_announced
+    response_action: family_substitute_or_demote
+
+  - id: v1_l3_runtime
+    adoption_status: l3_companion_runtime
+    health_check_cadence: semi_annual
+    primary_triggers:
+      - major_up
+      - eol_announced
+      - cve_backlog_threshold
+    response_action: runtime_upgrade_with_compat_test
+
+  - id: v1_reserved_category
+    adoption_status: reserved
+    health_check_cadence: annual
+    primary_triggers:
+      - adoption_demand
+      - blocker_resolution
+    response_action: promote_to_primary_or_remove
+
+  - id: v1_inhouse_authoritative
+    adoption_status: inhouse_authoritative
+    health_check_cadence: quarterly
+    primary_triggers:
+      - spec_drift
+      - cve_backlog_threshold
+      - conformance_drift
+      - major_up
+    response_action: inhouse_spec_track_or_runtime_upgrade

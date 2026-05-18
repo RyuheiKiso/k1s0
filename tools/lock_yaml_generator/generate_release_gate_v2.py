@@ -369,10 +369,10 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "count(`../../tier3/lock/conflict_tree.lock.yaml`, events[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier3.a11y_audit_green, axe_core_zero_violation) == green",
     ),
     (
-        # Playwright e2e 8 scenario が宣言済みであることを確認する
+        # Playwright e2e 8 scenario が物理実装済み (passed) であることを確認する
         "tier3.e2e_8scenarios_green",
         "../../tier3/lock/test_matrix.lock.yaml",
-        "count(`../../tier3/lock/test_matrix.lock.yaml`, scenarios[?status=='declared']) >= 8 AND evidence(`build_evidence.lock.yaml`, tier3.e2e_8scenarios_green, playwright_8_scenario_pass) == green",
+        "count(`../../tier3/lock/test_matrix.lock.yaml`, scenarios[?status=='passed']) >= 8 AND evidence(`build_evidence.lock.yaml`, tier3.e2e_8scenarios_green, playwright_8_scenario_pass) == green",
     ),
     (
         # forms package の ESLint tenant_id 禁止ルールが violations=0 であることを確認する

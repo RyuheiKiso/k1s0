@@ -82,7 +82,8 @@ export function createOutboxMeta(
     idempotencyKey: key,
     enqueuedAt: new Date().toISOString(),
     expiresAtMs: Date.now() + IDEMPOTENCY_KEY_TTL_MS,
-    chainedFrom,
+    // exactOptionalPropertyTypes: undefined キーは省略して spread で条件追加する
+    ...(chainedFrom !== undefined ? { chainedFrom } : {}),
     aggregateId,
     rpcMethod,
   };

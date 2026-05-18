@@ -1,0 +1,36 @@
+<!--
+  K1s0Analyzer.csproj — k1s0 tier1 C# Roslyn analyzer プロジェクト定義
+  tier1/CLAUDE.md §lint ツール「BannedApiAnalyzers + Central Package Management +
+  PublicApiAnalyzers + K1s0Analyzer」の K1s0Analyzer 実体を定義する。
+  netstandard2.0 をターゲットにして Roslyn analyzer NuGet として配布可能にする。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- netstandard2.0: Roslyn analyzer は netstandard2.0 ターゲットが必須 -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Roslyn analyzer: ビルド出力を NuGet analyzer として配置する（通常 DLL 出力を抑制する） -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- Null 参照型の有効化（型安全性向上） -->
+    <Nullable>enable</Nullable>
+    <!-- 暗黙的 using の無効化（明示的 import を強制して依存を可視化する） -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- アセンブリ名 -->
+    <AssemblyName>K1s0Analyzer</AssemblyName>
+    <!-- NuGet パッケージ ID -->
+    <PackageId>K1s0.Tier1.Analyzer</PackageId>
+    <!-- バージョン: 初期実装 -->
+    <Version>0.1.0</Version>
+    <!-- 説明: tier1 Roslyn analyzer（banned API / dependency direction / facade 経由強制）-->
+    <Description>k1s0 tier1 Roslyn Analyzer: banned API / dependency direction / facade enforcement</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Microsoft.CodeAnalysis.CSharp: Roslyn C# 解析 API（PrivateAssets=all でトランジティブ依存を遮断する） -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" PrivateAssets="all" />
+    <!-- Microsoft.CodeAnalysis.Analyzers: analyzer メタアノテーション（PrivateAssets=all で遮断する） -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- BannedSymbols.txt を追加リソースとして Roslyn に渡す（RS0030 / RS0031 に使用する） -->
+    <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
+</Project>

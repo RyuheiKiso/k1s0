@@ -1,0 +1,31 @@
+# dashboard.yaml — Perses dashboard 設定 + tier3_ext SemConv emit
+# 設計方針 30_運用 UI: Perses dashboard
+apiVersion: perses.dev/v1alpha1
+kind: Dashboard
+metadata:
+  name: k1s0-tier3-client
+  project: k1s0
+spec:
+  display:
+    name: "k1s0 tier3 Client Dashboard"
+  panels:
+    - kind: TimeSeriesChart
+      spec:
+        display:
+          # tier3.layer 属性によるクライアント状態レイヤー分布を表示する
+          name: "Client State Layer Distribution (tier3.layer)"
+        queries:
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # tier3_layer_state_duration_ms の P95 を計算するクエリ
+              query: 'histogram_quantile(0.95, rate(tier3_layer_state_duration_ms_bucket[5m]))'
+    - kind: TimeSeriesChart
+      spec:
+        display:
+          # tier3.web_vitals.lcp_ms 属性による Web Vitals LCP を表示する
+          name: "Web Vitals LCP (tier3.web_vitals.lcp_ms)"
+        queries:
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # LCP の P95 を計算するクエリ
+              query: 'histogram_quantile(0.95, rate(tier3_web_vitals_lcp_ms_bucket[5m]))'

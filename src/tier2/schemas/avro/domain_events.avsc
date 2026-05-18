@@ -1,0 +1,199 @@
+[
+  {
+    "_comment": "domain_events.avsc — k1s0 tier2 manufacturing Domain Event Avro スキーマ定義",
+    "_doc_ref": "docs/03_概要設計/03_tier2設計方針/10_表現手段.md §Avro スキーマ",
+    "type": "record",
+    "name": "ResourceStatusChanged",
+    "namespace": "io.k1s0.tier2.manufacturing.fa.v1",
+    "doc": "設備（ResourceUnit）の操業状態変更イベント。ep_resource_lifecycle hook と対応する。",
+    "fields": [
+      {
+        "name": "event_id",
+        "type": "string",
+        "doc": "イベントの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "tenant_id",
+        "type": "string",
+        "doc": "テナント識別子（RLS 境界を保証する）"
+      },
+      {
+        "name": "resource_id",
+        "type": "string",
+        "doc": "状態が変更されたリソースの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "from_status",
+        "type": {"type": "enum", "name": "ResourceStatus", "symbols": ["ACTIVE", "INACTIVE", "MAINTENANCE"]},
+        "doc": "変更前の状態"
+      },
+      {
+        "name": "to_status",
+        "type": "ResourceStatus",
+        "doc": "変更後の状態"
+      },
+      {
+        "name": "occurred_at",
+        "type": "string",
+        "doc": "発生日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "BatchStatusChanged",
+    "namespace": "io.k1s0.tier2.manufacturing.fa.v1",
+    "doc": "生産バッチ（ProductionBatch）の状態変更イベント。ep_batch_lifecycle hook と対応する。",
+    "fields": [
+      {
+        "name": "event_id",
+        "type": "string",
+        "doc": "イベントの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "tenant_id",
+        "type": "string",
+        "doc": "テナント識別子"
+      },
+      {
+        "name": "batch_id",
+        "type": "string",
+        "doc": "状態が変更されたバッチの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "from_status",
+        "type": {"type": "enum", "name": "BatchStatus", "symbols": ["PLANNED", "IN_PROGRESS", "COMPLETED", "REJECTED"]},
+        "doc": "変更前の状態"
+      },
+      {
+        "name": "to_status",
+        "type": "BatchStatus",
+        "doc": "変更後の状態"
+      },
+      {
+        "name": "occurred_at",
+        "type": "string",
+        "doc": "発生日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "InspectionResultRecorded",
+    "namespace": "io.k1s0.tier2.manufacturing.inspection.v1",
+    "doc": "検査結果（InspectionResult）記録イベント。InspectionService.RecordInspectionResult と対応する。",
+    "fields": [
+      {
+        "name": "event_id",
+        "type": "string",
+        "doc": "イベントの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "tenant_id",
+        "type": "string",
+        "doc": "テナント識別子"
+      },
+      {
+        "name": "result_id",
+        "type": "string",
+        "doc": "記録された検査結果の識別子（UUID v7 形式）"
+      },
+      {
+        "name": "batch_id",
+        "type": "string",
+        "doc": "検査対象バッチの識別子"
+      },
+      {
+        "name": "verdict",
+        "type": {"type": "enum", "name": "InspectionVerdict", "symbols": ["PASS", "FAIL", "REQUIRES_REVIEW"]},
+        "doc": "合否判定結果"
+      },
+      {
+        "name": "inspector_id",
+        "type": "string",
+        "doc": "検査担当者の識別子"
+      },
+      {
+        "name": "occurred_at",
+        "type": "string",
+        "doc": "発生日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "ProcurementOrderApproved",
+    "namespace": "io.k1s0.tier2.manufacturing.procurement.v1",
+    "doc": "調達注文（ProcurementOrder）承認イベント。ProcurementService と対応する。",
+    "fields": [
+      {
+        "name": "event_id",
+        "type": "string",
+        "doc": "イベントの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "tenant_id",
+        "type": "string",
+        "doc": "テナント識別子"
+      },
+      {
+        "name": "order_id",
+        "type": "string",
+        "doc": "承認された注文の識別子（UUID v7 形式）"
+      },
+      {
+        "name": "approver_ids",
+        "type": {"type": "array", "items": "string"},
+        "doc": "承認者の識別子リスト（MultiApprover の場合は 2 件以上）"
+      },
+      {
+        "name": "occurred_at",
+        "type": "string",
+        "doc": "発生日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）"
+      }
+    ]
+  },
+  {
+    "type": "record",
+    "name": "AuditEventEmitted",
+    "namespace": "io.k1s0.tier2.common.v1",
+    "doc": "監査イベント発行（AuditEvent）記録イベント。ep_audit_event_enricher hook と対応する。",
+    "fields": [
+      {
+        "name": "event_id",
+        "type": "string",
+        "doc": "イベントの識別子（UUID v7 形式）"
+      },
+      {
+        "name": "tenant_id",
+        "type": "string",
+        "doc": "テナント識別子"
+      },
+      {
+        "name": "actor_id",
+        "type": "string",
+        "doc": "操作者の識別子（AuthContext.user_id）"
+      },
+      {
+        "name": "action",
+        "type": "string",
+        "doc": "実行されたアクション（CREATE / UPDATE / DELETE 等）"
+      },
+      {
+        "name": "resource_type",
+        "type": "string",
+        "doc": "操作対象のリソース種別（ResourceUnit / ProcurementOrder 等）"
+      },
+      {
+        "name": "resource_id",
+        "type": "string",
+        "doc": "操作対象リソースの識別子"
+      },
+      {
+        "name": "occurred_at",
+        "type": "string",
+        "doc": "発生日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）"
+      }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+# wire_convention.yaml — tier2 API 設計規約 (SoT)
+# spec: docs/03_概要設計/03_tier2設計方針/ 12_API設計規約
+# Buf custom lint の照合基準として参照される（物理 SoT）
+spec_ref: "12_API設計規約"
+version: "1.0.0"
+
+# proto package 命名規約（業界中立な <industry>.<domain>.v<N> 形式を強制する）
+proto_package_pattern: "^<industry>\\.<domain>\\.v[0-9]+$"
+# admin package は .admin.v<N> サフィックスを必須とする
+admin_package_pattern: "^<industry>\\.<domain>\\.admin\\.v[0-9]+$"
+
+# 禁則（tier2 適合仕様 12 により物理禁止する事項）
+forbidden:
+  - description: "tier2 proto package に tenant_id フィールドを直接露出禁止"
+    pattern: "tenant_id.*in.*message"
+  - description: "admin API と user API を同一 package に混在禁止"
+    pattern: "admin_rpc_in_non_admin_package"
+  - description: "breaking change (BACKWARD 非互換) は major version up 必須"
+    rule: "buf_breaking_required_before_major"
+
+# RPC 必須 annotation（全 tier2 RPC に付与を強制する）
+required_rpc_annotations:
+  - "tier1.bidi.conformance_class"
+  - "tier1.auth.auth_class"
+  - "tier1.slo.slo_class"
+  - "tier1.quota.quota_class"
+  - "tier1.observability.signal_class"
+
+# admin package 規約（FAOperationAdminService / ProcurementOrderAdminService / InspectionResultAdminService に適用）
+admin_convention:
+  # admin package は必ず .admin.v1 で終わる
+  package_suffix: ".admin.v1"
+  # admin API の auth_class は人間セッションまたは緊急昇格に限定する
+  required_auth_classes: ["v1_human_session", "v1_emergency_step_up"]
+  # admin 操作は必ず audit_event を emit する
+  audit_emit: mandatory
+  # admin 操作には dual sign-off（human × AI evidence）が必須
+  dual_approval_required: true

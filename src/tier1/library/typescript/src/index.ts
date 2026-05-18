@@ -159,3 +159,10 @@ export type {
 } from "./rules.js";
 export { makePolicyPath } from "./rules.js";
 export type { PolicyPath } from "./rules.js";
+
+// Secret Management L3: SecretStore / SecretMetadata / SecretRotationPolicy を再エクスポートする
+export type {
+  SecretMetadata,
+  SecretRotationPolicy,
+  SecretStore,
+} from "./secret.js";

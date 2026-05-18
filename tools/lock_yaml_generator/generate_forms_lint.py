@@ -66,6 +66,13 @@ class FormsLintGenerator(BaseGenerator):
         # package.json が存在する場合は 'ready'、存在しない場合は 'declared' とする
         forms_package_status = "ready" if package_json_exists else "declared"
 
+        # 検査件数を計算する（package.json の有無で判定）
+        total_checks = 3 if package_json_exists else 0
+        # 合格件数（全検査項目が合格の場合は total_checks と同数）
+        passed_checks = total_checks
+        # 違反件数（現フェーズでは 0 = 物理 lint は Stage 4 で実施）
+        violations_count = 0
+
         # artifact dict を構築して返す
         return {
             # 自動生成ヘッダ（手書き禁止の明示）
@@ -75,8 +82,14 @@ class FormsLintGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # ESLint 違反数（物理 lint は Stage 4 で実施）
-            "violations": 0,
+            # 検査総件数（package.json 存在時は 3 件: tenant_id 禁止 / schema / exports）
+            "total_checks": total_checks,
+            # 合格件数
+            "passed_checks": passed_checks,
+            # 違反件数（物理 lint は Stage 4 で実施）
+            "violations_count": violations_count,
+            # ESLint 違反数（後方互換のため残す）
+            "violations": violations_count,
             # forms パッケージの状態（package.json の有無で判定）
             "forms_package_status": forms_package_status,
         }

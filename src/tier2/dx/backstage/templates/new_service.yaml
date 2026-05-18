@@ -1,0 +1,76 @@
+# new_service.yaml — Backstage SoftwareTemplate: 新業務 service 作成
+# tier2 の新しい業務サービス（industry/domain 配下）を scaffolding する
+# spec: docs/03_概要設計/03_tier2設計方針/27_開発者体験設計.md §Backstage テンプレート
+# pack/<industry>/ の vocabulary.yaml / extension_points.yaml と整合させる
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  # テンプレート名（Backstage Software Catalog での識別子）
+  name: k1s0-new-tier2-service
+  # 表示タイトル
+  title: "New Tier2 Business Service"
+  # 説明: tier2 業務サービスを新規作成する（industry/domain/service 命名規約に従う）
+  description: "tier2 業務サービス（industry/domain 配下）を scaffolding する。wire_convention.yaml の proto_package_pattern に準拠したサービスを生成する。"
+spec:
+  # オーナー: プラットフォームチームが管理する
+  owner: platform-team
+  # テンプレート種別: サービス作成
+  type: service
+  # 申請フォームのパラメータ定義
+  parameters:
+    # サービス詳細セクション
+    - title: Service Details
+      # 必須フィールド: industry / domain / service_name
+      required: [industry, domain, service_name]
+      properties:
+        # 業界区分（pack/ 配下のディレクトリ名と一致させる）
+        industry:
+          title: Industry
+          type: string
+          # 現時点のサポート業界（pack/manufacturing/ が実装済み）
+          enum: [manufacturing]
+          # 業界追加は pack/<industry>/ の vocabulary.yaml 作成とセットで行う
+          description: "pack/<industry>/ の vocabulary.yaml が存在する業界のみ選択可"
+        # ドメイン区分（bounded context と一致させる）
+        domain:
+          title: Domain (bounded context)
+          type: string
+          # 例: fa / procurement / inspection / quality
+          description: "bounded context 名（proto パッケージの <domain> 部分と一致させる）"
+        # サービス名（wire_convention.yaml の proto_package_pattern に従う）
+        service_name:
+          title: Service Name
+          type: string
+          # 業界中立語を使用する（forbidden_industry_terms.yaml の禁則語を使わない）
+          description: "業界中立語を使用する（forbidden_industry_terms.yaml の禁則語禁止）"
+        # オーナーチーム（Backstage catalog-info.yaml の owner フィールドに設定する）
+        owner_team:
+          title: Owner Team
+          type: string
+          default: "platform-team"
+  # workflow ステップ定義
+  steps:
+    # スケルトンテンプレートを取得するステップ
+    - id: fetch-template
+      name: Fetch service skeleton
+      # tier2 サービスのスケルトンテンプレートを取得する
+      action: fetch:template
+      input:
+        # スケルトンテンプレートのパス（tier2 サービス標準構成）
+        url: ./skeleton/service
+        # テンプレート変数（scaffolding 時に置換される）
+        values:
+          industry: "${{ parameters.industry }}"
+          domain: "${{ parameters.domain }}"
+          service_name: "${{ parameters.service_name }}"
+          owner_team: "${{ parameters.owner_team }}"
+    # GitHub リポジトリを作成するステップ
+    - id: create-repository
+      name: Create GitHub repository
+      # GitHub リポジトリを作成して scaffolding 済みコードを push する
+      action: publish:github
+      input:
+        # リポジトリ名（industry-domain-service_name 形式）
+        repoUrl: "github.com?repo=k1s0-${{ parameters.industry }}-${{ parameters.domain }}-${{ parameters.service_name }}&owner=k1s0-org"
+        # デフォルトブランチ名
+        defaultBranch: main

@@ -1,0 +1,79 @@
+# kafka.yaml — tier2 開発環境用 Kafka (Tiltfile 参照)
+# Tiltfile の k8s_yaml(["devcontainer/k8s/kafka.yaml"]) から読み込まれる
+# src/CLAUDE.md: production / development 区別禁止 — Outbox / CDC 経路の整合性を弱体化しない
+# StatefulSet を使用して Kafka の状態（トピック・オフセット）の永続性を保証する
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  # StatefulSet 名（Tiltfile の k8s_resource() で "kafka" として参照される）
+  name: kafka
+  # 開発環境専用 namespace（tier2-dev）
+  namespace: tier2-dev
+spec:
+  # サービス名（Headless Service と一致させる）
+  serviceName: kafka
+  # レプリカ数: 開発環境では 1 台で運用する
+  replicas: 1
+  selector:
+    matchLabels:
+      # ラベルセレクタ: kafka Pod を選択する
+      app: kafka
+  template:
+    metadata:
+      labels:
+        # Pod ラベル（Service セレクタおよびネットワークポリシーで参照される）
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          # KRaft モード対応 Kafka 3.7（ZooKeeper 不要、単一プロセスで起動する）
+          image: apache/kafka:3.7.0
+          env:
+            - name: KAFKA_NODE_ID
+              # KRaft ノード ID（単一ノード構成では 1 固定）
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              # KRaft モード: broker と controller を同一プロセスで実行する
+              value: "broker,controller"
+            - name: KAFKA_LISTENERS
+              # リスナー設定: PLAINTEXT は tier2-api 向け、CONTROLLER は KRaft 内部
+              value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+            - name: KAFKA_ADVERTISED_LISTENERS
+              # アドバタイズリスナー: tier2-dev namespace 内から kafka:9092 で接続する
+              value: "PLAINTEXT://kafka:9092"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              # KRaft quorum voter: 単一ノード構成
+              value: "1@kafka:9093"
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              # KRaft コントローラーリスナー名
+              value: "CONTROLLER"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              # 開発環境では replication factor 1 で運用する（production では 3 以上を推奨）
+              value: "1"
+          ports:
+            # Kafka ブローカーポート（tier2-api からの Outbox relay に使用する）
+            - containerPort: 9092
+            # KRaft コントローラーポート（内部クラスタ通信に使用する）
+            - containerPort: 9093
+---
+# kafka Service — StatefulSet Pod への ClusterIP アクセスを提供する
+apiVersion: v1
+kind: Service
+metadata:
+  # Service 名（tier2-api から kafka:9092 としてアクセスされる）
+  name: kafka
+  # 開発環境専用 namespace（tier2-dev）
+  namespace: tier2-dev
+spec:
+  selector:
+    # kafka Pod を選択する（StatefulSet テンプレートのラベルと一致させる）
+    app: kafka
+  ports:
+    # Kafka ブローカーポートを ClusterIP で公開する
+    - name: broker
+      port: 9092
+      targetPort: 9092
+    # KRaft コントローラーポートを ClusterIP で公開する（内部通信用）
+    - name: controller
+      port: 9093
+      targetPort: 9093

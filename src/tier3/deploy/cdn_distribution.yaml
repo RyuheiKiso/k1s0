@@ -1,0 +1,23 @@
+# cdn_distribution.yaml — CDN 配布 manifest
+# tier3 SPA の静的アセット CDN 配信設定
+distribution_id: k1s0-tier3-cdn
+version: "1.0.0"
+origins:
+  - id: tier3-spa-origin
+    domain: tier3-spa-origin.internal
+    protocol: https
+cache_behaviors:
+  - path_pattern: "/assets/*"
+    # ハッシュ付きファイルは 1 年間キャッシュする
+    ttl_seconds: 31536000
+    compress: true
+  - path_pattern: "*.js"
+    # JS ファイルは 1 日間キャッシュする
+    ttl_seconds: 86400
+  - path_pattern: "/index.html"
+    # index.html は常に最新を取得するためキャッシュしない
+    ttl_seconds: 0
+# SRI 検証を有効にする
+sri_validation: enabled
+# CSP はアプリから継承する
+content_security_policy: "inherit_from_app"

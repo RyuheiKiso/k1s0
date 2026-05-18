@@ -1,0 +1,23 @@
+{
+  "name": "@k1s0/tier3-ui-components",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "tier3 SPA 共通 UI コンポーネント群（WCAG 2.1 AA 準拠 / React 18 + TypeScript strict）",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.0"
+  }
+}

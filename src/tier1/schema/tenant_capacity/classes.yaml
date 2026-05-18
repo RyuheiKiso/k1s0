@@ -1,0 +1,59 @@
+# tenant_capacity/classes.yaml — テナント容量適合仕様 quota_class 定義 (SoT)
+# spec: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
+
+spec_ref: "09_テナント容量適合仕様"
+schema_version: "v1"
+
+# 4 階層 enforcement の構造定義
+enforcement_hierarchy:
+  - tier: 1
+    name: "Envoy Gateway Local Rate Limit"
+    quota_class: v1_per_tenant_qps
+  - tier: 2
+    name: "Library token bucket"
+    quota_class: v1_per_tenant_concurrency
+  - tier: 3
+    name: "OSS native quota"
+    quota_class: v1_per_tenant_compute
+    oss_targets:
+      - Temporal
+      - KEDA
+      - pgvector
+      - Superset
+  - tier: 4
+    name: "storage/broker layer"
+    quota_classes:
+      - v1_per_tenant_volume
+      - v1_global_fair_queue
+
+# 5 quota_class。各 class は enforcement_layer / fairness_model / burst_window / exhaustion_response を宣言する。
+quota_classes:
+  - id: v1_per_tenant_qps
+    enforcement_layer: envoy_local_rate_limit
+    fairness_model: per_tenant
+    burst_window: short_1s
+    exhaustion_response: reject_429
+
+  - id: v1_per_tenant_concurrency
+    enforcement_layer: library_token_bucket
+    fairness_model: per_tenant_per_action
+    burst_window: medium_1m
+    exhaustion_response: queue_with_timeout
+
+  - id: v1_per_tenant_volume
+    enforcement_layer: storage_layer_quota
+    fairness_model: per_tenant
+    burst_window: long_1h
+    exhaustion_response: overflow_to_cold
+
+  - id: v1_per_tenant_compute
+    enforcement_layer: oss_native_quota
+    fairness_model: per_tenant_per_action
+    burst_window: medium_1m
+    exhaustion_response: shed_by_priority
+
+  - id: v1_global_fair_queue
+    enforcement_layer: broker_layer
+    fairness_model: global_share
+    burst_window: continuous
+    exhaustion_response: partition_rebalance

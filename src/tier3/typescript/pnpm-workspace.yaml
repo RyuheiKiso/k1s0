@@ -23,3 +23,9 @@ packages:
   - "packages/design-tokens"
   # 業種別 pack 動的ロード (manufacturing / retail / logistics)
   - "packages/pack"
+  # SPA 共通 UI コンポーネント（WCAG 2.1 AA 準拠 / 10 component）
+  - "packages/ui-components"
+  # 添付ファイル管理クライアント（チャンクアップロード / MIME 検査 / ハッシュチェーン）
+  - "packages/attachments"
+  # 帳票テンプレートラッパー（PDF / Excel 生成 / ダウンロード管理）
+  - "packages/reports"

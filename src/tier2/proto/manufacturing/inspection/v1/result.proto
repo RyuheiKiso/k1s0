@@ -1,0 +1,104 @@
+// result.proto — k1s0 tier2 manufacturing inspection (検査) bounded context proto
+// docs/03_概要設計/03_tier2設計方針/04_ドメイン分割方針.md §inspection bounded context に準拠する。
+// tier2 業界中立語 (InspectionResult / InspectionVerdict) を使用し業界固有語を露出しない。
+
+syntax = "proto3";
+
+// パッケージ名: k1s0.tier2.manufacturing.inspection.v1（検査 bounded context の gRPC 定義）
+package k1s0.tier2.manufacturing.inspection.v1;
+
+// Java / Kotlin クライアント向けオプション
+option java_multiple_files = true;
+// Java パッケージ名（業界中立名前空間）
+option java_package = "io.k1s0.tier2.manufacturing.inspection.v1";
+// Go パッケージパス
+option go_package = "github.com/k1s0/tier2/manufacturing/inspection/v1;inspectionv1";
+
+// InspectionVerdict は検査結果判定を宣言する enum。
+// 業界語「合否判定」を中立語 InspectionVerdict で表現する。
+enum InspectionVerdict {
+  // INSPECTION_VERDICT_UNSPECIFIED: 未設定
+  INSPECTION_VERDICT_UNSPECIFIED = 0;
+  // INSPECTION_VERDICT_PASS: 合格
+  INSPECTION_VERDICT_PASS = 1;
+  // INSPECTION_VERDICT_FAIL: 不合格
+  INSPECTION_VERDICT_FAIL = 2;
+  // INSPECTION_VERDICT_REQUIRES_REVIEW: 要再検査（自動判定不可）
+  INSPECTION_VERDICT_REQUIRES_REVIEW = 3;
+}
+
+// Measurement は測定値を宣言するメッセージ。
+// 業界語「実測値」を中立語 Measurement で表現する。
+message Measurement {
+  // metric_id: 測定指標の識別子（ItemSpecification の metric 定義と対応する）
+  string metric_id = 1;
+  // value: 測定値（浮動小数点数で表現する）
+  double value = 2;
+  // unit: 測定単位（"mm" / "kg" / "Pa" 等）
+  string unit = 3;
+}
+
+// InspectionResult は検査結果集約の proto メッセージを宣言する。
+// エンティティ名は業界中立語（「検査成績書」は使わない）。
+message InspectionResult {
+  // id: 検査結果の識別子（UUID v7 文字列形式）
+  string id = 1;
+  // tenant_id: テナント識別子（RLS 境界を保証する）
+  string tenant_id = 2;
+  // batch_id: 検査対象の生産バッチ識別子（ProductionBatch への参照）
+  string batch_id = 3;
+  // item_spec_id: 検査に使用した品目仕様 ID（ItemSpecification への参照）
+  string item_spec_id = 4;
+  // measurements: 測定値のリスト
+  repeated Measurement measurements = 5;
+  // verdict: 検査の合否判定
+  InspectionVerdict verdict = 6;
+  // inspector_id: 検査担当者の識別子（AuthContext.user_id）
+  string inspector_id = 7;
+  // inspected_at: 検査日時（RFC 3339 / ISO 8601 文字列、HLC タイムスタンプ）
+  string inspected_at = 8;
+  // version: 楽観的ロックバージョン番号
+  int64 version = 9;
+}
+
+// RecordInspectionResultRequest は検査結果記録リクエストを宣言する。
+message RecordInspectionResultRequest {
+  // tenant_id: テナント識別子（JWT ClaimsSet から取得し bfl が検証する）
+  string tenant_id = 1;
+  // batch_id: 検査対象バッチ識別子
+  string batch_id = 2;
+  // item_spec_id: 検査に使用した品目仕様 ID
+  string item_spec_id = 3;
+  // measurements: 測定値のリスト（空の場合は REQUIRES_REVIEW になる）
+  repeated Measurement measurements = 4;
+  // inspector_id: 検査担当者の識別子
+  string inspector_id = 5;
+}
+
+// RecordInspectionResultResponse は検査結果記録レスポンスを宣言する。
+message RecordInspectionResultResponse {
+  // result: 記録された検査結果
+  InspectionResult result = 1;
+}
+
+// GetInspectionResultRequest は検査結果取得リクエストを宣言する。
+message GetInspectionResultRequest {
+  // id: 取得する検査結果の識別子
+  string id = 1;
+  // tenant_id: テナント識別子
+  string tenant_id = 2;
+}
+
+// GetInspectionResultResponse は検査結果取得レスポンスを宣言する。
+message GetInspectionResultResponse {
+  // result: 取得した検査結果（存在しない場合は未設定）
+  InspectionResult result = 1;
+}
+
+// InspectionService は検査 bounded context の gRPC サービスを宣言する。
+service InspectionService {
+  // RecordInspectionResult は検査結果を記録する。
+  rpc RecordInspectionResult(RecordInspectionResultRequest) returns (RecordInspectionResultResponse);
+  // GetInspectionResult は検査結果を ID で取得する。
+  rpc GetInspectionResult(GetInspectionResultRequest) returns (GetInspectionResultResponse);
+}

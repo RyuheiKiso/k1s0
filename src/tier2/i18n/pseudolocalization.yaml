@@ -1,0 +1,13 @@
+# pseudolocalization.yaml — pseudolocalization CI 必須設定
+# 26_国際化方針: CI でロケール境界の UI 崩れを疑似検出
+version: "1.0.0"
+expansion_ratio: 1.4     # 英語 → 他言語への文字列膨張率 (40% 膨張)
+replacement_map:
+  a: "à"
+  e: "é"
+  i: "î"
+  o: "ô"
+  u: "ü"
+bracket_wrap: true       # [ÿÿÿ text ÿÿÿ] でラップ
+ci_fail_on_overflow: true
+target_locales: ["ja-JP", "en-US"]

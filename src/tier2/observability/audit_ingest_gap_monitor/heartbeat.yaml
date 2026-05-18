@@ -1,0 +1,23 @@
+# heartbeat.yaml — audit ingest gap monitor 設定
+# tier2 業務エラー監査 08: ingest gap 検出経路 (3分ロスでアラート)
+monitor_id: audit_ingest_gap
+version: "1.0.0"
+
+heartbeat:
+  interval_seconds: 30
+  expected_max_gap_seconds: 180  # 3分超過でアラート
+  signal_class: audit  # 03_観測適合仕様 audit signal
+
+alert:
+  severity: page_immediate
+  routing: ops-on-call
+  message: "Audit ingest gap detected: >{expected_max_gap_seconds}s since last event"
+
+prometheus_rule:
+  alert_name: AuditIngestGap
+  expr: "time() - audit_ingest_last_event_ts > 180"
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Audit event ingest gap > 3min"

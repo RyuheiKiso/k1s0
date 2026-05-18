@@ -1,0 +1,47 @@
+# auth/scenarios.yaml — 認証適合仕様 scenario 定義 (SoT)
+# spec: docs/04_詳細設計/01_適合仕様/04_認証適合仕様.md
+
+spec_ref: "04_認証適合仕様"
+schema_version: "v1"
+
+# 8 primary scenario。各 scenario は対象 auth_class を宣言する。
+scenarios:
+  - id: token_validation
+    classes:
+      - v1_human_session
+      - v1_workload_jwt
+      - v1_device_attest
+      - v1_federated_exchange
+      - v1_emergency_step_up
+
+  - id: refresh_rotation
+    classes:
+      - v1_human_session
+
+  - id: step_up_challenge
+    classes:
+      - v1_human_session
+      - v1_device_attest
+      - v1_emergency_step_up
+
+  - id: revocation_propagation
+    classes:
+      - v1_human_session
+      - v1_device_attest
+
+  - id: mtls_handshake
+    classes:
+      - v1_workload_jwt
+
+  - id: dpop_proof_replay
+    classes:
+      - v1_human_session
+      - v1_emergency_step_up
+
+  - id: federation_audience_check
+    classes:
+      - v1_federated_exchange
+
+  - id: emergency_break_glass
+    classes:
+      - v1_emergency_step_up

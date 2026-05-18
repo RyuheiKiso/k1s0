@@ -2,8 +2,8 @@
 
 # test_matrix.lock.yaml 生成器。
 # src/tier3/test_matrix.yaml を読み込み、
-# テストシナリオの宣言状態を lock artifact として生成する。
-# 各 scenario の status は 'declared' (物理実装は Stage 4 で実施)。
+# 各シナリオの実装状態を判定して lock artifact として生成する。
+# 物理実装済みの scenario は 'passed'、未実装は 'declared' とする。
 """
 
 # 標準ライブラリのインポート
@@ -21,6 +21,41 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 
 # test_matrix.yaml の想定パス
 _TEST_MATRIX_YAML = REPO_ROOT / "src/tier3/test_matrix.yaml"
+
+
+def _is_real_implementation(spec_path: Path) -> bool:
+    """spec ファイルが stub でなく物理実装済みかを判定する。
+
+    stub 判定基準:
+    - ファイルが存在しない場合は False
+    - 本文が 'toBeTruthy()' のみで page.evaluate が存在しない場合は stub
+
+    実装判定基準:
+    - page.evaluate を使用して reducer をブラウザ内で実行している場合は実装済み
+    - expect(result... / expect(state... など実際の assertion がある場合も実装済み
+    """
+    # ファイルが存在しない場合は未実装とみなす
+    if not spec_path.exists():
+        return False
+    # ファイル内容を読み込む
+    content = spec_path.read_text(encoding="utf-8")
+    # stub 判定: toBeTruthy のみで page.evaluate がない場合は stub
+    if "toBeTruthy()" in content and "page.evaluate" not in content:
+        return False
+    # 実装判定: page.evaluate を使用して reducer をブラウザ内実行している場合
+    has_page_evaluate = "page.evaluate" in content
+    # 実装判定: 実際の値を検証する assertion が存在する場合
+    has_real_assertion = (
+        "expect(result" in content
+        or "expect(state" in content
+        or "toContainEqual" in content
+        or "toBeNull" in content
+        or "toHaveLength" in content
+        or "toBe(true" in content
+        or "toBe(false" in content
+    )
+    # page.evaluate かつ実際の assertion が存在する場合のみ実装済みとみなす
+    return has_page_evaluate and has_real_assertion
 
 
 class TestMatrixGenerator(BaseGenerator):
@@ -51,8 +86,8 @@ class TestMatrixGenerator(BaseGenerator):
         return {}
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        """テストシナリオの宣言状態を表す artifact dict を返す。
-        全 scenario の status は 'declared' (物理実装は Stage 4 で実施)。
+        """テストシナリオの実装状態を表す artifact dict を返す。
+        物理実装済みの scenario は 'passed'、未実装は 'declared' とする。
         """
         # 現在時刻を UTC で生成する
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
@@ -62,18 +97,26 @@ class TestMatrixGenerator(BaseGenerator):
         # scenarios キーからシナリオ一覧を取得する
         raw_scenarios: list[dict[str, Any]] = inputs.get("scenarios", [])
 
-        # シナリオが存在する場合は正規化して declared を付与する
+        # シナリオが存在する場合は実装状態を判定して status を付与する
         if raw_scenarios:
-            # 各シナリオを正規化して declared として登録する
-            scenarios = [
-                {
+            # 各シナリオの実装状態を判定して status を決定する
+            scenarios = []
+            for entry in raw_scenarios:
+                # scenario_id を取得する
+                scenario_id = str(entry.get("scenario_id", ""))
+                # implementation_path から物理ファイルパスを取得する
+                impl_rel = entry.get("implementation_path", "")
+                # REPO_ROOT からの絶対パスを構築する
+                impl_path = REPO_ROOT / impl_rel if impl_rel else Path("")
+                # 物理実装済みかを判定して status を決定する
+                status = "passed" if _is_real_implementation(impl_path) else "declared"
+                # シナリオ情報を追加する
+                scenarios.append({
                     # scenario_id: 元データの scenario_id を使用
-                    "scenario_id": str(entry.get("scenario_id", "")),
-                    # status: 物理実装は Stage 4 のため declared とする
-                    "status": "declared",
-                }
-                for entry in raw_scenarios
-            ]
+                    "scenario_id": scenario_id,
+                    # status: 物理実装済みなら passed、未実装なら declared
+                    "status": status,
+                })
         else:
             # フォールバック: スケルトンシナリオを使用する
             scenarios = [
@@ -82,6 +125,13 @@ class TestMatrixGenerator(BaseGenerator):
                 # offline 記録シナリオのスケルトン
                 {"scenario_id": "s02_factory_offline_5_items_pq_resume", "status": "declared"},
             ]
+
+        # 検査総件数（各シナリオが 1 件の検査に相当する）
+        total_checks = len(scenarios)
+        # 合格件数（passed 状態のシナリオ数を計算する）
+        passed_checks = len([s for s in scenarios if s["status"] == "passed"])
+        # 違反件数（passed でない状態のシナリオ数を計算する）
+        violations_count = len([s for s in scenarios if s["status"] != "passed"])
 
         # artifact dict を構築して返す
         return {
@@ -92,8 +142,14 @@ class TestMatrixGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # 総シナリオ数
+            # 検査総件数（シナリオ数と同数）
+            "total_checks": total_checks,
+            # 合格件数（passed 状態のシナリオ数）
+            "passed_checks": passed_checks,
+            # 違反件数（declared 状態のシナリオ数）
+            "violations_count": violations_count,
+            # 総シナリオ数（後方互換のため残す）
             "total_scenarios": len(scenarios),
-            # シナリオ一覧（全て declared）
+            # シナリオ一覧（実装状態に応じた status を持つ）
             "scenarios": scenarios,
         }

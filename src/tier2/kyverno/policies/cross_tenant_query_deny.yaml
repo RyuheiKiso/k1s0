@@ -1,0 +1,39 @@
+# cross_tenant_query_deny.yaml — Kyverno policy: cross-tenant query 物理拒否
+# tier2 適合仕様 10 テナント分離: 異なるテナント間のネットワークアクセスを物理拒否する
+# spec: docs/04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md §cross-tenant isolation
+# NetworkPolicy の podSelector tenant-id ラベルと namespace の不一致を検出して拒否する
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（k1s0 プレフィックスで名前衝突を防止する）
+  name: k1s0-cross-tenant-query-deny
+  annotations:
+    # k1s0 spec 参照: tier2 テナント分離適合仕様と紐付ける
+    k1s0.dev/spec: "detail.tier2.tenant_isolation_conformance.cross_tenant"
+spec:
+  # Enforce モード: cross-tenant アクセスを許可するような NetworkPolicy の admission を拒否する
+  validationFailureAction: Enforce
+  # background モード有効: 既存リソースも継続的に検証する
+  background: true
+  rules:
+    # クロステナントネットワークアクセス拒否ルール
+    - name: deny-cross-tenant-access
+      match:
+        any:
+          - resources:
+              # NetworkPolicy リソースを対象にする（tier2-* namespace 配下の全 NetworkPolicy）
+              kinds: [NetworkPolicy]
+              # tier2-* namespace パターンに一致する全 namespace を対象にする
+              namespaces: ["tier2-*"]
+      validate:
+        # 違反メッセージ: cross-tenant ネットワークアクセスが検出された場合のエラーメッセージ
+        message: "Cross-tenant network access is denied (tier2 tenant isolation conformance)"
+        deny:
+          conditions:
+            all:
+              # NetworkPolicy の podSelector tenant-id ラベルが namespace のテナント ID と一致しない場合を拒否する
+              # namespace 名の末尾（tier2-<tenant-id> 形式）と podSelector の tenant-id を比較する
+              - key: "{{ request.object.spec.podSelector.matchLabels.\"app.tenant-id\" }}"
+                operator: AnyNotIn
+                # namespace 名を '-' で split して最後の要素（テナント ID）を取得する
+                value: "{{ request.object.metadata.namespace | split(@, '-') | [-1] }}"

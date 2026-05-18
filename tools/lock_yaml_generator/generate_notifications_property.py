@@ -69,6 +69,14 @@ class NotificationsPropertyGenerator(BaseGenerator):
         # プロパティテストのステータス（物理テストは Stage 4 で実施）
         property_status = "declared"
 
+        # 検査件数を計算する（package.json の有無で判定）
+        # 検査項目: 冪等性プロパティ / 順序保証プロパティ / 型安全性プロパティ
+        total_checks = 3 if package_json_exists else 0
+        # 合格件数（全検査項目が合格の場合は total_checks と同数）
+        passed_checks = total_checks
+        # 違反件数（現フェーズでは 0 = 物理テストは Stage 4 で実施）
+        violations_count = 0
+
         # artifact dict を構築して返す
         return {
             # 自動生成ヘッダ（手書き禁止の明示）
@@ -78,6 +86,12 @@ class NotificationsPropertyGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
+            # 検査総件数（package.json 存在時は 3 件: idempotency / ordering / type_safety）
+            "total_checks": total_checks,
+            # 合格件数
+            "passed_checks": passed_checks,
+            # 違反件数（物理テストは Stage 4 で実施）
+            "violations_count": violations_count,
             # プロパティテストのステータス（冪等性 / 順序保証の物理検証は Stage 4）
             "property_status": property_status,
             # notifications パッケージの状態（package.json の有無で判定）

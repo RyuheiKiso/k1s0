@@ -33,6 +33,15 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@25.8.0)
 
+  packages/attachments:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
   packages/auth:
     devDependencies:
       typescript:
@@ -45,16 +54,52 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/design-tokens:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
+  packages/forms:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
   packages/i18n:
     devDependencies:
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/notifications:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
   packages/outbox:
     devDependencies:
       typescript:
         specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
+  packages/pack:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
         version: 5.9.3
       vitest:
         specifier: ^1.6.0
@@ -66,6 +111,15 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/reports:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
   packages/state:
     devDependencies:
       typescript:
@@ -75,8 +129,33 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@25.8.0)
 
+  packages/ui-components:
+    dependencies:
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.0.0
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.0.0
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.0.0
+        version: 18.3.7(@types/react@18.3.28)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@25.8.0)
+
   spa:
     dependencies:
+      '@k1s0/tier3-pack':
+        specifier: workspace:*
+        version: link:../packages/pack
       react:
         specifier: ^18.3.1
         version: 18.3.1

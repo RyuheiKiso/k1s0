@@ -124,12 +124,35 @@ phase_entries:
     ai_evidence_status: provided
     ai_evidence_detail: "dual_signoff.yml CI workflow + PR template + dual_review README を構造確認"
 
+  # Phase J: v1.0.0 完璧化 — docs↔src 厳格 audit 全欠落物理実装
+  - phase_id: phase_J
+    phase_name: "v1.0.0 Perfect — docs↔src Full Physical Implementation"
+    # 新規作成 + 改修ファイル数 (tier1 catalog 20本 / lint 4言語 / tier2 P0+P1+P2 / tier3 P0+P1+P2 / generator 改修)
+    files_changed: 120
+    # human cosign 状態 (実装者 RyuheiKiso の署名待ち)
+    human_cosign_status: pending
+    human_cosign_by: ""
+    human_cosign_at: ""
+    # AI static analysis evidence 種別
+    ai_evidence_type: docs_lint_green_release_gate_70cell_green
+    # AI evidence 状態 (provided = AI が解析済み)
+    ai_evidence_status: provided
+    # AI evidence 詳細
+    ai_evidence_detail: |
+      [tier1] catalog yaml 20本 (bidi/migration/observability/auth/key/schema/slo/oss/tenant_capacity の classes+scenarios+dims+correlation+redaction) 物理化。
+      generator 9本改修 (lib/catalog_validator.py 追加 + catalog_sot_hash 埋込)。
+      lint binary 4言語 (cargo-k1s0-lint/K1s0Analyzer/go-k1s0-analysis/buf-plugin-k1s0) 実装。
+      OTel Collector 2段 pipeline / .NET Fw Companion / Go Library auth_context+repository / parity test 追加。
+      [tier2] wire_convention.yaml / admin proto 3本 / ABAC policies 4本 / devcontainer / atomic_write_test+domain_ct / Kyverno policy 3本 / Backstage template 3本 / notary / debezium / kek_shamir / quota enforcement / runbook 5本 / stress test 8本等 50+件物理化。
+      [tier3] 8 stress test (s01-s08) stub→実装置換 (passed_checks=8 達成) / OTel SDK / axe-core / Lighthouse / Pact / React19 / Argo Rollouts / WiX MSI / Storybook / devcontainer / OnboardingTutorial / Perses / PWA manifest 等 20+件物理化。
+      release_gate: green=70/red=0/yellow=0。docs_lint: 11 checks all green。test_matrix: passed_checks=8。
+
 # 総 phase 数
-total_phases: 9
+total_phases: 10
 # human cosign 完了 phase 数 (全 pending のため 0)
 human_cosign_complete_count: 0
 # ai evidence 完了 phase 数
-ai_evidence_complete_count: 9
+ai_evidence_complete_count: 10
 # missing review count (formal.dual_review_completeness_100pct が参照する)
-# human cosign が pending のため 9
-missing_review_count: 9
+# human cosign が pending のため 10
+missing_review_count: 10

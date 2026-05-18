@@ -1,6 +1,9 @@
 # migration pair テストマトリックス
 # 02_移行Pair適合仕様に基づく 4 pair × 5 phase の組み合わせを定義する
 # このファイルは tools/lock_yaml_generator/ が参照するテストマトリックス定義ファイルである
+# P2 phase 名 reconcile: docs/04_詳細設計/01_適合仕様/02_移行Pair適合仕様.md §phase 名に合わせて
+# 旧 phase 名（prepare/export/transform/import/verify）を
+# 仕様書指定の phase 名（schema_diff/state_replicate/dual_write_ramp/cutover/rollback）に更新する。
 
 # migration_pairs: 4 つの移行ペアを列挙する
 migration_pairs:
@@ -10,8 +13,13 @@ migration_pairs:
     from: cnpg
     # 移行先: StackGres PostgreSQL オペレーター
     to: stackgres
-    # 5 フェーズをすべて実行する
-    phases: [prepare, export, transform, import, verify]
+    # 5 フェーズをすべて実行する（docs 指定の phase 名に reconcile 済み）
+    # schema_diff: スキーマ差分を確認して移行可能性を検証する
+    # state_replicate: 移行元のデータを移行先にレプリケートする（ダウンタイムなし）
+    # dual_write_ramp: 移行元・移行先の両方に書き込む割合を段階的に増やす
+    # cutover: トラフィックを移行先に切り替える
+    # rollback: 問題が発生した場合に移行元に戻す
+    phases: [schema_diff, state_replicate, dual_write_ramp, cutover, rollback]
 
   # messaging_kafka: Kafka Strimzi → RedPanda の移行ペア
   - pair_id: messaging_kafka
@@ -19,8 +27,8 @@ migration_pairs:
     from: strimzi
     # 移行先: RedPanda Kafka 互換ブローカー
     to: redpanda
-    # 5 フェーズをすべて実行する
-    phases: [prepare, export, transform, import, verify]
+    # 5 フェーズをすべて実行する（docs 指定の phase 名に reconcile 済み）
+    phases: [schema_diff, state_replicate, dual_write_ramp, cutover, rollback]
 
   # workflow_engine: Temporal → 自製ワークフローエンジンの移行ペア
   - pair_id: workflow_engine
@@ -28,8 +36,8 @@ migration_pairs:
     from: temporal
     # 移行先: k1s0 内製ワークフローエンジン
     to: internal_workflow
-    # 5 フェーズをすべて実行する
-    phases: [prepare, export, transform, import, verify]
+    # 5 フェーズをすべて実行する（docs 指定の phase 名に reconcile 済み）
+    phases: [schema_diff, state_replicate, dual_write_ramp, cutover, rollback]
 
   # rule_engine: zen_rule → internal_rule の移行ペア
   - pair_id: rule_engine
@@ -37,8 +45,8 @@ migration_pairs:
     from: zen_rule
     # 移行先: k1s0 内製ルールエンジン
     to: internal_rule
-    # 5 フェーズをすべて実行する
-    phases: [prepare, export, transform, import, verify]
+    # 5 フェーズをすべて実行する（docs 指定の phase 名に reconcile 済み）
+    phases: [schema_diff, state_replicate, dual_write_ramp, cutover, rollback]
 
 # テストマトリックスのメタデータ
 metadata:
@@ -50,3 +58,15 @@ metadata:
   pair_count: 4
   # 総テストセル数 (4 pair × 5 phase)
   total_cells: 20
+  # phase 名 reconcile 履歴: P2 で docs 指定の phase 名に更新した
+  phase_names:
+    # schema_diff: スキーマ差分確認フェーズ（旧: prepare）
+    - schema_diff
+    # state_replicate: データレプリケーションフェーズ（旧: export）
+    - state_replicate
+    # dual_write_ramp: 二重書き込みランプアップフェーズ（旧: transform）
+    - dual_write_ramp
+    # cutover: カットオーバーフェーズ（旧: import）
+    - cutover
+    # rollback: ロールバックフェーズ（旧: verify）
+    - rollback
