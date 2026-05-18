@@ -1,0 +1,9 @@
+# tier1_oss_lifecycle.dual_review.lock.yaml
+# tier1 OSS lifecycle temporal safety dual review record
+# 08_OSSライフサイクル適合仕様: trigger eventually resolves ActionRequiredForResolution property
+phase_id: tier1_oss_lifecycle_tsp_v1_0_0
+human_cosign_status: stub
+ai_evidence_type: semgrep_tier1
+ai_evidence_status: stub
+spec_file: src/formal/tla/tier1_oss_lifecycle_temporal_safety.tla
+reviewed_at: '2026-05-18T00:00:00Z'

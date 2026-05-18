@@ -1,0 +1,14 @@
+{
+  "name": "@k1s0/tier3-design-tokens",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.0"
+  }
+}

@@ -1,0 +1,56 @@
+# OpenBao 初期化設定
+# 05_鍵管理適合仕様: KEK ceremony の Shamir シークレット分散を設定する
+# このファイルは OpenBao (HashiCorp Vault フォーク) の初期化パラメータを定義する
+
+# OpenBao サーバー設定
+openbao:
+  # Shamir シークレット分散設定
+  shamir:
+    # M: シークレット再構成に必要な鍵の最小数（閾値）
+    # M=3 の場合、5 つのシャードのうち任意の 3 つがあれば KEK を再構成できる
+    threshold: 3
+    # N: 分散する鍵の総数
+    # N=5 で 5 人の鍵保持者にシャードを分配する
+    shares: 5
+
+  # Transit シークレットエンジン設定（KEK 暗号化操作を担う）
+  transit:
+    # KEK 暗号化エンジンのマウントパス名
+    engine_name: kek_tier1
+    # エンジンのマウントパス
+    mount_path: transit/
+    # KEK ローテーション間隔 (日数): 90 日ごとに KEK をローテーションする
+    rotation_days: 90
+    # 使用する暗号アルゴリズム: aes256-gcm96 (AES-256-GCM)
+    algorithm: aes256-gcm96
+    # minimum_decryption_version: ローテーション後に解読を許可する最小バージョン
+    # 0 はすべての旧バージョンを許可することを意味する（運用ポリシーに合わせて設定する）
+    minimum_decryption_version: 0
+
+  # ポリシー設定: KEK 操作に必要な最小権限を定義する
+  policy:
+    # ポリシー名
+    name: kek_tier1_policy
+    # 許可するパス: encrypt / decrypt / rewrap のみ許可する（管理操作は別ポリシーで保護する）
+    allowed_paths:
+      # 暗号化操作を許可する
+      - path: "transit/encrypt/kek_tier1"
+        # 許可する操作: create + update（暗号化）
+        capabilities: ["create", "update"]
+      # 復号操作を許可する
+      - path: "transit/decrypt/kek_tier1"
+        # 許可する操作: create + update（復号）
+        capabilities: ["create", "update"]
+      # 再暗号化操作を許可する
+      - path: "transit/rewrap/kek_tier1"
+        # 許可する操作: create + update（再暗号化）
+        capabilities: ["create", "update"]
+
+  # 監査ログ設定: 全 KEK 操作を監査ログに記録する
+  audit:
+    # 監査バックエンドタイプ: file ベースの監査ログ
+    type: file
+    # ログ出力先パス
+    path: /var/log/openbao/audit.log
+    # HMAC アクセサを有効化する（個人情報のハッシュ化）
+    hmac_accessor: true

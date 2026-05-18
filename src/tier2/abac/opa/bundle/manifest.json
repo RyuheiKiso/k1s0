@@ -1,0 +1,9 @@
+{
+  "comment": "tier2 ABAC OPA bundle マニフェスト",
+  "revision": "v1.0.0-stub",
+  "roots": ["tier2/abac"],
+  "policies": [
+    "tier2/abac/delegation.rego",
+    "tier2/abac/deny_root.rego"
+  ]
+}

@@ -3,7 +3,8 @@ id: detail.tier3.tier3_enforcement
 axis: tier3
 phase: detail
 kind: enforcement
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier3.tier3_index
   - arch.tier3.responsibility

@@ -53,3 +53,22 @@ export type NotificationStore = {
   // 全通知を削除する関数
   readonly clear: () => void;
 };
+
+// 通知の idempotent な追加ロジック
+// 同一 ID の通知が重複して追加されることを防ぐ
+export function addNotificationIdempotent(
+  // 既存の通知リスト
+  notifications: readonly NotificationEntry[],
+  // 追加する通知
+  notification: NotificationEntry,
+): NotificationEntry[] {
+  // 同一 ID の通知が既に存在する場合は追加しない (idempotency)
+  if (notifications.some(n => n.id === notification.id)) {
+    // 既存のリストをそのまま返す
+    return [...notifications];
+  }
+  // 最大件数を超える場合は最古の通知を削除する
+  const next = [...notifications, notification];
+  // MAX_NOTIFICATIONS 件数以内に収める
+  return next.slice(-MAX_NOTIFICATIONS);
+}

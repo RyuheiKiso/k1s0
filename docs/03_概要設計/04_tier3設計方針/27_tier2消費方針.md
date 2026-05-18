@@ -3,7 +3,8 @@ id: arch.tier3.tier2_consumption_policy
 axis: tier3
 phase: architecture
 kind: policy
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier3.tier3_index
   - arch.tier3.responsibility

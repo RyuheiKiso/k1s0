@@ -286,6 +286,108 @@ def check_repository_layout() -> list[str]:
     return fails
 
 
+def check_published_spec_completeness(items: list[tuple[Path, dict]], body_by_path: dict[Path, str]) -> list[str]:
+    """status: published の適合仕様 .md は version フィールドと lock_artifacts 物理存在が必要。
+    docs/04_詳細設計/01_適合仕様/ 配下のファイルが対象。"""
+    # 失敗メッセージ蓄積リスト
+    fails = []
+    # SemVer パターン（major.minor.patch 形式）
+    import re as _re
+    SEMVER = _re.compile(r"^\d+\.\d+\.\d+$")
+    # 全 frontmatter 付き markdown ファイルを走査
+    for path, fm in items:
+        # REPO_ROOT からの相対パスで対象ディレクトリを判定
+        rel = str(path.relative_to(REPO_ROOT))
+        # 04_詳細設計/01_適合仕様/ 配下のみ対象
+        if "04_詳細設計/01_適合仕様/" not in rel:
+            continue
+        # status: published のファイルのみ検査
+        if fm.get("status") != "published":
+            continue
+        # version フィールドの SemVer 検査
+        version = fm.get("version", "")
+        if not isinstance(version, str) or not SEMVER.match(str(version)):
+            fails.append(f"{rel}: status: published だが version が SemVer でない: {version!r}")
+        # lock_artifacts の物理存在検査（axis サブディレクトリ配下を参照）
+        axis = fm.get("axis", "")
+        locks = fm.get("lock_artifacts") or []
+        for lock in (locks if isinstance(locks, list) else []):
+            # lock_artifacts の各要素が str であることを確認
+            if not isinstance(lock, str):
+                continue
+            # src/<axis>/lock/<lock> の物理パスを構築
+            lock_path = REPO_ROOT / "src" / axis / "lock" / lock
+            # 物理ファイルが存在しない場合は失敗として記録
+            if not lock_path.exists():
+                fails.append(f"{rel}: lock_artifacts 物理欠落: src/{axis}/lock/{lock}")
+    return fails
+
+
+def check_test_matrix_implementation_paths() -> list[str]:
+    """src/tier3/test_matrix.yaml の scenarios[].implementation_path が物理存在するか検査。"""
+    # 失敗メッセージ蓄積リスト
+    fails = []
+    # test_matrix.yaml の物理パスを構築
+    tm_path = REPO_ROOT / "src/tier3/test_matrix.yaml"
+    # ファイルが存在しない場合はスキップ（非破壊）
+    if not tm_path.exists():
+        return fails
+    # YAML パース（失敗時もスキップ）
+    try:
+        import yaml as _yaml
+        tm = _yaml.safe_load(tm_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return fails
+    # scenarios リスト内の各シナリオを検査
+    for scenario in (tm.get("scenarios") or []):
+        # シナリオが dict でない場合はスキップ
+        if not isinstance(scenario, dict):
+            continue
+        # implementation_path フィールドを取得
+        impl_path = scenario.get("implementation_path")
+        # 未設定の場合はスキップ
+        if not impl_path:
+            continue
+        # glob パターンをサポートして物理存在を確認
+        import glob as _glob
+        matched = _glob.glob(str(REPO_ROOT / impl_path))
+        # マッチするファイルがなければ失敗として記録
+        if not matched:
+            sid = scenario.get("scenario_id", "unknown")
+            fails.append(f"test_matrix: scenario {sid} implementation_path 物理欠落: {impl_path}")
+    return fails
+
+
+def check_policy_mapping_bidirectional(items: list[tuple[Path, dict]]) -> list[str]:
+    """src/tier1/policy_mapping.yaml が存在する場合のみ: spec frontmatter と双方向参照を検査。"""
+    # 失敗メッセージ蓄積リスト
+    fails = []
+    # policy_mapping.yaml の物理パスを構築
+    pm_path = REPO_ROOT / "src/tier1/policy_mapping.yaml"
+    # ファイルが存在しない場合はスキップ（非破壊）
+    if not pm_path.exists():
+        return fails
+    # YAML パース（失敗時もスキップ）
+    try:
+        import yaml as _yaml
+        pm = _yaml.safe_load(pm_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return fails
+    # policy_mapping.yaml 内に記載された spec_id の集合を構築
+    spec_ids_in_pm = {
+        entry.get("spec_id")
+        for entry in (pm.get("mappings") or [])
+        if isinstance(entry, dict) and entry.get("spec_id")
+    }
+    # docs 内 frontmatter から id フィールドの集合を構築
+    fm_spec_ids = {fm.get("id") for _, fm in items if fm.get("id")}
+    # policy_mapping に載っている spec_id が docs 内に存在するか検査（dead ref 検出）
+    for sid in spec_ids_in_pm:
+        if sid and sid not in fm_spec_ids:
+            fails.append(f"policy_mapping.yaml: spec_id '{sid}' が docs 内に存在しない (dead ref)")
+    return fails
+
+
 def main() -> int:
     md_files = collect_md_files()
     print(f"=== docs_lint (Python): {len(md_files)} files ===")
@@ -294,7 +396,8 @@ def main() -> int:
     body_by_path: dict[Path, str] = {}
     fails: list[str] = []
 
-    print("\n[1/7] frontmatter schema 検査")
+    # [1/11] frontmatter schema 検査（required fields / forbidden fields / lock_artifacts パターン）
+    print("\n[1/11] frontmatter schema 検査")
     for path in md_files:
         fm, body, err = parse_frontmatter(path)
         body_by_path[path] = body
@@ -305,19 +408,22 @@ def main() -> int:
         if fm is not None:
             items.append((path, fm))
 
-    print("\n[2/7] id 一意性検査")
+    # [2/11] id 一意性検査（全ファイル横断で id 重複を検出）
+    print("\n[2/11] id 一意性検査")
     sub = check_id_uniqueness(items)
     for f in sub:
         print(f"  FAIL: {f}")
     fails.extend(sub)
 
-    print("\n[3/7] id 導出整合 (phase prefix)")
+    # [3/11] id 導出整合（phase prefix がパス由来と一致するか検査）
+    print("\n[3/11] id 導出整合 (phase prefix)")
     sub = check_id_derivation(items)
     for f in sub:
         print(f"  FAIL: {f}")
     fails.extend(sub)
 
-    print("\n[4/7] depends_on 参照整合 + 循環検出")
+    # [4/11] depends_on 参照整合 + 循環検出（DAG 検査）
+    print("\n[4/11] depends_on 参照整合 + 循環検出")
     sub = check_depends_on(items)
     for f in sub:
         print(f"  FAIL: {f}")
@@ -327,36 +433,62 @@ def main() -> int:
         print(f"  FAIL: {f}")
     fails.extend(sub)
 
-    print("\n[5/7] cross-link dangling 検査")
+    # [5/11] cross-link dangling 検査（内部リンクの物理存在を確認）
+    print("\n[5/11] cross-link dangling 検査")
     for path in md_files:
         sub = check_cross_links(path, body_by_path.get(path, ""))
         for f in sub:
             print(f"  FAIL: {f}")
         fails.extend(sub)
 
-    print("\n[6/7] 禁止表現検査")
+    # [6/11] 禁止表現検査（段階的 release 表現などを検出）
+    print("\n[6/11] 禁止表現検査")
     for path in md_files:
         sub = check_forbidden_expressions(path, body_by_path.get(path, ""))
         for f in sub:
             print(f"  FAIL: {f}")
         fails.extend(sub)
 
-    print("\n[7/8] 空セクション / TBD 残存検査 (status: locked のみ)")
+    # [7/11] 空セクション / TBD 残存検査（status: locked のみ対象）
+    print("\n[7/11] 空セクション / TBD 残存検査 (status: locked のみ)")
     for path, fm in items:
         sub = check_empty_locked(path, fm, body_by_path.get(path, ""))
         for f in sub:
             print(f"  FAIL: {f}")
         fails.extend(sub)
 
-    print("\n[8/8] repository layout 検査")
+    # [8/11] repository layout 検査（root / src / img 配下の許可制）
+    print("\n[8/11] repository layout 検査")
     sub = check_repository_layout()
+    for f in sub:
+        print(f"  FAIL: {f}")
+    fails.extend(sub)
+
+    # [9/11] published 適合仕様の completeness 検査（version + lock_artifacts 物理存在）
+    print("\n[9/11] published spec completeness 検査 (version SemVer + lock_artifacts 物理存在)")
+    sub = check_published_spec_completeness(items, body_by_path)
+    for f in sub:
+        print(f"  FAIL: {f}")
+    fails.extend(sub)
+
+    # [10/11] test_matrix.yaml の implementation_path 物理存在検査
+    print("\n[10/11] test_matrix implementation_path 物理存在検査")
+    sub = check_test_matrix_implementation_paths()
+    for f in sub:
+        print(f"  FAIL: {f}")
+    fails.extend(sub)
+
+    # [11/11] policy_mapping.yaml ↔ spec frontmatter 双方向参照検査
+    print("\n[11/11] policy_mapping bidirectional 参照検査")
+    sub = check_policy_mapping_bidirectional(items)
     for f in sub:
         print(f"  FAIL: {f}")
     fails.extend(sub)
 
     print()
     if not fails:
-        print("=== docs_lint (Python): 8 check 全 green ===")
+        # 全 11 check が green の場合の終了メッセージ
+        print("=== docs_lint (Python): 11 check 全 green ===")
         return 0
     print(f"=== docs_lint (Python): {len(fails)} FAIL detected ===")
     return 1

@@ -1,0 +1,7 @@
+# tier2 C# shipped public API snapshot (v1.0.0)
+# API アナライザーが drift を検出するための baseline として使用する
+# BannedApiAnalyzers / PublicApiAnalyzers の入力ファイル
+TenantRepository
+Projector
+QuotaEnforcer
+AuditLogger

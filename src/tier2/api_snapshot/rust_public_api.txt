@@ -1,0 +1,10 @@
+# tier2 Rust public API snapshot baseline
+# このファイルは cargo public-api コマンドの出力を記録する
+# CI で drift を検出するための baseline として使用する
+# Format: pub <kind> <path>
+# 現時点でのスタブ baseline (v1.0.0)
+# pub fn tier2::repository::TenantRepository::new
+# pub fn tier2::repository::TenantRepository::find_by_id
+# pub fn tier2::cqrs::Projector::project
+# pub struct tier2::repository::TenantRepository
+# pub struct tier2::cqrs::Projector

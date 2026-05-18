@@ -1,0 +1,11 @@
+{
+  "comment": "tier2 Go API diff baseline (v1.0.0)",
+  "generated_at": "2026-05-18T00:00:00Z",
+  "module": "github.com/k1s0/tier2",
+  "exported_symbols": [
+    "TenantRepository",
+    "Projector",
+    "QuotaEnforcer",
+    "AuditLogger"
+  ]
+}

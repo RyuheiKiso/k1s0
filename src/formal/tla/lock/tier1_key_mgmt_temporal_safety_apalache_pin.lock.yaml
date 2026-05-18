@@ -1,0 +1,11 @@
+# tier1_key_mgmt_temporal_safety_apalache_pin.lock.yaml
+# Apalache モデルチェッカーのバージョンとランダムシード固定
+# 05_鍵管理適合仕様: KEK rotation / crypto-shred の no_raw_bytes_in_flight 検証用
+_AUTO_GENERATED: false
+spec_id: tier1_key_mgmt_temporal_safety
+apalache_version: 0.45.4
+random_seed: 20260518
+tla_file: tier1_key_mgmt_temporal_safety.tla
+property: NoRawBytesInFlight
+last_verified_at: '2026-05-18T00:00:00Z'
+verification_status: stub

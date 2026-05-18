@@ -1,0 +1,32 @@
+# tier1 kek_ceremony テスト用 Cargo.toml
+# 05_鍵管理適合仕様に基づく PKCS#11 SoftHSM M=3 N=5 Shamir ceremony テストを定義する
+[package]
+# クレート名: tier1-kek-ceremony
+name = "tier1-kek-ceremony"
+# バージョン: 初期版
+version = "0.1.0"
+# エディション: 2021（最新安定版）
+edition = "2021"
+
+# [[bin]]: バイナリターゲットとして定義する（lock.yaml 生成器が stdout の JSON を読み込む）
+[[bin]]
+# バイナリ名
+name = "tier1-kek-ceremony"
+# バイナリエントリポイントファイルパス
+path = "src/main.rs"
+
+# ランタイム依存クレート
+[dependencies]
+# serde: シリアライズ/デシリアライズ（JSON 出力に使用する）
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON 出力（stdout への ceremony 結果出力に使用する）
+serde_json = "1"
+# anyhow: エラーハンドリング（ceremony 全フェーズでの Result 型に使用する）
+anyhow = "1"
+# sha2: SHA-256 ハッシュ計算（Shamir 分散の XOR 演算で使用する）
+sha2 = { workspace = true }
+
+# 開発・テスト専用依存クレート
+[dev-dependencies]
+# serde_json: テスト内 JSON デシリアライズに使用する
+serde_json = "1"

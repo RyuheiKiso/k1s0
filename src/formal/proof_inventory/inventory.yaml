@@ -22,6 +22,57 @@ obligations:
     statement: >
       atomic 三表書込（State change + Outbox + Audit）の P1-P4 invariant をStainless で verification
   # --- 残り 93 entry（v1_unverified_handled / P11 で verify）---
+  # --- tier1 temporal safety proof 追加 5 cell（2026-05-18 P10 実装）---
+  - obligation_id: tier1_auth_tsp
+    axis: tier1
+    proof_class: v1_temporal_safety_proof
+    tool_kind: tla_apalache
+    spec_file: src/formal/tla/tier1_auth_temporal_safety.tla
+    cell_state: stub
+    last_verified_at: "2026-05-18T00:00:00Z"
+    statement: >
+      04_認証適合仕様: auth_class × step-up FSM において認証レベルが自発的に格下げされない
+      （NoSilentDemotion temporal safety property）
+  - obligation_id: tier1_key_mgmt_tsp
+    axis: tier1
+    proof_class: v1_temporal_safety_proof
+    tool_kind: tla_apalache
+    spec_file: src/formal/tla/tier1_key_mgmt_temporal_safety.tla
+    cell_state: stub
+    last_verified_at: "2026-05-18T00:00:00Z"
+    statement: >
+      05_鍵管理適合仕様: KEK rotation と crypto-shred において raw bytes が in-flight の間に
+      destroyed 状態に遷移しない（NoRawBytesInFlight safety property）
+  - obligation_id: tier1_slo_tsp
+    axis: tier1
+    proof_class: v1_temporal_safety_proof
+    tool_kind: tla_apalache
+    spec_file: src/formal/tla/tier1_slo_temporal_safety.tla
+    cell_state: stub
+    last_verified_at: "2026-05-18T00:00:00Z"
+    statement: >
+      07_SLO 適合仕様: burn-rate が閾値（>2）を超えた場合、エラーバジェットを必ず凍結する
+      （FreezeOnBurn temporal safety property）
+  - obligation_id: tier1_tenant_capacity_tsp
+    axis: tier1
+    proof_class: v1_temporal_safety_proof
+    tool_kind: tla_apalache
+    spec_file: src/formal/tla/tier1_tenant_capacity_temporal_safety.tla
+    cell_state: stub
+    last_verified_at: "2026-05-18T00:00:00Z"
+    statement: >
+      09_テナント容量適合仕様: テナント A の QPS 超過がテナント B の SLO 侵害を引き起こさない
+      （NoisyNeighborIsolation temporal safety property）
+  - obligation_id: tier1_oss_lifecycle_tsp
+    axis: tier1
+    proof_class: v1_temporal_safety_proof
+    tool_kind: tla_apalache
+    spec_file: src/formal/tla/tier1_oss_lifecycle_temporal_safety.tla
+    cell_state: stub
+    last_verified_at: "2026-05-18T00:00:00Z"
+    statement: >
+      08_OSSライフサイクル適合仕様: lifecycle signal が resolved になる前に必ずアクションが実行される
+      （ActionRequiredForResolution temporal safety property）
   - obligation_id: tier1_correctness_001
     axis: tier1
     proof_class: v1_program_correctness_proof

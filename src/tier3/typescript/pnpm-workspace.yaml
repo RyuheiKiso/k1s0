@@ -15,3 +15,11 @@ packages:
   - "packages/i18n"
   # Web SPA skeleton
   - "spa"
+  # フォームフィールド型 + ESLint tenant_id 禁止ルール
+  - "packages/forms"
+  # 通知管理 (Toast / Snackbar / Dialog + idempotency)
+  - "packages/notifications"
+  # WCAG AA デザイントークン + コントラスト比検証
+  - "packages/design-tokens"
+  # 業種別 pack 動的ロード (manufacturing / retail / logistics)
+  - "packages/pack"

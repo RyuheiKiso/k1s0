@@ -25,6 +25,8 @@ scenarios:
     expected: server_truth_promoted_from_optimistic
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s01_order_approval_st_advance.spec.ts"
 
   # シナリオ 2: 工場現場 5 件 offline 記録 → PQ resume → 全 ack
   - scenario_id: s02_factory_offline_5_items_pq_resume
@@ -42,6 +44,8 @@ scenarios:
     expected: all_5_items_acked_in_order
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s02_factory_offline_5_items_pq_resume.spec.ts"
 
   # シナリオ 3: 25h オフライン → Idempotency-Key TTL 超過 → user 確認 → 新 key で resend
   - scenario_id: s03_25h_offline_idempotency_ttl
@@ -59,6 +63,8 @@ scenarios:
     expected: user_prompted_new_key_resent
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s03_25h_offline_idempotency_ttl.spec.ts"
 
   # シナリオ 4: 並行編集（disjoint field）→ stale_write 検出 → field-level rebase → auto resend
   - scenario_id: s04_parallel_edit_stale_write_rebase
@@ -76,6 +82,8 @@ scenarios:
     expected: auto_resend_with_chained_idempotency_key
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s04_parallel_edit_stale_write_rebase.spec.ts"
 
   # シナリオ 5: 並行編集（intersect field）→ lost_update 検出 → 3way merge UI
   - scenario_id: s05_parallel_edit_lost_update_3way_merge
@@ -93,6 +101,8 @@ scenarios:
     expected: three_way_merge_ui_presented
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s05_parallel_edit_lost_update_3way_merge.spec.ts"
 
   # シナリオ 6: 同 actor 同 aggregate 2 回更新 → supersede 検出 → silent toast
   - scenario_id: s06_same_actor_supersede_silent
@@ -110,6 +120,8 @@ scenarios:
     expected: silent_toast_shown_queue_entry_deleted
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s06_same_actor_supersede_silent.spec.ts"
 
   # シナリオ 7: presence indicator 表示中の編集衝突 → concurrent_edit → user choice
   - scenario_id: s07_concurrent_edit_presence_conflict
@@ -127,6 +139,8 @@ scenarios:
     expected: user_continue_or_abort_choice_shown
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s07_concurrent_edit_presence_conflict.spec.ts"
 
   # シナリオ 8: logout → 4 layer 全 purge + audit emit + device_bound_key rotate
   - scenario_id: s08_logout_full_purge_audit_emit
@@ -144,3 +158,5 @@ scenarios:
     expected: all_layers_purged_audit_emitted_key_rotated
     # ステータス
     status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/s08_logout_full_purge_audit_emit.spec.ts"

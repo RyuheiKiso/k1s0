@@ -167,3 +167,156 @@ evidence_entries:
     collected_at: "2026-05-18T11:00:00Z"
     # Phase G で security/cosign/ signing policy を確認
     notes: "Phase G: security/cosign/policies/ signing policy + artifact_inventory 確認"
+
+  # S1 stub: tier2 quota 5 class 全 green 宣言
+  - cell_id: tier2.quota_5class_green
+    # quota 強制 E2E テスト pass の証拠（S3 で物理実施）
+    build_evidence_id: quota_enforcement_e2e_pass_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: 物理 E2E テストは Stage 3 で実施
+    notes: "S3 stub: 物理 E2E テストは Stage 3 で実施"
+
+  # S1 stub: tier2 ABAC OPA ポリシー宣言
+  - cell_id: tier2.abac_opa_green
+    # OPA bundle E2E テスト pass の証拠（S3 で物理実施）
+    build_evidence_id: opa_policy_test_pass_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: OPA bundle E2E は Stage 3 で実施
+    notes: "S3 stub: OPA bundle E2E は Stage 3 で実施"
+
+  # S1 stub: tier2 Argo scheduler 宣言
+  - cell_id: tier2.scheduler_argo_green
+    # Argo workflow lint pass の証拠（S3 で物理実施）
+    build_evidence_id: argo_workflow_lint_pass_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: Argo lint は Stage 3 で実施
+    notes: "S3 stub: Argo lint は Stage 3 で実施"
+
+  # S1 stub: tier2 Weaver semantic convention 宣言
+  - cell_id: tier2.weaver_semantic_conv_match_green
+    # weaver semconv match の証拠（S3 で物理実施）
+    build_evidence_id: weaver_semconv_match_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: weaver semantic convention は Stage 3 で実施
+    notes: "S3 stub: weaver semantic convention は Stage 3 で実施"
+
+  # S1 stub: tier2 API 中立性宣言
+  - cell_id: tier2.api_neutrality_green
+    # API 中立性 check pass の証拠（S3 で物理実施）
+    build_evidence_id: api_neutrality_check_pass_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: API 中立性 check は Stage 3 で実施
+    notes: "S3 stub: API 中立性 check は Stage 3 で実施"
+
+  # S1 stub: tier2 第二業界 stub コンパイル宣言
+  - cell_id: tier2.second_industry_stub_green
+    # 第二業界 stub compile pass の証拠（S3 で物理実施）
+    build_evidence_id: second_industry_stub_compile_pass_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: 第二業界 stub compile は Stage 3 で実施
+    notes: "S3 stub: 第二業界 stub compile は Stage 3 で実施"
+
+  # S1 stub: tier2 registry pin 宣言
+  - cell_id: tier2.registry_pin_green
+    # registry pin 検証 pass の証拠（S3 で物理実施）
+    build_evidence_id: registry_pin_pass_phase_S3_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S3 stub: registry pin 検証は Stage 3 で実施
+    notes: "S3 stub: registry pin 検証は Stage 3 で実施"
+
+  # S1 stub: tier3 a11y audit 宣言
+  - cell_id: tier3.a11y_audit_green
+    # axe-core zero violation の証拠（S4 で物理実施）
+    build_evidence_id: axe_core_zero_violation_phase_S4_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S4 stub: axe-core E2E は Stage 4 で実施
+    notes: "S4 stub: axe-core E2E は Stage 4 で実施"
+
+  # S1 stub: tier3 8 シナリオ E2E 宣言
+  - cell_id: tier3.e2e_8scenarios_green
+    # Playwright 8 scenario pass の証拠（S4 で物理実施）
+    build_evidence_id: playwright_8_scenario_pass_phase_S4_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S4 stub: Playwright s01-s08 は Stage 4 で実施
+    notes: "S4 stub: Playwright s01-s08 は Stage 4 で実施"
+
+  # S1 stub: tier3 forms ESLint no tenant id 宣言
+  - cell_id: tier3.forms_eslint_no_tenant_id_green
+    # ESLint boundaries pass の証拠（S4 で物理実施）
+    build_evidence_id: eslint_boundaries_pass_phase_S4_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S4 stub: ESLint forms 検査は Stage 4 で実施
+    notes: "S4 stub: ESLint forms 検査は Stage 4 で実施"
+
+  # S1 stub: tier3 notifications idempotent 宣言
+  - cell_id: tier3.notifications_idempotent_green
+    # pnpm test pass の証拠（S4 で物理実施）
+    build_evidence_id: pnpm_test_pass_phase_S4_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S4 stub: notifications property test は Stage 4 で実施
+    notes: "S4 stub: notifications property test は Stage 4 で実施"
+
+  # S1 stub: tier3 design tokens contrast 宣言
+  - cell_id: tier3.design_tokens_contrast_green
+    # pnpm test pass の証拠（S4 で物理実施）
+    build_evidence_id: pnpm_test_pass_phase_S4_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S4 stub: design tokens contrast test は Stage 4 で実施
+    notes: "S4 stub: design tokens contrast test は Stage 4 で実施"
+
+  # S1 stub: client SDK 5 class distribution 宣言（旧エントリを更新）
+  - cell_id: client.sdk_distribution_5class_green
+    # SDK dist 5class E2E の証拠（S5 で物理実施）
+    build_evidence_id: sdk_dist_5class_e2e_pass_phase_S5_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S5 stub: SDK 5class E2E は Stage 5 で実施（旧エントリを更新）
+    notes: "S5 stub: SDK 5class E2E は Stage 5 で実施（旧エントリを更新）"
+
+  # S1 stub: client Pact contract 宣言
+  - cell_id: client.pact_contract_green
+    # Pact provider verify pass の証拠（S5 で物理実施）
+    build_evidence_id: pact_provider_verify_pass_phase_S5_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S5 stub: Pact provider verify は Stage 5 で実施
+    notes: "S5 stub: Pact provider verify は Stage 5 で実施"
+
+  # S1 stub: client supply chain signed 宣言
+  - cell_id: client.supply_chain_signed_green
+    # cosign verify pass の証拠（S5 で物理実施）
+    build_evidence_id: cosign_verify_pass_phase_S5_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S5 stub: cosign verify は Stage 5 で実施
+    notes: "S5 stub: cosign verify は Stage 5 で実施"
+
+  # S1 stub: client SBOM grype 宣言
+  - cell_id: client.sbom_grype_green
+    # sbom grype no high の証拠（S5 で物理実施）
+    build_evidence_id: sbom_grype_no_high_phase_S5_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S5 stub: grype scan は Stage 5 で実施
+    notes: "S5 stub: grype scan は Stage 5 で実施"
+
+  # S1 stub: client SLSA L3 attestation 宣言
+  - cell_id: client.slsa_l3_attested_green
+    # SLSA attest pass の証拠（S5 で物理実施）
+    build_evidence_id: slsa_attest_pass_phase_S5_stub
+    # 証拠収集日時
+    collected_at: "2026-05-18T00:00:00Z"
+    # S5 stub: SLSA attestation は Stage 5 で実施
+    notes: "S5 stub: SLSA attestation は Stage 5 で実施"

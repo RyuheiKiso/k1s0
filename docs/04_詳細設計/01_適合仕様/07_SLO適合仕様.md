@@ -3,7 +3,8 @@ id: detail.tier1.slo_conformance
 axis: tier1
 phase: detail
 kind: conformance_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier1.tier1_index
   - detail.tier1.observability_conformance

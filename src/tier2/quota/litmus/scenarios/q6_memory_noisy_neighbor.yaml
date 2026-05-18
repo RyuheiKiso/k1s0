@@ -1,0 +1,37 @@
+# Litmus ChaosEngine: メモリ過消費 noisy neighbor テスト
+# メモリを過剰消費するテナントが他テナントの OOM を引き起こさないことを検証する
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosEngine リソース宣言
+kind: ChaosEngine
+metadata:
+  # ChaosEngine 名: tier2 メモリ noisy neighbor テスト
+  name: tier2-quota-memory-noisy-neighbor
+  # 実行名前空間
+  namespace: tier2-test
+spec:
+  appinfo:
+    # 対象アプリケーションの名前空間
+    appns: tier2-test
+    # メモリ過消費テスト対象アプリのラベルセレクタ
+    applabel: "quota.class=v1_lite"
+  # Litmus サービスアカウント
+  chaosServiceAccount: litmus-admin
+  experiments:
+    # pod-memory-hog: メモリを過剰消費させて他テナントへの影響を確認する
+    - name: pod-memory-hog
+      spec:
+        components:
+          env:
+            # カオス実施時間（秒）を指定する
+            - name: TOTAL_CHAOS_DURATION
+              value: "30"
+            # 消費するメモリ量（MB）を指定する（v1_lite 上限の 2 倍を試みる）
+            - name: MEMORY_CONSUMPTION
+              value: "2048"
+            # 対象 Pod 名を指定する
+            - name: TARGET_PODS
+              value: "tier2-test-memory-heavy-tenant"
+        status:
+          # テスト結果名を指定する
+          - name: ChaosResult
+            value: memory_noisy_neighbor_isolation_pass

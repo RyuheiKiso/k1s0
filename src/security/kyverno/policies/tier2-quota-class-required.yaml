@@ -1,0 +1,35 @@
+# tier2 クォータクラス必須 policy
+# tier2 Deployment には quota class annotation が必要
+apiVersion: kyverno.io/v1
+# Kyverno ClusterPolicy リソース宣言
+kind: ClusterPolicy
+metadata:
+  # ポリシー名: tier2 クォータクラス注釈必須
+  name: tier2-quota-class-required
+  annotations:
+    # このポリシーが対応する適合仕様の spec-id を記載する
+    k1s0.io/spec-id: detail.tier1.tenant_capacity_conformance
+spec:
+  # 違反時は即時拒否する (Enforce モード)
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効にする
+  background: true
+  rules:
+    # ルール名: クォータクラス annotation 必須チェック
+    - name: require-quota-class-annotation
+      # tier2 の Deployment/StatefulSet を対象とする
+      match:
+        any:
+          - resources:
+              # 対象リソース種別を列挙する
+              kinds: [Deployment, StatefulSet]
+              # tier2 名前空間パターンに一致するものを対象とする
+              namespaces: ["tier2-*"]
+      validate:
+        # quota-class annotation が未設定の場合はエラーメッセージを返す
+        message: "tier2: k1s0.io/quota-class annotation は必須です"
+        pattern:
+          metadata:
+            annotations:
+              # 許可されるクォータクラス値を正規表現で列挙する
+              k1s0.io/quota-class: "v1_lite|v1_standard|v1_professional|v1_enterprise|v1_dedicated"

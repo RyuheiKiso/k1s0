@@ -352,29 +352,76 @@ def eval_bidirectional(expr: str, lock_dir: Path) -> EvalResult:
 
 # 有効な evidence_kind 値の一覧（build artifact 種別）
 _VALID_EVIDENCE_KINDS: frozenset[str] = frozenset([
+    # Cargo ビルド成功証跡
     "cargo_build_pass",
+    # pnpm テスト成功証跡
     "pnpm_test_pass",
+    # Buf lint 成功証跡
     "buf_lint_pass",
+    # Buf lint（observability/PII 対象）成功証跡
     "buf_lint_observability_pii_pass",
+    # Buf generate ドリフトゼロ証跡
     "buf_generate_drift_zero",
+    # testcontainers E2E 成功証跡
     "testcontainers_e2e_pass",
+    # kind cluster drill 成功証跡
     "kind_cluster_drill_pass",
+    # pgTAP RLS FORCE 成功証跡
     "pgtap_rls_force_pass",
+    # Playwright 8 シナリオ成功証跡（既存）
     "playwright_8_scenario_pass",
+    # OpenBao Transit sign/verify 成功証跡
     "openbao_transit_sign_verify_pass",
+    # axe-core ゼロ違反証跡（既存）
     "axe_core_zero_violation",
+    # Cargo public API ドリフトゼロ証跡
     "cargo_public_api_drift_zero",
+    # cargo-deny 成功証跡
     "cargo_deny_pass",
+    # Cargo マイグレーションペアテスト成功証跡
     "cargo_test_migration_pair_pass",
+    # ESLint boundaries 成功証跡
     "eslint_boundaries_pass",
+    # BFL OIDC E2E 成功証跡
     "bfl_oidc_e2e_pass",
+    # SLO バーンレートテスト成功証跡
     "slo_burn_rate_test_pass",
+    # クォータ enforcement E2E 成功証跡
     "quota_enforcement_e2e_pass",
+    # atomic triple write 4言語成功証跡
     "atomic_triple_write_4lang_pass",
+    # クロステナント E2E 4言語成功証跡
     "cross_tenant_e2e_4lang_pass",
+    # vitest reducer 4サブタイプ成功証跡
     "vitest_reducer_4subtype_pass",
+    # SDK distribution 5クラス E2E 成功証跡
     "sdk_dist_5class_e2e_pass",
+    # cosign 検証成功証跡（既存）
     "cosign_verify_pass",
+    # OPA policy テスト成功証跡
+    "opa_policy_test_pass",
+    # Argo Workflow lint 成功証跡
+    "argo_workflow_lint_pass",
+    # Weaver semconv マッチ証跡
+    "weaver_semconv_match",
+    # API 中立性チェック成功証跡
+    "api_neutrality_check_pass",
+    # 第二産業スタブコンパイル成功証跡
+    "second_industry_stub_compile_pass",
+    # レジストリピン成功証跡
+    "registry_pin_pass",
+    # Pact provider verify 成功証跡
+    "pact_provider_verify_pass",
+    # SBOM grype 高脆弱性なし証跡
+    "sbom_grype_no_high",
+    # SLSA attest 成功証跡
+    "slsa_attest_pass",
+    # Litmus chaos 成功証跡
+    "litmus_chaos_pass",
+    # SDK distribution 5クラス Pact 成功証跡
+    "sdk_dist_5class_pact_pass",
+    # SDK distribution 5クラス cosign 成功証跡
+    "sdk_dist_5class_cosign_pass",
 ])
 
 

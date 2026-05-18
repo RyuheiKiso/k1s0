@@ -3,7 +3,8 @@ id: arch.tier2.api_design_convention
 axis: tier2
 phase: architecture
 kind: policy
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier2.tier2_index
   - detail.tier1.bidi_conformance

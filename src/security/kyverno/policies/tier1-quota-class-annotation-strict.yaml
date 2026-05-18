@@ -1,0 +1,40 @@
+# tier1 QuotaClass 厳格 annotation policy
+# tier1 service の quota class annotation が有効値であることを enforce する
+# 09_テナント容量適合仕様.md §v1 quota_class セット（5 class）に準拠する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: tier1 quota-class annotation 厳格検証
+  name: tier1-quota-class-annotation-strict
+  annotations:
+    # 対応する tier1 適合仕様 spec_id
+    k1s0.io/spec-id: detail.tier1.tenant_capacity_conformance
+    # ポリシーの説明
+    policies.kyverno.io/description: "tier1 Tier1Service の k1s0.io/quota-class annotation が 5 class のいずれかであることを enforce する (09_テナント容量適合仕様)"
+spec:
+  # Enforce モード: 違反リソースの作成・更新を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: quota-class annotation の有効値検証
+    - name: validate-quota-class-value
+      # 適用対象: Tier1Service カスタムリソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Tier1Service リソースに適用する
+                - Tier1Service
+      # quota-class annotation の有効値検証ルール
+      validate:
+        # 違反時のエラーメッセージ: 有効値の一覧を含める
+        message: "tier1: quota class は v1_lite/v1_standard/v1_professional/v1_enterprise/v1_dedicated のいずれかです (09_テナント容量適合仕様)"
+        # quota-class annotation が 5 class のいずれかであることを確認するパターン
+        # Kyverno のパターン区切り文字「|」で有効値を列挙する
+        pattern:
+          metadata:
+            annotations:
+              # quota-class annotation の値が有効な 5 class のいずれかであることを検証する
+              k1s0.io/quota-class: "v1_lite|v1_standard|v1_professional|v1_enterprise|v1_dedicated"
