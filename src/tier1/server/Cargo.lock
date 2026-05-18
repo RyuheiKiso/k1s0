@@ -1494,6 +1494,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
  "tracing-subscriber",

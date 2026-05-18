@@ -73,8 +73,8 @@ async fn test_p1_atomic_triple_write_succeeds() {
     assert!(sql.contains("BEGIN"), "P1: SQL must contain BEGIN");
     // P1: domain_event 書込が含まれることを確認する
     assert!(sql.contains("domain_event"), "P1: SQL must contain domain_event INSERT");
-    // P1: outbox 書込が含まれることを確認する
-    assert!(sql.contains("outbox"), "P1: SQL must contain outbox INSERT");
+    // P1: outbox_message 書込が含まれることを確認する（migration SoT: k1s0.outbox_message）
+    assert!(sql.contains("outbox_message"), "P1: SQL must contain outbox_message INSERT");
     // P1: audit_event 書込が含まれることを確認する
     assert!(sql.contains("audit_event"), "P1: SQL must contain audit_event INSERT");
     // COMMIT で transaction が完了することを確認する

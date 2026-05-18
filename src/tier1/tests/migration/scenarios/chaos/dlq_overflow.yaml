@@ -1,0 +1,51 @@
+# chaos シナリオ: dlq_overflow — DLQ（Dead Letter Queue）オーバーフロー時の migration 挙動を検証する
+# spec 02 §chaos_test §dlq_overflow に対応する
+# DualWriteRamp / StateReplicate フェーズ中に DLQ が溢れた場合の migration 継続性を確認する
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosExperiment リソース種別を指定する
+kind: ChaosExperiment
+metadata:
+  # chaos 実験の名前（kebab-case）
+  name: migration-dlq-overflow
+  # 配置 namespace
+  namespace: k1s0-test
+  # ラベルでシナリオ種別を識別する
+  labels:
+    # k1s0 migration chaos テストのラベル
+    app: k1s0-migration-chaos
+    # シナリオ種別ラベル
+    scenario: dlq-overflow
+spec:
+  definition:
+    # 実験スコープ: Namespaced（pod レベルの DLQ ストレス注入）
+    scope: Namespaced
+    # 使用する chaos runner image
+    image: litmuschaos/go-runner:3.3.0
+    # 実験実行コマンドを指定する
+    command:
+      # bash でコマンドを実行する
+      - /bin/bash
+      # chaos ロジックのインラインスクリプト
+      - -c
+      # 実行する chaos の説明ログを出力する
+      - echo "DLQ overflow chaos for migration StateReplicate/DualWriteRamp test"
+    # chaos パラメータを引数として渡す
+    args:
+      # chaos の種類: DLQ にメッセージを大量投入してオーバーフローを引き起こす
+      - -action=pod-memory-hog
+      # 対象 DLQ consumer pod のラベル
+      - -target_label=role=dlq-consumer
+      # メモリ消費量: 500 MB（DLQ consumer が OOM になる量）
+      - -memory_consumption=500
+      # chaos 継続時間: 90 秒
+      - -total_chaos_duration=90
+    # 環境変数で chaos の対象を指定する
+    env:
+      # 対象 pod のラベルセレクター（DLQ consumer pod）
+      - name: TARGET_POD_LABELS
+        # DLQ consumer pod を対象とする
+        value: "role=dlq-consumer"
+      # chaos の対象 namespace
+      - name: APP_NAMESPACE
+        # テスト用 namespace を指定する
+        value: "k1s0-test"

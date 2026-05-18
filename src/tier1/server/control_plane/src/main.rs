@@ -7,6 +7,8 @@
 mod crd_watcher;
 // flagd publisher モジュール（ConfigMap 経由の OpenFeature flagd feature flag 配布）
 mod flagd_publisher;
+// cosign_verify モジュール: コンテナイメージの cosign 署名を検証する admission webhook 前段
+mod cosign_verify;
 
 // axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};

@@ -137,10 +137,11 @@ function reduceServerTruthAdvance<T, TPayload>(
 }
 
 // optimistic_acknowledged の reducer
+// Rust の 2 action: promote_optimistic_to_server_truth + delete_pending_queue_entry_by_idempotency_key のみを発行する
 function reduceOptimisticAcknowledged<T, TPayload>(
   state: ClientState<T, TPayload>,
   idempotencyKey: string,
-  confirmedVersion: number,
+  _confirmedVersion: number,
 ): ReducerResult<T, TPayload> {
   // OL を promote して ST に格納し、対応する PQ entry を削除する
   const nextState: ClientState<T, TPayload> = {
@@ -150,12 +151,12 @@ function reduceOptimisticAcknowledged<T, TPayload>(
       (pq) => pq.lineage.idempotencyKey !== idempotencyKey,
     ),
   };
+  // Rust 等価: promote_optimistic_to_server_truth + delete_pending_queue_entry_by_idempotency_key の 2 action のみ
   return {
     nextState,
     actions: [
       { type: "PROMOTE_OPTIMISTIC", idempotencyKey },
       { type: "DELETE_PQ_ENTRY", idempotencyKey },
-      { type: "UPDATE_SERVER_TRUTH", version: confirmedVersion },
     ],
   };
 }

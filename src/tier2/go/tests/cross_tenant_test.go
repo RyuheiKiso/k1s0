@@ -32,6 +32,7 @@ import (
 
 // setupSQL: テスト用スキーマをセットアップする SQL
 // k1s0 スキーマと 3 テーブルを作成する（RLS FORCE なしの軽量バージョン）
+// テーブル名は migration SoT（0001_initial_schema.sql）に合わせて outbox_message を使用する
 const setupSQL = `
     CREATE SCHEMA IF NOT EXISTS k1s0;
     CREATE TABLE IF NOT EXISTS k1s0.domain_event (
@@ -43,7 +44,7 @@ const setupSQL = `
         version BIGINT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS k1s0.outbox (
+    CREATE TABLE IF NOT EXISTS k1s0.outbox_message (
         id UUID PRIMARY KEY,
         aggregate_id UUID NOT NULL,
         tenant_id UUID NOT NULL,
@@ -67,7 +68,7 @@ const setupSQL = `
 // テスト間の独立性を保つために全テーブルと k1s0 スキーマを削除する
 const cleanupSQL = `
     DROP TABLE IF EXISTS k1s0.audit_event CASCADE;
-    DROP TABLE IF EXISTS k1s0.outbox CASCADE;
+    DROP TABLE IF EXISTS k1s0.outbox_message CASCADE;
     DROP TABLE IF EXISTS k1s0.domain_event CASCADE;
     DROP SCHEMA IF EXISTS k1s0 CASCADE;
 `

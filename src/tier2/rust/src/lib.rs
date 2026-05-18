@@ -11,9 +11,13 @@ pub mod repository;
 pub mod outbox;
 // i18n formatter トレイト（ICU 風 number / date / currency / unit）
 pub mod i18n_formatter;
+// PII フィールド redaction 機構（spec 10 §PII redact）
+pub mod redaction;
 
 // 公開型の再エクスポート（各行コメント: tier2 公開 API 表面を最小化する）
 pub use tenant_context::{TenantContext, SessionPurpose};
 pub use atomic_triple_write::{AtomicTripleWrite, TripleWriteResult, AtomicWriteError};
 pub use repository::{RepositoryContext, TableClass};
 pub use outbox::{OutboxEntry, OutboxPayload};
+// redaction の公開関数を再エクスポートする（Outbox 書込前の PII 除去に使用する）
+pub use redaction::redact_pii_fields;

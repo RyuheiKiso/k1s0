@@ -163,8 +163,9 @@ export class AtomicTripleWrite {
       `INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)`,
       `VALUES ('${auditId}', '${change.aggregateId}', current_setting('app.tenant_id')::uuid, 'StateChange', '${escapedPayload}'::jsonb, ${change.version}, '${now}');`,
       "",
-      "-- P1: outbox (Debezium CDC 経由で Kafka に転送される)",
-      `INSERT INTO k1s0.outbox (id, aggregate_id, tenant_id, event_kind, payload, created_at)`,
+      "-- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)",
+      // outbox_message テーブルに INSERT する（migration SoT: k1s0.outbox_message）
+      `INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)`,
       `VALUES ('${outboxId}', '${change.aggregateId}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '${escapedPayload}'::jsonb, '${now}');`,
       "",
       "-- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)",
@@ -225,12 +226,13 @@ export class AtomicTripleWrite {
       ],
     );
 
-    // P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+    // P1: k1s0.outbox_message テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
     // P2: この INSERT が失敗した場合は OutboxInsertFailedError をスローし、呼び出し元が ROLLBACK する
+    // migration SoT: 0001_initial_schema.sql が CREATE TABLE k1s0.outbox_message を発行している
     try {
-      // parameterized query で outbox INSERT を実行する
+      // parameterized query で outbox_message INSERT を実行する
       await client.query(
-        `INSERT INTO k1s0.outbox
+        `INSERT INTO k1s0.outbox_message
            (id, aggregate_id, tenant_id, event_kind, payload, created_at)
          VALUES
            ($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3::jsonb, $4)`,

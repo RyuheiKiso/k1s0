@@ -30,40 +30,57 @@ const (
 type LifecycleClass int32
 
 const (
+	// ライフサイクルクラス未指定（デフォルト値）
 	LifecycleClass_LIFECYCLE_CLASS_UNSPECIFIED LifecycleClass = 0
-	// 活発に開発・保守されているコア OSS
-	LifecycleClass_V1_ACTIVE_CORE LifecycleClass = 1
-	// 安定期に入り変化が少ないが保守中の OSS
-	LifecycleClass_V1_STABLE_MAINTENANCE LifecycleClass = 2
-	// LTS 版のみ保守している OSS
-	LifecycleClass_V1_LTS_ONLY LifecycleClass = 3
-	// EOL が宣言された OSS（移行計画必須）
-	LifecycleClass_V1_EOL_ANNOUNCED LifecycleClass = 4
-	// フォーク / community 移管済みの OSS
-	LifecycleClass_V1_FORKED_OR_TRANSFERRED LifecycleClass = 5
-	// 内製代替で置き換え済みの OSS
-	LifecycleClass_V1_REPLACED_INHOUSE LifecycleClass = 6
+	// L1+ プライマリ：最優先で採用・保守する中核 OSS（Primary pair の片方）
+	LifecycleClass_LIFECYCLE_CLASS_L1PLUS_PRIMARY LifecycleClass = 1
+	// L1+ ペアターゲット：Primary と対をなす L1+ 採用候補 OSS
+	LifecycleClass_LIFECYCLE_CLASS_L1PLUS_PAIR_TARGET LifecycleClass = 2
+	// L2* メンバー：L1+ に準ずる品質で採用・保守する OSS（LTS 維持対象）
+	LifecycleClass_LIFECYCLE_CLASS_L2STAR_MEMBER LifecycleClass = 3
+	// L3 ランタイム：実行環境依存で間接採用する OSS（移行計画対象外）
+	LifecycleClass_LIFECYCLE_CLASS_L3_RUNTIME LifecycleClass = 4
+	// 予約カテゴリ：フォーク / community 移管済みで将来分類が確定していない OSS
+	LifecycleClass_LIFECYCLE_CLASS_RESERVED_CATEGORY LifecycleClass = 5
+	// 内製権威：内製代替実装が正式に採用されており当該 OSS は廃止済み
+	LifecycleClass_LIFECYCLE_CLASS_INHOUSE_AUTHORITATIVE LifecycleClass = 6
 )
 
 // Enum value maps for LifecycleClass.
 var (
+	// LifecycleClass_name は proto tag 番号から enum 名へのマッピングを定義する。
 	LifecycleClass_name = map[int32]string{
+		// ライフサイクルクラス未指定
 		0: "LIFECYCLE_CLASS_UNSPECIFIED",
-		1: "V1_ACTIVE_CORE",
-		2: "V1_STABLE_MAINTENANCE",
-		3: "V1_LTS_ONLY",
-		4: "V1_EOL_ANNOUNCED",
-		5: "V1_FORKED_OR_TRANSFERRED",
-		6: "V1_REPLACED_INHOUSE",
+		// L1+ プライマリ
+		1: "LIFECYCLE_CLASS_L1PLUS_PRIMARY",
+		// L1+ ペアターゲット
+		2: "LIFECYCLE_CLASS_L1PLUS_PAIR_TARGET",
+		// L2* メンバー
+		3: "LIFECYCLE_CLASS_L2STAR_MEMBER",
+		// L3 ランタイム
+		4: "LIFECYCLE_CLASS_L3_RUNTIME",
+		// 予約カテゴリ
+		5: "LIFECYCLE_CLASS_RESERVED_CATEGORY",
+		// 内製権威
+		6: "LIFECYCLE_CLASS_INHOUSE_AUTHORITATIVE",
 	}
+	// LifecycleClass_value は enum 名から proto tag 番号へのマッピングを定義する。
 	LifecycleClass_value = map[string]int32{
-		"LIFECYCLE_CLASS_UNSPECIFIED": 0,
-		"V1_ACTIVE_CORE":              1,
-		"V1_STABLE_MAINTENANCE":       2,
-		"V1_LTS_ONLY":                 3,
-		"V1_EOL_ANNOUNCED":            4,
-		"V1_FORKED_OR_TRANSFERRED":    5,
-		"V1_REPLACED_INHOUSE":         6,
+		// ライフサイクルクラス未指定
+		"LIFECYCLE_CLASS_UNSPECIFIED":          0,
+		// L1+ プライマリ
+		"LIFECYCLE_CLASS_L1PLUS_PRIMARY":        1,
+		// L1+ ペアターゲット
+		"LIFECYCLE_CLASS_L1PLUS_PAIR_TARGET":    2,
+		// L2* メンバー
+		"LIFECYCLE_CLASS_L2STAR_MEMBER":         3,
+		// L3 ランタイム
+		"LIFECYCLE_CLASS_L3_RUNTIME":            4,
+		// 予約カテゴリ
+		"LIFECYCLE_CLASS_RESERVED_CATEGORY":     5,
+		// 内製権威
+		"LIFECYCLE_CLASS_INHOUSE_AUTHORITATIVE": 6,
 	}
 )
 
@@ -99,42 +116,42 @@ type LicenseKind int32
 
 const (
 	LicenseKind_LICENSE_KIND_UNSPECIFIED LicenseKind = 0
-	LicenseKind_APACHE_2                 LicenseKind = 1
-	LicenseKind_MIT                      LicenseKind = 2
-	LicenseKind_BSD_2                    LicenseKind = 3
-	LicenseKind_BSD_3                    LicenseKind = 4
-	LicenseKind_ISC                      LicenseKind = 5
-	LicenseKind_MPL_2                    LicenseKind = 6
-	LicenseKind_LGPL_2_1                 LicenseKind = 7
-	LicenseKind_AGPL_3                   LicenseKind = 8
-	LicenseKind_PROPRIETARY              LicenseKind = 9
+	LicenseKind_LICENSE_KIND_APACHE_2     LicenseKind = 1
+	LicenseKind_LICENSE_KIND_MIT          LicenseKind = 2
+	LicenseKind_LICENSE_KIND_BSD_2        LicenseKind = 3
+	LicenseKind_LICENSE_KIND_BSD_3        LicenseKind = 4
+	LicenseKind_LICENSE_KIND_ISC          LicenseKind = 5
+	LicenseKind_LICENSE_KIND_MPL_2        LicenseKind = 6
+	LicenseKind_LICENSE_KIND_LGPL_2_1     LicenseKind = 7
+	LicenseKind_LICENSE_KIND_AGPL_3       LicenseKind = 8
+	LicenseKind_LICENSE_KIND_PROPRIETARY  LicenseKind = 9
 )
 
 // Enum value maps for LicenseKind.
 var (
 	LicenseKind_name = map[int32]string{
 		0: "LICENSE_KIND_UNSPECIFIED",
-		1: "APACHE_2",
-		2: "MIT",
-		3: "BSD_2",
-		4: "BSD_3",
-		5: "ISC",
-		6: "MPL_2",
-		7: "LGPL_2_1",
-		8: "AGPL_3",
-		9: "PROPRIETARY",
+		1: "LICENSE_KIND_APACHE_2",
+		2: "LICENSE_KIND_MIT",
+		3: "LICENSE_KIND_BSD_2",
+		4: "LICENSE_KIND_BSD_3",
+		5: "LICENSE_KIND_ISC",
+		6: "LICENSE_KIND_MPL_2",
+		7: "LICENSE_KIND_LGPL_2_1",
+		8: "LICENSE_KIND_AGPL_3",
+		9: "LICENSE_KIND_PROPRIETARY",
 	}
 	LicenseKind_value = map[string]int32{
 		"LICENSE_KIND_UNSPECIFIED": 0,
-		"APACHE_2":                 1,
-		"MIT":                      2,
-		"BSD_2":                    3,
-		"BSD_3":                    4,
-		"ISC":                      5,
-		"MPL_2":                    6,
-		"LGPL_2_1":                 7,
-		"AGPL_3":                   8,
-		"PROPRIETARY":              9,
+		"LICENSE_KIND_APACHE_2":    1,
+		"LICENSE_KIND_MIT":         2,
+		"LICENSE_KIND_BSD_2":       3,
+		"LICENSE_KIND_BSD_3":       4,
+		"LICENSE_KIND_ISC":         5,
+		"LICENSE_KIND_MPL_2":       6,
+		"LICENSE_KIND_LGPL_2_1":    7,
+		"LICENSE_KIND_AGPL_3":      8,
+		"LICENSE_KIND_PROPRIETARY": 9,
 	}
 )
 
@@ -350,33 +367,34 @@ func (x *OssInventory) GetSchemaVersion() string {
 
 var File_tier1_oss_lifecycle_v1_inventory_proto protoreflect.FileDescriptor
 
+// file_tier1_oss_lifecycle_v1_inventory_proto_rawDesc は proto ファイルの FileDescriptorProto バイナリ表現を宣言する。
+// NOTE: proto tag 番号は変更しない。LifecycleClass enum 値名を spec 08 に合わせて再定義済み。
 const file_tier1_oss_lifecycle_v1_inventory_proto_rawDesc = "" +
 	"\n" +
-	"&tier1/oss_lifecycle/v1/inventory.proto\x12\x16tier1.oss_lifecycle.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb0\x03\n" +
-	"\bOssEntry\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
-	"\vversion_pin\x18\x03 \x01(\tR\n" +
-	"versionPin\x12O\n" +
-	"\x0flifecycle_class\x18\x04 \x01(\x0e2&.tier1.oss_lifecycle.v1.LifecycleClassR\x0elifecycleClass\x12=\n" +
-	"\alicense\x18\x05 \x01(\x0e2#.tier1.oss_lifecycle.v1.LicenseKindR\alicense\x12 \n" +
-	"\fused_by_axes\x18\x06 \x03(\tR\n" +
-	"usedByAxes\x12O\n" +
-	"\x16last_security_audit_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x13lastSecurityAuditAt\x121\n" +
-	"\x06eol_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x05eolAt\x12)\n" +
-	"\x10migration_target\x18\t \x01(\tR\x0fmigrationTarget\"\xb0\x01\n" +
-	"\fOssInventory\x12:\n" +
-	"\aentries\x18\x01 \x03(\v2 .tier1.oss_lifecycle.v1.OssEntryR\aentries\x12=\n" +
-	"\fgenerated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vgeneratedAt\x12%\n" +
-	"\x0eschema_version\x18\x03 \x01(\tR\rschemaVersion*\xbe\x01\n" +
+	"&tier1/oss_lifecycle/v1/inventory.proto\x12\x16tier1.oss_lifecycle.v1\"\xc8\x02\n" +
+	"\x08OssEntry\x12\n" +
+	"\n" +
+	"\x02id\x18\x01 \x01(\t\x12\x0c\n" +
+	"\x04name\x18\x02 \x01(\t\x12\x13\n" +
+	"\vversion_pin\x18\x03 \x01(\t\x12?\n" +
+	"\x0flifecycle_class\x18\x04 \x01(\x0e2&.tier1.oss_lifecycle.v1.LifecycleClass\x124\n" +
+	"\x07license\x18\x05 \x01(\x0e2#.tier1.oss_lifecycle.v1.LicenseKind\x12\x14\n" +
+	"\x0cused_by_axes\x18\x06 \x03(\t\x12:\n" +
+	"\x16last_security_audit_at\x18\x07 \x01(\v2\x1a.google.protobuf.Timestamp\x12*\n" +
+	"\x06eol_at\x18\x08 \x01(\v2\x1a.google.protobuf.Timestamp\x12\x18\n" +
+	"\x10migration_target\x18\t \x01(\t\"\x8b\x01\n" +
+	"\x0cOssInventory\x121\n" +
+	"\x07entries\x18\x01 \x03(\v2 .tier1.oss_lifecycle.v1.OssEntry\x120\n" +
+	"\x0cgenerated_at\x18\x02 \x01(\v2\x1a.google.protobuf.Timestamp\x12\x16\n" +
+	"\x0eschema_version\x18\x03 \x01(\t*\xc4\x01\n" +
 	"\x0eLifecycleClass\x12\x1f\n" +
-	"\x1bLIFECYCLE_CLASS_UNSPECIFIED\x10\x00\x12\x12\n" +
-	"\x0eV1_ACTIVE_CORE\x10\x01\x12\x19\n" +
-	"\x15V1_STABLE_MAINTENANCE\x10\x02\x12\x0f\n" +
-	"\vV1_LTS_ONLY\x10\x03\x12\x14\n" +
-	"\x10V1_EOL_ANNOUNCED\x10\x04\x12\x1c\n" +
-	"\x18V1_FORKED_OR_TRANSFERRED\x10\x05\x12\x17\n" +
-	"\x13V1_REPLACED_INHOUSE\x10\x06*\x97\x01\n" +
+	"\x1bLIFECYCLE_CLASS_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11V1_L1PLUS_PRIMARY\x10\x01\x12\x19\n" +
+	"\x15V1_L1PLUS_PAIR_TARGET\x10\x02\x12\x14\n" +
+	"\x10V1_L2STAR_MEMBER\x10\x03\x12\x11\n" +
+	"\rV1_L3_RUNTIME\x10\x04\x12\x18\n" +
+	"\x14V1_RESERVED_CATEGORY\x10\x05\x12\x1c\n" +
+	"\x18V1_INHOUSE_AUTHORITATIVE\x10\x06*\x97\x01\n" +
 	"\vLicenseKind\x12\x1c\n" +
 	"\x18LICENSE_KIND_UNSPECIFIED\x10\x00\x12\f\n" +
 	"\bAPACHE_2\x10\x01\x12\a\n" +

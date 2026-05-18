@@ -26,21 +26,21 @@ option java_package = "io.k1s0.tier1.pii.v1";
 enum RedactionClass {
   // デフォルト（未指定）— contains_pii=true のフィールドでは Buf lint が fail にする
   REDACTION_CLASS_UNSPECIFIED = 0;
-  // HASH: SHA-256 / HMAC-SHA256 ハッシュ化（検索可能な擬名化）
+  // REDACTION_CLASS_HASH: SHA-256 / HMAC-SHA256 ハッシュ化（検索可能な擬名化）
   // 主要用途: 個人識別子 / メールアドレス / 電話番号
-  HASH = 1;
-  // MASK: 部分マスキング（例: mail@example.com → m***@e***.com）
+  REDACTION_CLASS_HASH = 1;
+  // REDACTION_CLASS_MASK: 部分マスキング（例: mail@example.com → m***@e***.com）
   // 主要用途: ログ出力 / 監査イベントでの可読性を保持しつつ PII を非表示化
-  MASK = 2;
-  // TOKENIZE: ランダムトークン置換（Format Preserving Encryption 等）
+  REDACTION_CLASS_MASK = 2;
+  // REDACTION_CLASS_TOKENIZE: ランダムトークン置換（Format Preserving Encryption 等）
   // 主要用途: 非可逆 de-identification が必要な医療 / 金融データ
-  TOKENIZE = 3;
-  // SUPPRESS: フィールド完全削除（Outbox message から除去する）
+  REDACTION_CLASS_TOKENIZE = 3;
+  // REDACTION_CLASS_SUPPRESS: フィールド完全削除（Outbox message から除去する）
   // 主要用途: ペイロード内の補助 PII（既に HASH 等で別フィールドに保持済みの場合）
-  SUPPRESS = 4;
-  // ENCRYPT: フィールドレベル暗号化（OpenBao Transit / AES-GCM 256bit）
+  REDACTION_CLASS_SUPPRESS = 4;
+  // REDACTION_CLASS_ENCRYPT: フィールドレベル暗号化（OpenBao Transit / AES-GCM 256bit）
   // 主要用途: 保管要件のある PII（key_class=v1_data_dek と組み合わせる）
-  ENCRYPT = 5;
+  REDACTION_CLASS_ENCRYPT = 5;
 }
 
 // FieldPiiOptions は PII フィールドに付与する option セットを宣言する。
@@ -55,7 +55,7 @@ message FieldPiiOptions {
 }
 
 // field_pii は proto フィールドに付与するカスタム option を宣言する。
-// 使用例: string email = 1 [(tier1.pii.v1.field_pii) = { contains_pii: true, redaction_class: HASH }];
+// 使用例: string email = 1 [(tier1.pii.v1.field_pii) = { contains_pii: true, redaction_class: REDACTION_CLASS_HASH }];
 // field_id 50010: tier1 annotation の番号帯（50000–50999 を tier1 が管理する）
 extend google.protobuf.FieldOptions {
   // field_pii: フィールドごとの PII 属性を宣言する

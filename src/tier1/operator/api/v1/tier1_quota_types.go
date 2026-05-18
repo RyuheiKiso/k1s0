@@ -12,14 +12,80 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// QuotaClassSpec は QuotaClass リソースの spec を定義する
+// QuotaClassID は quota_class の 5 class セットを宣言する (spec 09 §quota_class)
+type QuotaClassID string
+
+const (
+	// V1QuotaFreeShared: 共有インフラ上の無償プラン
+	V1QuotaFreeShared QuotaClassID = "v1_free_shared"
+	// V1QuotaStarterShared: スターター共有プラン
+	V1QuotaStarterShared QuotaClassID = "v1_starter_shared"
+	// V1QuotaTeamShared: チーム共有プラン
+	V1QuotaTeamShared QuotaClassID = "v1_team_shared"
+	// V1QuotaBusinessDedicated: ビジネス専用インフラ
+	V1QuotaBusinessDedicated QuotaClassID = "v1_business_dedicated"
+	// V1QuotaEnterpriseDedicated: エンタープライズ専用インフラ
+	V1QuotaEnterpriseDedicated QuotaClassID = "v1_enterprise_dedicated"
+)
+
+// EnforcementLayer は quota を適用するレイヤを宣言する (spec 09 §enforcement_layer)
+type EnforcementLayer string
+
+const (
+	// EnforcementEnvoy: Envoy rate-limit フィルタ層
+	EnforcementEnvoy EnforcementLayer = "envoy"
+	// EnforcementKubernetes: k8s ResourceQuota 層
+	EnforcementKubernetes EnforcementLayer = "kubernetes"
+	// EnforcementDatabase: DB コネクションプール層
+	EnforcementDatabase EnforcementLayer = "database"
+	// EnforcementApp: アプリケーション token-bucket 層
+	EnforcementApp EnforcementLayer = "app"
+)
+
+// FairnessModel は公平性モデルを宣言する (spec 09 §fairness_model)
+type FairnessModel string
+
+const (
+	// FairnessTokenBucket: トークンバケットモデル
+	FairnessTokenBucket FairnessModel = "token_bucket"
+	// FairnessLeakyBucket: リーキーバケットモデル
+	FairnessLeakyBucket FairnessModel = "leaky_bucket"
+	// FairnessFixedWindow: 固定ウィンドウモデル
+	FairnessFixedWindow FairnessModel = "fixed_window"
+)
+
+// ExhaustionResponse は quota 枯渇時の応答を宣言する (spec 09 §exhaustion_response)
+type ExhaustionResponse string
+
+const (
+	// ExhaustionReject: リクエストを即時 reject する
+	ExhaustionReject ExhaustionResponse = "reject"
+	// ExhaustionQueue: リクエストをキュー待機させる
+	ExhaustionQueue ExhaustionResponse = "queue"
+	// ExhaustionDegrade: 機能縮退モードに切り替える
+	ExhaustionDegrade ExhaustionResponse = "degrade"
+)
+
+// QuotaClassSpec は QuotaClass リソースの spec を定義する (spec 09 §v1 quota_class)
 type QuotaClassSpec struct {
-	// API リクエスト上限 (1 時間あたり): 09_テナント容量適合仕様.md §api_requests_per_hour に対応する
-	ApiRequestsPerHour int64 `json:"apiRequestsPerHour,omitempty"`
-	// DB コネクション数の上限: 09_テナント容量適合仕様.md §db_connections_max に対応する
+	// ClassID: quota class の 5 class 識別子
+	// +kubebuilder:validation:Enum=v1_free_shared;v1_starter_shared;v1_team_shared;v1_business_dedicated;v1_enterprise_dedicated
+	ClassID QuotaClassID `json:"classId"`
+	// EnforcementLayer: quota を適用するレイヤ
+	// +kubebuilder:validation:Enum=envoy;kubernetes;database;app
+	EnforcementLayer EnforcementLayer `json:"enforcementLayer"`
+	// FairnessModel: 公平性モデル
+	// +kubebuilder:validation:Enum=token_bucket;leaky_bucket;fixed_window
+	FairnessModel FairnessModel `json:"fairnessModel"`
+	// BurstWindowSec: バースト許容ウィンドウ（秒数、0 でバースト不許可）
+	BurstWindowSec int32 `json:"burstWindowSec,omitempty"`
+	// ExhaustionResponse: quota 枯渇時の応答
+	// +kubebuilder:validation:Enum=reject;queue;degrade
+	ExhaustionResponse ExhaustionResponse `json:"exhaustionResponse"`
+	// RequestsPerMinute: 1 分あたりリクエスト上限（0 = 無制限）
+	RequestsPerMinute int64 `json:"requestsPerMinute,omitempty"`
+	// DbConnectionsMax: DB コネクション数上限
 	DbConnectionsMax int32 `json:"dbConnectionsMax,omitempty"`
-	// ストレージ上限 (GB): 09_テナント容量適合仕様.md §storage_gb_max に対応する
-	StorageGBMax int64 `json:"storageGBMax,omitempty"`
 }
 
 // QuotaClassStatus は QuotaClass リソースのステータスを定義する

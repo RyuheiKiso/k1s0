@@ -5,14 +5,14 @@
 package state
 
 import (
+	// crypto/rand パッケージ（暗号論的乱数生成）
+	"crypto/rand"
+	// encoding/hex パッケージ（バイト列を hex 文字列に変換）
+	"encoding/hex"
 	// fmt パッケージ（文字列フォーマット）
 	"fmt"
-	// math/rand パッケージ（ランダム文字列生成）
-	"math/rand"
 	// strings パッケージ（文字列操作）
 	"strings"
-	// time パッケージ（タイムスタンプ生成）
-	"time"
 )
 
 // FieldDiff は field-level diff を表す構造体（TypeScript FieldDiff と等価）
@@ -70,19 +70,17 @@ func (fd *FieldDiff) Intersect() []string {
 // TypeScript の chainIdempotencyKey（outbox.ts）と等価の実装
 // base: 元の idempotency key（chain 親）
 // next: 追加の識別子（aggregate ID + method のハッシュ等）
+// wall-clock TTL 禁止規約に従い time.Now() を使用しない（crypto/rand のみ使用する）
 func chainIdempotencyKey(base, next string) string {
-	// ランダムサフィックスを生成する（time.Now() は wall clock だが key 生成は許容する）
-	// HLC は TTL 計算に禁止されているが、key の一意性のための使用は許可される
-	timestamp := fmt.Sprintf("%x", time.Now().UnixMilli())
-	// ランダム部分を生成する（8 文字の hex string）
-	randBytes := make([]byte, 4)
-	// crypto/rand は import が重くなるため math/rand を使用する（key 一意性のみが目的）
-	for i := range randBytes {
-		// ランダムバイトを設定する
-		randBytes[i] = byte(rand.Intn(256)) //nolint:gosec // key 一意性のみが目的
+	// 暗号論的乱数バイト列を 16 バイト生成する（UUID v4 相当の一意性を確保する）
+	randBytes := make([]byte, 16)
+	// crypto/rand で乱数を生成する（wall-clock 非依存）
+	if _, err := rand.Read(randBytes); err != nil {
+		// 乱数生成に失敗した場合は panic する（起動時の致命的エラー）
+		panic(fmt.Sprintf("chainIdempotencyKey: crypto/rand.Read failed: %v", err))
 	}
-	// ランダム部分を hex string に変換する
-	randHex := fmt.Sprintf("%x", randBytes)
+	// バイト列を hex 文字列に変換する
+	randHex := hex.EncodeToString(randBytes)
 	// next の先頭 8 文字を prefix に使用する（長すぎる場合は切り詰める）
 	nextPrefix := next
 	if len(nextPrefix) > 8 {
@@ -93,8 +91,8 @@ func chainIdempotencyKey(base, next string) string {
 	if len(basePrefix) > 12 {
 		basePrefix = basePrefix[:12]
 	}
-	// chain された key を生成する（base_prefix + next_prefix + timestamp + random）
-	return strings.Join([]string{basePrefix, nextPrefix, timestamp, randHex}, "_")
+	// chain された key を生成する（base_prefix + next_prefix + rand_hex）
+	return strings.Join([]string{basePrefix, nextPrefix, randHex}, "_")
 }
 
 // LayerID は layer を識別する型

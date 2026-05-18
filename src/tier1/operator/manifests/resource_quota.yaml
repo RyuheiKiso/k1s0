@@ -1,0 +1,43 @@
+# resource_quota.yaml — k1s0 テナント namespace の Kubernetes ResourceQuota テンプレート
+# 09_テナント容量適合仕様.md §enforcement_layer §kubernetes に準拠する
+# operator が各テナント namespace に apply する ResourceQuota の雛形
+# PLACEHOLDER_TENANT_NAMESPACE は operator が実際のテナント namespace 名に置換する
+
+# Kubernetes ResourceQuota の API version
+apiVersion: v1
+# リソース種別: namespace 内のリソース消費に上限を設定する
+kind: ResourceQuota
+metadata:
+  # ResourceQuota 名（テナント namespace に apply する際の名前）
+  name: k1s0-tenant-quota
+  # 適用先 namespace: operator が動的に実際のテナント namespace 名に設定する
+  namespace: PLACEHOLDER_TENANT_NAMESPACE
+  # ラベル: k1s0 operator が管理するリソースであることを示す
+  labels:
+    # k1s0 管理対象であることを示すラベル
+    app.kubernetes.io/managed-by: k1s0-operator
+    # ResourceQuota のコンポーネント種別を示すラベル
+    app.kubernetes.io/component: tenant-quota
+    # k1s0 プロジェクトの一部であることを示すラベル
+    app.kubernetes.io/part-of: k1s0
+spec:
+  # クォータの制限値（09_テナント容量適合仕様.md §v1_business_dedicated 相当のデフォルト値）
+  hard:
+    # Pod 数の上限: テナント namespace 内の Pod 総数を制限する
+    pods: "50"
+    # CPU リクエストの合計上限: 全 Pod の CPU request 合計を制限する
+    requests.cpu: "10"
+    # メモリリクエストの合計上限: 全 Pod のメモリ request 合計を制限する
+    requests.memory: "20Gi"
+    # CPU リミットの合計上限: 全 Pod の CPU limit 合計を制限する
+    limits.cpu: "20"
+    # メモリリミットの合計上限: 全 Pod のメモリ limit 合計を制限する
+    limits.memory: "40Gi"
+    # PersistentVolumeClaim の総数上限: テナントが作成可能な PVC 数を制限する
+    persistentvolumeclaims: "10"
+    # ストレージリクエストの合計上限: 全 PVC のストレージ request 合計を制限する
+    requests.storage: "100Gi"
+    # Service の上限: テナント namespace 内の Service 総数を制限する
+    services: "20"
+    # LoadBalancer type Service の上限: クラウドコスト上限として LoadBalancer 数を制限する
+    services.loadbalancers: "2"

@@ -8,6 +8,10 @@ use uuid::Uuid;
 use chrono::{DateTime, Utc};
 // シリアライズ: ClickHouse への JSON 送信に使用する
 use serde::{Deserialize, Serialize};
+// HTTP クライアント: ClickHouse HTTP インターフェースへの送信に使用する
+use reqwest;
+// sqlx PostgreSQL クライアント: audit_local からの SELECT / UPDATE に使用する
+use sqlx;
 
 // RelayError: リレー処理中に発生するエラーの列挙型
 #[derive(Debug)]
@@ -123,35 +127,153 @@ impl AuditRelay {
 
     // PostgreSQL audit_local から未送信イベントを取得する
     // relayed = false のレコードを chain_sequence 昇順で batch_size 件取得する
+    // TODO: requires .sqlx/ for compile-time check — using sqlx::query for runtime binding
     async fn fetch_pending_events(&self) -> Result<Vec<PendingAuditEvent>, RelayError> {
-        // 実装ノート: sqlx で PostgreSQL に接続し SELECT する
-        // SELECT id, tenant_id, actor_id, purpose, table_class, payload,
-        //        created_at, prev_digest, chain_sequence, relayed
-        // FROM audit_local
-        // WHERE relayed = false
-        // ORDER BY chain_sequence ASC NULLS LAST
-        // LIMIT $1
+        // PostgreSQL 接続プールを生成する（シングルコネクションのライフタイムを制御する）
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            // 最大コネクション数をバッチサイズに合わせて 2 に制限する
+            .max_connections(2)
+            // postgres_url で接続する
+            .connect(&self.config.postgres_url)
+            .await
+            // 接続失敗を RelayError::PostgresConnection に変換する
+            .map_err(|e| RelayError::PostgresConnection(e.to_string()))?;
+        // audit_local から relayed_at が NULL のレコードを chain_sequence 昇順で取得する
+        let rows = sqlx::query(
+            r#"
+            SELECT id, tenant_id, actor_id, purpose, table_class, payload,
+                   created_at, prev_digest, chain_sequence, relayed
+            FROM k1s0.audit_local
+            WHERE relayed = false
+            ORDER BY chain_sequence ASC NULLS LAST
+            LIMIT $1
+            "#,
+        )
+        // バッチサイズを i64 にキャストしてバインドする
+        .bind(self.config.batch_size as i64)
+        // 接続プールを使ってクエリを実行する
+        .fetch_all(&pool)
+        .await
+        // クエリエラーを RelayError::Query に変換する
+        .map_err(|e| RelayError::Query(e.to_string()))?;
+        // 取得したロウを PendingAuditEvent 構造体にマッピングする
+        let events: Vec<PendingAuditEvent> = rows
+            .into_iter()
+            .map(|row| {
+                // sqlx::Row トレイトを使って各カラムを取得する
+                use sqlx::Row;
+                PendingAuditEvent {
+                    // id カラムを UUID として取得する
+                    id: row.get("id"),
+                    // tenant_id カラムを UUID として取得する
+                    tenant_id: row.get("tenant_id"),
+                    // actor_id カラムを String として取得する
+                    actor_id: row.get("actor_id"),
+                    // purpose カラムを String として取得する
+                    purpose: row.get("purpose"),
+                    // table_class カラムを String として取得する
+                    table_class: row.get("table_class"),
+                    // payload カラムを serde_json::Value として取得する
+                    payload: row.get("payload"),
+                    // created_at カラムを DateTime<Utc> として取得する
+                    created_at: row.get("created_at"),
+                    // prev_digest カラムを Option<String> として取得する
+                    prev_digest: row.get("prev_digest"),
+                    // chain_sequence カラムを Option<i64> として取得する
+                    chain_sequence: row.get("chain_sequence"),
+                    // relayed カラムを bool として取得する
+                    relayed: row.get("relayed"),
+                }
+            })
+            .collect();
+        // 取得件数をデバッグログに出力する
         tracing::debug!(
-            postgres_url = %self.config.postgres_url,
             batch_size = self.config.batch_size,
-            "audit_local から未送信イベントを取得する"
+            fetched = events.len(),
+            "audit_local から未送信イベントを取得した"
         );
-        // stub: 空ベクターを返す (実 DB 接続は sqlx Pool で実装する)
-        Ok(vec![])
+        // 取得したイベントリストを返す
+        Ok(events)
     }
 
     // ClickHouse audit_event テーブルに送信する
     // ReplacingMergeTree の冪等性により at-least-once でも安全に送信できる
+    // ClickHouse HTTP インターフェースの JSONEachRow フォーマットを使用する
     async fn send_to_clickhouse(
         &self,
         events: &[PendingAuditEvent],
     ) -> Result<usize, RelayError> {
-        // 実装ノート: reqwest で ClickHouse HTTP インターフェースに INSERT する
-        // INSERT INTO k1s0_audit.audit_event FORMAT JSONEachRow
+        // 送信するイベントを JSONEachRow 形式の文字列に変換する（1 行 1 JSON オブジェクト）
+        let json_body: String = events
+            .iter()
+            .map(|e| {
+                // 各イベントを JSON オブジェクトとしてシリアライズする
+                serde_json::json!({
+                    // イベント主キー
+                    "id": e.id,
+                    // テナント ID
+                    "tenant_id": e.tenant_id,
+                    // アクター識別子
+                    "actor_id": e.actor_id,
+                    // セッション目的
+                    "purpose": e.purpose,
+                    // テーブルクラス
+                    "table_class": e.table_class,
+                    // ペイロード（PII は redact 済み）
+                    "payload": e.payload,
+                    // 書込日時（RFC3339 形式）
+                    "created_at": e.created_at.to_rfc3339(),
+                    // 直前のハッシュダイジェスト
+                    "prev_digest": e.prev_digest,
+                    // チェーン連番
+                    "chain_sequence": e.chain_sequence,
+                })
+                // JSON オブジェクトを 1 行の文字列に変換する
+                .to_string()
+            })
+            // 行を改行で結合して JSONEachRow フォーマットにする
+            .collect::<Vec<_>>()
+            .join("\n");
+        // ClickHouse HTTP エンドポイントの URL を組み立てる
+        let url = format!(
+            "{}/{}?query=INSERT+INTO+k1s0_audit.audit_event+FORMAT+JSONEachRow",
+            self.config.clickhouse_url,
+            self.config.clickhouse_database,
+        );
+        // reqwest HTTP クライアントを生成する（コネクション再利用のため毎回生成しない設計が望ましいが、
+        // デモ実装のためシンプルに都度生成する）
+        let client = reqwest::Client::new();
+        // ClickHouse HTTP インターフェースに POST リクエストで JSONEachRow を送信する
+        let response = client
+            .post(&url)
+            // リクエストボディに JSONEachRow 文字列を設定する
+            .body(json_body)
+            // Content-Type を text/plain に設定する（ClickHouse の期待するフォーマット）
+            .header("Content-Type", "text/plain")
+            // リクエストを送信する
+            .send()
+            .await
+            // 送信失敗を RelayError::ClickHouseConnection に変換する
+            .map_err(|e| RelayError::ClickHouseConnection(e.to_string()))?;
+        // ClickHouse のレスポンスステータスを確認する
+        if !response.status().is_success() {
+            // エラーレスポンスのボディを取得してエラーメッセージに含める
+            let status = response.status();
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "(body 取得失敗)".to_string());
+            // ClickHouse からのエラーを RelayError::ClickHouseConnection として返す
+            return Err(RelayError::ClickHouseConnection(format!(
+                "ClickHouse HTTP error: status={}, body={}",
+                status, body
+            )));
+        }
+        // 送信件数をデバッグログに出力する
         tracing::debug!(
             clickhouse_url = %self.config.clickhouse_url,
             event_count = events.len(),
-            "ClickHouse に audit_event を送信する"
+            "ClickHouse に audit_event を送信した"
         );
         // 送信したイベント数を返す
         Ok(events.len())
@@ -163,11 +285,42 @@ impl AuditRelay {
         &self,
         events: &[PendingAuditEvent],
     ) -> Result<(), RelayError> {
-        // 実装ノート: sqlx で UPDATE audit_local SET relayed = true WHERE id = ANY($1)
+        // 対象イベントの ID リストを取得する
         let ids: Vec<Uuid> = events.iter().map(|e| e.id).collect();
+        // ID が空の場合は更新をスキップする
+        if ids.is_empty() {
+            return Ok(());
+        }
+        // PostgreSQL 接続プールを生成する
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            // 更新専用に最大コネクション数を 2 に制限する
+            .max_connections(2)
+            // postgres_url で接続する
+            .connect(&self.config.postgres_url)
+            .await
+            // 接続失敗を RelayError::PostgresConnection に変換する
+            .map_err(|e| RelayError::PostgresConnection(e.to_string()))?;
+        // audit_local の relayed_at を現在時刻で更新して送信済みにマークする
+        // TODO: requires .sqlx/ for compile-time check — using sqlx::query for runtime binding
+        sqlx::query(
+            r#"
+            UPDATE k1s0.audit_local
+            SET relayed = true,
+                relayed_at = NOW()
+            WHERE id = ANY($1)
+            "#,
+        )
+        // UUID の配列をバインドする（PostgreSQL の ANY($1) に対応する）
+        .bind(&ids)
+        // 接続プールを使ってクエリを実行する
+        .execute(&pool)
+        .await
+        // クエリエラーを RelayError::Query に変換する
+        .map_err(|e| RelayError::Query(e.to_string()))?;
+        // 更新件数をデバッグログに出力する
         tracing::debug!(
             ids = ?ids,
-            "audit_local の relayed フラグを更新する"
+            "audit_local の relayed フラグを更新した"
         );
         // 更新成功を返す
         Ok(())

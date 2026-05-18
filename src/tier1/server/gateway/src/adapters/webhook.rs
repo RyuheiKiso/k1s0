@@ -3,10 +3,15 @@
 // v1_interactive（双方向）と v1_bulk_upload（client→server）は構造的にサポートできない。
 // retry-after + HMAC-SHA256 署名 + payload envelope を実装する。
 
-use axum::{Json, extract::State};
+// axum: response::IntoResponse トレイトをインポートする（into_response() を使うために必要）
+use axum::response::IntoResponse;
+// hmac: HMAC 計算に使用する
 use hmac::{Hmac, Mac};
+// sha2: SHA-256 ハッシュに使用する
 use sha2::Sha256;
+// serde: シリアライズ/デシリアライズに使用する
 use serde::{Deserialize, Serialize};
+// 親モジュールの AdapterManifest をインポートする
 use super::AdapterManifest;
 
 // MANIFEST は webhook adapter の capability 自己宣言。
@@ -81,4 +86,40 @@ impl WebhookAdapter {
         // timing-safe な比較を行う（タイミング攻撃を防ぐため早期 return 禁止）
         expected == signature_hex
     }
+}
+
+// ============================================================
+// axum Router
+// ============================================================
+
+// webhook adapter の axum Router を返す関数
+// build_router() から .nest("/webhook", adapters::webhook::router()) で配線される
+pub fn router() -> axum::Router {
+    // /events エンドポイントと /status エンドポイントを定義する
+    axum::Router::new()
+        // POST /events: 外部システムからの webhook イベントを受信する
+        .route("/events", axum::routing::post(receive_webhook_event))
+        // GET /status: webhook adapter の動作状態を返す
+        .route("/status", axum::routing::get(webhook_status))
+}
+
+// webhook イベントを受信するハンドラ関数
+// spec 01 §Bidi: webhook はサーバー→クライアント push のみサポート（受信エンドポイントを公開する）
+async fn receive_webhook_event() -> axum::response::Response {
+    // 受信したことを示す 202 Accepted を返す（本実装では Bidi pipeline に渡す）
+    // 非同期処理は event_bus 経由で broadcast channel に publish する（後続 PR で実装する）
+    axum::http::StatusCode::ACCEPTED.into_response()
+}
+
+// webhook adapter の状態を返すハンドラ関数
+async fn webhook_status() -> axum::Json<serde_json::Value> {
+    // adapter の動作状態と capability を JSON で返す
+    axum::Json(serde_json::json!({
+        // adapter_id: MANIFEST の値と一致させる
+        "adapter_id": MANIFEST.adapter_id,
+        // status: 動作中であることを示す
+        "status": "ready",
+        // supports: サポートする conformance_class の一覧
+        "supports": MANIFEST.supports,
+    }))
 }

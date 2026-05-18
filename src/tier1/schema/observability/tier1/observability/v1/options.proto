@@ -26,16 +26,16 @@ option java_package = "io.k1s0.tier1.observability.v1";
 enum SignalClass {
   // デフォルト（未指定）— Buf lint が fail にする
   SIGNAL_CLASS_UNSPECIFIED = 0;
-  // LOGS: 構造化ログ出力（OpenTelemetry OTLP → ClickHouse / Loki）
-  LOGS = 1;
-  // METRICS: カウンタ / ヒストグラム / ゲージ（OpenTelemetry OTLP → Prometheus）
-  METRICS = 2;
-  // TRACES: 分散トレーシング（OpenTelemetry OTLP + W3C traceparent → Jaeger）
-  TRACES = 3;
-  // PROFILES: 継続的プロファイリング（pprof → Parca）
-  PROFILES = 4;
-  // AUDIT: セキュリティ / コンプライアンス監査イベント（pgaudit + audit_ingest → ClickHouse）
-  AUDIT = 5;
+  // SIGNAL_CLASS_LOGS: 構造化ログ出力（OpenTelemetry OTLP → ClickHouse / Loki）
+  SIGNAL_CLASS_LOGS = 1;
+  // SIGNAL_CLASS_METRICS: カウンタ / ヒストグラム / ゲージ（OpenTelemetry OTLP → Prometheus）
+  SIGNAL_CLASS_METRICS = 2;
+  // SIGNAL_CLASS_TRACES: 分散トレーシング（OpenTelemetry OTLP + W3C traceparent → Jaeger）
+  SIGNAL_CLASS_TRACES = 3;
+  // SIGNAL_CLASS_PROFILES: 継続的プロファイリング（pprof → Parca）
+  SIGNAL_CLASS_PROFILES = 4;
+  // SIGNAL_CLASS_AUDIT: セキュリティ / コンプライアンス監査イベント（pgaudit + audit_ingest → ClickHouse）
+  SIGNAL_CLASS_AUDIT = 5;
 }
 
 // ObservabilityMethodOptions は RPC メソッドに付与する observability option セットを宣言する。
@@ -55,7 +55,7 @@ message ObservabilityMethodOptions {
 // 使用例:
 //   rpc UpdateOrder (UpdateOrderRequest) returns (UpdateOrderResponse) {
 //     option (tier1.observability.v1.observability_method) = {
-//       signals: [LOGS, METRICS, TRACES, AUDIT],
+//       signals: [SIGNAL_CLASS_LOGS, SIGNAL_CLASS_METRICS, SIGNAL_CLASS_TRACES, SIGNAL_CLASS_AUDIT],
 //       audit_required: true
 //     };
 //   }

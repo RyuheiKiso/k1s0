@@ -67,8 +67,9 @@ fn ct_tenant_scoped_aggregate_state_change() {
         .expect("ct: TenantScoped StateChange must generate valid triple-write SQL");
     // contract: domain_event テーブルへの INSERT が含まれること
     assert!(sql.contains("domain_event"), "ct: domain_event INSERT required for TenantScoped");
-    // contract: outbox テーブルへの INSERT が含まれること（Debezium CDC 経由で Kafka に転送）
-    assert!(sql.contains("outbox"), "ct: outbox INSERT required for TenantScoped");
+    // contract: outbox_message テーブルへの INSERT が含まれること（Debezium CDC 経由で Kafka に転送）
+    // migration SoT: 0001_initial_schema.sql が k1s0.outbox_message を CREATE している
+    assert!(sql.contains("outbox_message"), "ct: outbox_message INSERT required for TenantScoped");
     // contract: audit_event テーブルへの INSERT が含まれること（全操作の監査証跡）
     assert!(sql.contains("audit_event"), "ct: audit_event INSERT required for TenantScoped");
     // contract: GUC 注入が含まれること（RLS FORCE が参照する app.tenant_id を注入する）
@@ -107,7 +108,8 @@ fn ct_tenant_master_aggregate_state_change() {
         .expect("ct: TenantMaster StateChange must generate valid triple-write SQL");
     // contract: TenantMaster でも三表書込が必須であることを確認する
     assert!(sql.contains("domain_event"), "ct: domain_event INSERT required for TenantMaster");
-    assert!(sql.contains("outbox"), "ct: outbox INSERT required for TenantMaster");
+    // outbox_message テーブル名を確認する（migration SoT: k1s0.outbox_message）
+    assert!(sql.contains("outbox_message"), "ct: outbox_message INSERT required for TenantMaster");
     assert!(sql.contains("audit_event"), "ct: audit_event INSERT required for TenantMaster");
 }
 

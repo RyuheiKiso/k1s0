@@ -1,0 +1,51 @@
+# chaos シナリオ: network_partition — ネットワーク分断時の migration 挙動を検証する
+# spec 02 §chaos_test §network_partition に対応する
+# migration 中にネットワーク分断が発生した場合にロールバックが正常動作することを確認する
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosExperiment リソース種別を指定する
+kind: ChaosExperiment
+metadata:
+  # chaos 実験の名前（kebab-case）
+  name: migration-network-partition
+  # 配置 namespace
+  namespace: k1s0-test
+  # ラベルでシナリオ種別を識別する
+  labels:
+    # k1s0 migration chaos テストのラベル
+    app: k1s0-migration-chaos
+    # シナリオ種別ラベル
+    scenario: network-partition
+spec:
+  definition:
+    # 実験スコープ: Namespaced（pod レベルのネットワーク分断）
+    scope: Namespaced
+    # 使用する chaos runner image
+    image: litmuschaos/go-runner:3.3.0
+    # 実験実行コマンドを指定する
+    command:
+      # bash でコマンドを実行する
+      - /bin/bash
+      # chaos ロジックのインラインスクリプト
+      - -c
+      # 実行する chaos の説明ログを出力する
+      - echo "network partition chaos for migration test"
+    # chaos パラメータを引数として渡す
+    args:
+      # chaos の種類: ネットワーク損失
+      - -action=network-loss
+      # 対象ネットワークインターフェース
+      - -network_interface=eth0
+      # パケット損失率: 100%（完全分断）
+      - -network_packet_loss_percentage=100
+      # chaos 継続時間: 30 秒
+      - -total_chaos_duration=30
+    # 環境変数で chaos の対象 pod を指定する
+    env:
+      # 対象 pod のラベルセレクター
+      - name: TARGET_POD_LABELS
+        # migration 中の pod を対象とする
+        value: "app=k1s0-migration"
+      # chaos の対象 namespace
+      - name: APP_NAMESPACE
+        # テスト用 namespace を指定する
+        value: "k1s0-test"

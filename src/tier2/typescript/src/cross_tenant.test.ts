@@ -87,7 +87,8 @@ describe("tier2 cross-tenant integration tests", () => {
     // BEGIN と COMMIT の間に 3 つの INSERT が含まれることを確認する
     expect(sql).toContain("BEGIN");
     expect(sql).toContain("domain_event");
-    expect(sql).toContain("outbox");
+    // outbox_message テーブル名が SQL に含まれることを確認する（migration SoT: k1s0.outbox_message）
+    expect(sql).toContain("outbox_message");
     expect(sql).toContain("audit_event");
     expect(sql).toContain("COMMIT");
     // GUC 注入が含まれることを確認する

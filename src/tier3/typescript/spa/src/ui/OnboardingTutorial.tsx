@@ -1,8 +1,8 @@
 // OnboardingTutorial.tsx — オンボーディングチュートリアル実装
 // 設計方針 20_UX 原則: 初回ユーザーへのガイダンス
 
-// React の useState/useCallback をインポートする
-import { useState, useCallback } from 'react';
+// React の useState/useCallback と名前空間を含む React をインポートする（JSX 型解決用）
+import React, { useState, useCallback } from 'react';
 
 // チュートリアルステップの型を定義する
 interface TutorialStep {
@@ -24,8 +24,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   { title: '検査記録', description: 'オフライン環境でも検査結果を記録できます' },
 ];
 
-// OnboardingTutorial コンポーネントを定義する
-export function OnboardingTutorial({ onComplete }: { onComplete: () => void }): JSX.Element | null {
+// OnboardingTutorial コンポーネントを定義する（React.JSX.Element で namespace 参照を解決する）
+export function OnboardingTutorial({ onComplete }: { onComplete: () => void }): React.JSX.Element | null {
   // 現在のステップ番号を管理する state
   const [currentStep, setCurrentStep] = useState(0);
   // チュートリアルの表示状態を管理する state
@@ -48,8 +48,9 @@ export function OnboardingTutorial({ onComplete }: { onComplete: () => void }): 
   // 表示されていない場合は null を返す
   if (!isVisible) return null;
 
-  // 現在のステップ情報を取得する
+  // 現在のステップ情報を取得する（noUncheckedIndexedAccess により undefined の可能性があるため early return する）
   const step = TUTORIAL_STEPS[currentStep];
+  if (!step) return null;
 
   return (
     <div role="dialog" aria-label="チュートリアル" className="onboarding-tutorial">

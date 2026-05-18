@@ -12,6 +12,9 @@ use anyhow::{anyhow, Result};
 // sha2: SHA-256 ハッシュ計算（シャード検証に使用する）
 use sha2::{Digest, Sha256};
 
+// shamir_lagrange: GF(2^8) 上の真の Lagrange 補間による Shamir SS を提供するモジュール
+mod shamir_lagrange;
+
 // ============================================================
 // 定数定義
 // ============================================================
@@ -196,8 +199,27 @@ fn compute_kek_fingerprint(kek: &[u8]) -> String {
 fn phase_generate() -> Result<(Vec<ShamirShare>, [u8; KEK_KEY_BYTES])> {
     // 疑似 KEK を生成する（テスト用: 本番では PKCS#11 を使用すること）
     let kek = generate_pseudo_kek();
-    // M=3 N=5 Shamir 秘密分散でシャードを生成する
-    let shares = simulate_shamir_split(&kek, SHAMIR_THRESHOLD, SHAMIR_TOTAL_SHARES)?;
+    // KEK の最初の 1 バイトを shamir_lagrange::split のシークレットとして使用する
+    // 注意: 本番環境では KEK 全 32 バイトを複数の SS instance で分割すること
+    let secret_byte = kek[0];
+    // shamir_lagrange::split で真の GF(2^8) Lagrange 補間 Shamir SS を実行する
+    let raw_shares = shamir_lagrange::split(secret_byte, SHAMIR_THRESHOLD, SHAMIR_TOTAL_SHARES);
+    // raw_shares を ShamirShare 構造体に変換する
+    let shares: Vec<ShamirShare> = raw_shares.iter().map(|(x, fx)| {
+        // シェアのバイト列を生成する（x 座標と y 座標のペアを 2 バイトで表現する）
+        let value_bytes = vec![*x, *fx];
+        // チェックサムを計算する
+        let checksum = compute_checksum(&value_bytes);
+        // ShamirShare 構造体を生成して返す
+        ShamirShare {
+            // 1-indexed のシャードインデックス（x 座標をインデックスとして使用する）
+            index: *x as usize,
+            // シャード値を 16 進数文字列で表現する
+            value_hex: hex_encode(&value_bytes),
+            // チェックサムを 16 進数文字列で表現する
+            checksum_hex: hex_encode(&checksum),
+        }
+    }).collect();
     // シャード数が N (5) であることを確認する
     assert_eq!(shares.len(), SHAMIR_TOTAL_SHARES, "share count must equal SHAMIR_TOTAL_SHARES");
     // 生成したシャードと KEK を返す

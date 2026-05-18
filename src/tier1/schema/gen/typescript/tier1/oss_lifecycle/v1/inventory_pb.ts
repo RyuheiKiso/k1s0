@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tier1/oss_lifecycle/v1/inventory.proto.
  */
 export const file_tier1_oss_lifecycle_v1_inventory: GenFile = /*@__PURE__*/
-  fileDesc("CiZ0aWVyMS9vc3NfbGlmZWN5Y2xlL3YxL2ludmVudG9yeS5wcm90bxIWdGllcjEub3NzX2xpZmVjeWNsZS52MSLIAgoIT3NzRW50cnkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgt2ZXJzaW9uX3BpbhgDIAEoCRI/Cg9saWZlY3ljbGVfY2xhc3MYBCABKA4yJi50aWVyMS5vc3NfbGlmZWN5Y2xlLnYxLkxpZmVjeWNsZUNsYXNzEjQKB2xpY2Vuc2UYBSABKA4yIy50aWVyMS5vc3NfbGlmZWN5Y2xlLnYxLkxpY2Vuc2VLaW5kEhQKDHVzZWRfYnlfYXhlcxgGIAMoCRI6ChZsYXN0X3NlY3VyaXR5X2F1ZGl0X2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIqCgZlb2xfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhgKEG1pZ3JhdGlvbl90YXJnZXQYCSABKAkiiwEKDE9zc0ludmVudG9yeRIxCgdlbnRyaWVzGAEgAygLMiAudGllcjEub3NzX2xpZmVjeWNsZS52MS5Pc3NFbnRyeRIwCgxnZW5lcmF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDnNjaGVtYV92ZXJzaW9uGAMgASgJKr4BCg5MaWZlY3ljbGVDbGFzcxIfChtMSUZFQ1lDTEVfQ0xBU1NfVU5TUEVDSUZJRUQQABISCg5WMV9BQ1RJVkVfQ09SRRABEhkKFVYxX1NUQUJMRV9NQUlOVEVOQU5DRRACEg8KC1YxX0xUU19PTkxZEAMSFAoQVjFfRU9MX0FOTk9VTkNFRBAEEhwKGFYxX0ZPUktFRF9PUl9UUkFOU0ZFUlJFRBAFEhcKE1YxX1JFUExBQ0VEX0lOSE9VU0UQBiqXAQoLTGljZW5zZUtpbmQSHAoYTElDRU5TRV9LSU5EX1VOU1BFQ0lGSUVEEAASDAoIQVBBQ0hFXzIQARIHCgNNSVQQAhIJCgVCU0RfMhADEgkKBUJTRF8zEAQSBwoDSVNDEAUSCQoFTVBMXzIQBhIMCghMR1BMXzJfMRAHEgoKBkFHUExfMxAIEg8KC1BST1BSSUVUQVJZEAlCYQoeaW8uazFzMC50aWVyMS5vc3NfbGlmZWN5Y2xlLnYxUAFaPWdpdGh1Yi5jb20vazFzMC1pby9rMXMwL3RpZXIxL29zc19saWZlY3ljbGUvdjE7b3NzbGlmZWN5Y2xldjFiBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("CiZ0aWVyMS9vc3NfbGlmZWN5Y2xlL3YxL2ludmVudG9yeS5wcm90bxIWdGllcjEub3NzX2xpZmVjeWNsZS52MSLIAgoIT3NzRW50cnkSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgt2ZXJzaW9uX3BpbhgDIAEoCRI/Cg9saWZlY3ljbGVfY2xhc3MYBCABKA4yJi50aWVyMS5vc3NfbGlmZWN5Y2xlLnYxLkxpZmVjeWNsZUNsYXNzEjQKB2xpY2Vuc2UYBSABKA4yIy50aWVyMS5vc3NfbGlmZWN5Y2xlLnYxLkxpY2Vuc2VLaW5kEhQKDHVzZWRfYnlfYXhlcxgGIAMoCRI6ChZsYXN0X3NlY3VyaXR5X2F1ZGl0X2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIqCgZlb2xfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhgKEG1pZ3JhdGlvbl90YXJnZXQYCSABKAkiiwEKDE9zc0ludmVudG9yeRIxCgdlbnRyaWVzGAEgAygLMiAudGllcjEub3NzX2xpZmVjeWNsZS52MS5Pc3NFbnRyeRIwCgxnZW5lcmF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDnNjaGVtYV92ZXJzaW9uGAMgASgJKsQBCg5MaWZlY3ljbGVDbGFzcxIfChtMSUZFQ1lDTEVfQ0xBU1NfVU5TUEVDSUZJRUQQABIVChFWMV9MMVBMVVNfUFJJTUFSWRABEhkKFVYxX0wxUExVU19QQUlSX1RBUkdFVBACEhQKEFYxX0wyU1RBUl9NRU1CRVIQAxIRCg1WMV9MM19SVU5USU1FEAQSGAoUVjFfUkVTRVJWRURfQ0FURUdPUlkQBRIcChhWMV9JTkhPVVNFX0FVVEhPUklUQVRJVkUQBiqXAQoLTGljZW5zZUtpbmQSHAoYTElDRU5TRV9LSU5EX1VOU1BFQ0lGSUVEEAASDAoIQVBBQ0hFXzIQARIHCgNNSVQQAhIJCgVCU0RfMhADEgkKBUJTRF8zEAQSBwoDSVNDEAUSCQoFTVBMXzIQBhIMCghMR1BMXzJfMRAHEgoKBkFHUExfMxAIEg8KC1BST1BSSUVUQVJZEAlCYQoeaW8uazFzMC50aWVyMS5vc3NfbGlmZWN5Y2xlLnYxUAFaPWdpdGh1Yi5jb20vazFzMC1pby9rMXMwL3RpZXIxL29zc19saWZlY3ljbGUvdjE7b3NzbGlmZWN5Y2xldjFiBnByb3RvMw==", [file_google_protobuf_timestamp]);
 
 /**
  * OssEntry は 02_採用OSS一覧.md の 1 エントリに対応する機械可読 record を宣言する。
@@ -138,51 +138,53 @@ export const OssInventorySchema: GenMessage<OssInventory> = /*@__PURE__*/
  */
 export enum LifecycleClass {
   /**
+   * ライフサイクルクラス未指定（デフォルト値）
+   *
    * @generated from enum value: LIFECYCLE_CLASS_UNSPECIFIED = 0;
    */
   LIFECYCLE_CLASS_UNSPECIFIED = 0,
 
   /**
-   * 活発に開発・保守されているコア OSS
+   * L1+ プライマリ：最優先で採用・保守する中核 OSS（Primary pair の片方）
    *
-   * @generated from enum value: V1_ACTIVE_CORE = 1;
+   * @generated from enum value: LIFECYCLE_CLASS_L1PLUS_PRIMARY = 1;
    */
-  V1_ACTIVE_CORE = 1,
+  LIFECYCLE_CLASS_L1PLUS_PRIMARY = 1,
 
   /**
-   * 安定期に入り変化が少ないが保守中の OSS
+   * L1+ ペアターゲット：Primary と対をなす L1+ 採用候補 OSS
    *
-   * @generated from enum value: V1_STABLE_MAINTENANCE = 2;
+   * @generated from enum value: LIFECYCLE_CLASS_L1PLUS_PAIR_TARGET = 2;
    */
-  V1_STABLE_MAINTENANCE = 2,
+  LIFECYCLE_CLASS_L1PLUS_PAIR_TARGET = 2,
 
   /**
-   * LTS 版のみ保守している OSS
+   * L2* メンバー：L1+ に準ずる品質で採用・保守する OSS（LTS 維持対象）
    *
-   * @generated from enum value: V1_LTS_ONLY = 3;
+   * @generated from enum value: LIFECYCLE_CLASS_L2STAR_MEMBER = 3;
    */
-  V1_LTS_ONLY = 3,
+  LIFECYCLE_CLASS_L2STAR_MEMBER = 3,
 
   /**
-   * EOL が宣言された OSS（移行計画必須）
+   * L3 ランタイム：実行環境依存で間接採用する OSS（移行計画対象外）
    *
-   * @generated from enum value: V1_EOL_ANNOUNCED = 4;
+   * @generated from enum value: LIFECYCLE_CLASS_L3_RUNTIME = 4;
    */
-  V1_EOL_ANNOUNCED = 4,
+  LIFECYCLE_CLASS_L3_RUNTIME = 4,
 
   /**
-   * フォーク / community 移管済みの OSS
+   * 予約カテゴリ：フォーク / community 移管済みで将来分類が確定していない OSS
    *
-   * @generated from enum value: V1_FORKED_OR_TRANSFERRED = 5;
+   * @generated from enum value: LIFECYCLE_CLASS_RESERVED_CATEGORY = 5;
    */
-  V1_FORKED_OR_TRANSFERRED = 5,
+  LIFECYCLE_CLASS_RESERVED_CATEGORY = 5,
 
   /**
-   * 内製代替で置き換え済みの OSS
+   * 内製権威：内製代替実装が正式に採用されており当該 OSS は廃止済み
    *
-   * @generated from enum value: V1_REPLACED_INHOUSE = 6;
+   * @generated from enum value: LIFECYCLE_CLASS_INHOUSE_AUTHORITATIVE = 6;
    */
-  V1_REPLACED_INHOUSE = 6,
+  LIFECYCLE_CLASS_INHOUSE_AUTHORITATIVE = 6,
 }
 
 /**
@@ -203,49 +205,49 @@ export enum LicenseKind {
   LICENSE_KIND_UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: APACHE_2 = 1;
+   * @generated from enum value: LICENSE_KIND_APACHE_2 = 1;
    */
-  APACHE_2 = 1,
+  LICENSE_KIND_APACHE_2 = 1,
 
   /**
-   * @generated from enum value: MIT = 2;
+   * @generated from enum value: LICENSE_KIND_MIT = 2;
    */
-  MIT = 2,
+  LICENSE_KIND_MIT = 2,
 
   /**
-   * @generated from enum value: BSD_2 = 3;
+   * @generated from enum value: LICENSE_KIND_BSD_2 = 3;
    */
-  BSD_2 = 3,
+  LICENSE_KIND_BSD_2 = 3,
 
   /**
-   * @generated from enum value: BSD_3 = 4;
+   * @generated from enum value: LICENSE_KIND_BSD_3 = 4;
    */
-  BSD_3 = 4,
+  LICENSE_KIND_BSD_3 = 4,
 
   /**
-   * @generated from enum value: ISC = 5;
+   * @generated from enum value: LICENSE_KIND_ISC = 5;
    */
-  ISC = 5,
+  LICENSE_KIND_ISC = 5,
 
   /**
-   * @generated from enum value: MPL_2 = 6;
+   * @generated from enum value: LICENSE_KIND_MPL_2 = 6;
    */
-  MPL_2 = 6,
+  LICENSE_KIND_MPL_2 = 6,
 
   /**
-   * @generated from enum value: LGPL_2_1 = 7;
+   * @generated from enum value: LICENSE_KIND_LGPL_2_1 = 7;
    */
-  LGPL_2_1 = 7,
+  LICENSE_KIND_LGPL_2_1 = 7,
 
   /**
-   * @generated from enum value: AGPL_3 = 8;
+   * @generated from enum value: LICENSE_KIND_AGPL_3 = 8;
    */
-  AGPL_3 = 8,
+  LICENSE_KIND_AGPL_3 = 8,
 
   /**
-   * @generated from enum value: PROPRIETARY = 9;
+   * @generated from enum value: LICENSE_KIND_PROPRIETARY = 9;
    */
-  PROPRIETARY = 9,
+  LICENSE_KIND_PROPRIETARY = 9,
 }
 
 /**

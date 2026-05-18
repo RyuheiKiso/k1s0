@@ -62,9 +62,9 @@ impl OutboxEntry {
     // Outbox エントリを Kafka に転送するための INSERT SQL を生成する
     // atomic_triple_write.rs の BEGIN 〜 COMMIT ブロック内で実行される
     pub fn to_insert_sql(&self) -> String {
-        // Outbox テーブルへの INSERT SQL を返す
+        // outbox_message テーブルへの INSERT SQL を返す（migration SoT: k1s0.outbox_message）
         format!(
-            "INSERT INTO k1s0.outbox (id, aggregate_id, tenant_id, event_kind, payload, created_at) \
+            "INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at) \
              VALUES ('{id}', '{agg_id}', current_setting('app.tenant_id')::uuid, '{event_kind}', '{payload}'::jsonb, '{now}');",
             id         = self.id,
             agg_id     = self.aggregate_id,
@@ -98,28 +98,44 @@ mod tests {
         );
         // INSERT SQL を生成する
         let sql = entry.to_insert_sql();
-        // 必要な列が全て含まれることを確認する
-        assert!(sql.contains("k1s0.outbox"));
+        // outbox_message テーブル名が SQL に含まれることを確認する（migration SoT: k1s0.outbox_message）
+        assert!(sql.contains("k1s0.outbox_message"));
         assert!(sql.contains("DomainEventOccurred"));
         // GUC 経由の tenant_id 注入が含まれることを確認する
         assert!(sql.contains("current_setting('app.tenant_id')"));
     }
 
     #[test]
-    // PII 平文が OutboxPayload に含まれないことを確認する（構造的不在）
+    // PII 平文が OutboxPayload に含まれないことを確認する（redaction 機構を使った実機構テスト）
     fn test_outbox_payload_no_pii() {
-        // OutboxPayload に PII フィールドが存在しないことを確認する
+        // redaction モジュールをインポートする（lib.rs 経由で公開されている）
+        use crate::redaction::redact_pii_fields;
+        // PII フィールドを含む raw data を用意する（Outbox 書込前の状態を模擬する）
+        let raw_data = serde_json::json!({
+            "order_id": "WO-001",
+            "status": "in_progress",
+            // PII フィールドを意図的に含める（redact 前の状態）
+            "email": "worker@example.com",
+            "phone": "090-0000-0001"
+        });
+        // PII フィールドを redact する（Outbox 書込前に必ず実行する）
+        let redacted_data = redact_pii_fields(raw_data);
+        // redact 済みデータを OutboxPayload に格納する
         let payload = OutboxPayload {
             aggregate_type: "WorkOrder".to_string(),
-            // data にはビジネスデータのみ、PII フィールドは構造的に除外されている
-            data: serde_json::json!({"order_id": "WO-001", "status": "in_progress"}),
+            // redact 済みのデータのみを Outbox ペイロードに含める
+            data: redacted_data,
             metadata: serde_json::json!({"trace_id": "abc123"}),
         };
-        // JSON シリアライズして PII キーが無いことを確認する
+        // JSON シリアライズして PII 平文が含まれないことを確認する
         let json_str = serde_json::to_string(&payload).unwrap();
-        // email / phone / pii などの PII 的フィールドが含まれないことを確認する
-        assert!(!json_str.contains("email"));
-        assert!(!json_str.contains("phone"));
-        assert!(!json_str.contains("pii"));
+        // PII 平文が含まれないことを確認する（redaction 機構が正しく動作していることを保証する）
+        assert!(!json_str.contains("worker@example.com"));
+        assert!(!json_str.contains("090-0000-0001"));
+        // PII フィールドのキーは残るが値は *** に置換されていることを確認する
+        assert!(json_str.contains("***"));
+        // ビジネスデータは保持されていることを確認する
+        assert!(json_str.contains("WO-001"));
+        assert!(json_str.contains("in_progress"));
     }
 }

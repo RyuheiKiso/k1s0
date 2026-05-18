@@ -1,0 +1,156 @@
+# observability test_matrix — 5 signal class × 4 dimension の適合テストマトリックス
+# 03_観測適合仕様.md §test_matrix SoT（手書き、build artifact ではない）
+# generate_signals.py がこの入力を読んで signals.lock.yaml を生成する
+
+schema_version: "1.0"
+
+# テスト対象の 5 signal class
+signal_classes:
+  - LOGS
+  - METRICS
+  - TRACES
+  - PROFILES
+  - AUDIT
+
+# テスト対象の 4 dimension
+dimensions:
+  - name: ingestion
+    description: "シグナルの収集・受信パイプライン"
+  - name: storage
+    description: "シグナルの永続化・圧縮"
+  - name: query
+    description: "シグナルの検索・取得"
+  - name: export
+    description: "シグナルの外部転送・フォワード"
+
+# 5 signal × 4 dimension = 20 cell のテスト要件
+test_cells:
+  # ---------- LOGS ----------
+  - signal: LOGS
+    dimension: ingestion
+    # 検証ツール: OTel Collector DaemonSet + loadbalancingexporter
+    tool: otelcol
+    # 合格基準: tail_sampling を通過し下流に届くこと
+    assertion: "DaemonSet loadbalancingexporter が LOGS を受信し tail_sampling を通過させる"
+  - signal: LOGS
+    dimension: storage
+    # 検証ツール: ClickHouse（tier1 永続化先）
+    tool: clickhouse
+    # 合格基準: logs table に挿入され ttl=30d 圧縮が効くこと
+    assertion: "ClickHouse の logs table に挿入され、ttl=30d 圧縮が適用される"
+  - signal: LOGS
+    dimension: query
+    # 検証ツール: Grafana（LogQL エンドポイント）
+    tool: grafana
+    # 合格基準: tenant_id フィルタが機能すること
+    assertion: "Grafana LogQL で tenant_id フィルタが効く"
+  - signal: LOGS
+    dimension: export
+    # 検証ツール: OTel Collector loadbalancingexporter
+    tool: otelcol
+    # 合格基準: 下流 Collector への転送が成功すること
+    assertion: "loadbalancingexporter が下流 Collector に転送する"
+
+  # ---------- METRICS ----------
+  - signal: METRICS
+    dimension: ingestion
+    # 検証ツール: OTel Collector（Prometheus remote_write 受信）
+    tool: otelcol
+    # 合格基準: remote_write で METRICS を受信できること
+    assertion: "Prometheus remote_write で METRICS を受信する"
+  - signal: METRICS
+    dimension: storage
+    # 検証ツール: Prometheus TSDB
+    tool: prometheus
+    # 合格基準: recording_rule を経由して TSDB に保存されること
+    assertion: "Prometheus TSDB に recording_rule を経由して保存される"
+  - signal: METRICS
+    dimension: query
+    # 検証ツール: Grafana（PromQL エンドポイント）
+    tool: grafana
+    # 合格基準: slo_class フィルタが機能すること
+    assertion: "Grafana PromQL で slo_class フィルタが効く"
+  - signal: METRICS
+    dimension: export
+    # 検証ツール: OTel Collector（OTLP gRPC エクスポーター）
+    tool: otelcol
+    # 合格基準: OTLP gRPC で外部転送できること
+    assertion: "OTLP gRPC でメトリクスを外部転送できる"
+
+  # ---------- TRACES ----------
+  - signal: TRACES
+    dimension: ingestion
+    # 検証ツール: OTel Collector（OTLP gRPC 受信 + tail_sampling）
+    tool: otelcol
+    # 合格基準: 3 policy の tail_sampling を通過すること
+    assertion: "OTLP gRPC で TRACES を受信し tail_sampling 3 policy を通過させる"
+  - signal: TRACES
+    dimension: storage
+    # 検証ツール: ClickHouse（traces table）
+    tool: clickhouse
+    # 合格基準: trace_id / span_id で traces table に挿入されること
+    assertion: "ClickHouse の traces table に trace_id / span_id で挿入される"
+  - signal: TRACES
+    dimension: query
+    # 検証ツール: Grafana（Tempo compat エンドポイント）
+    tool: grafana
+    # 合格基準: trace_id 検索が機能すること
+    assertion: "Grafana Tempo compat で trace_id 検索が効く"
+  - signal: TRACES
+    dimension: export
+    # 検証ツール: OTel Collector clickhouseexporter
+    tool: otelcol
+    # 合格基準: clickhouseexporter が ClickHouse に書き込むこと
+    assertion: "clickhouseexporter が ClickHouse に書き込む"
+
+  # ---------- PROFILES ----------
+  - signal: PROFILES
+    dimension: ingestion
+    # 検証ツール: Parca agent（OTLP gRPC 転送）
+    tool: parca
+    # 合格基準: agent が収集し OTLP gRPC で転送すること
+    assertion: "Parca agent が Profiles を収集し OTLP gRPC で転送する"
+  - signal: PROFILES
+    dimension: storage
+    # 検証ツール: Parca server（プロファイル永続化）
+    tool: parca
+    # 合格基準: server にプロファイルが保存されること
+    assertion: "Parca server に profiles が保存される"
+  - signal: PROFILES
+    dimension: query
+    # 検証ツール: Parca UI（flamegraph 検索）
+    tool: parca
+    # 合格基準: flamegraph 検索が機能すること
+    assertion: "Parca UI で flamegraph 検索が効く"
+  - signal: PROFILES
+    dimension: export
+    # 検証ツール: OTel Collector（OTLP Profiles export）
+    tool: otelcol
+    # 合格基準: OTLP Profiles export が有効化されること
+    assertion: "OTLP Profiles export が有効化される"
+
+  # ---------- AUDIT ----------
+  - signal: AUDIT
+    dimension: ingestion
+    # 検証ツール: pgaudit（PostgreSQL 拡張）
+    tool: pgaudit
+    # 合格基準: pii_segregated table への全アクセスを intercept すること
+    assertion: "pgaudit が pii_segregated table への全アクセスを intercept する"
+  - signal: AUDIT
+    dimension: storage
+    # 検証ツール: ClickHouse（audit table）
+    tool: clickhouse
+    # 合格基準: audit.lock.yaml のスキーマで格納されること
+    assertion: "audit.lock.yaml のスキーマで ClickHouse audit table に格納される"
+  - signal: AUDIT
+    dimension: query
+    # 検証ツール: ClickHouse SQL（tenant_id + action フィルタ）
+    tool: clickhouse
+    # 合格基準: tenant_id + action のフィルタ検索が機能すること
+    assertion: "ClickHouse SQL で tenant_id + action でフィルタ検索が効く"
+  - signal: AUDIT
+    dimension: export
+    # 検証ツール: relay（audit_ingest_gap_monitor）
+    tool: relay
+    # 合格基準: at-least-once で audit_event を転送すること
+    assertion: "audit_ingest_gap_monitor relay が audit_event を at-least-once 転送する"

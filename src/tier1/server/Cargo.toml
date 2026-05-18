@@ -33,6 +33,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # anyhow: エラーハンドリングライブラリ
 anyhow = "1"
+# thiserror: エラー型 derive macro（SpireError 等のカスタムエラー型に使用する）
+thiserror = "1"
 # uuid: UUID 生成ライブラリ（セッション・ドリル ID 生成に使用する）
 uuid = { version = "1", features = ["v4"] }
 # chrono: 日時ライブラリ（タイムスタンプ管理に使用する）

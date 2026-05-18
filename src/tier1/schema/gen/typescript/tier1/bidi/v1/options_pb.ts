@@ -97,37 +97,37 @@ export enum ConformanceClass {
   /**
    * v1_interactive: 双方向対話、SESSION_ORDERED、half_close=SUPPORTED、resumable=REQUIRED、lag≤200ms
    *
-   * @generated from enum value: V1_INTERACTIVE = 1;
+   * @generated from enum value: CONFORMANCE_CLASS_INTERACTIVE = 1;
    */
-  V1_INTERACTIVE = 1,
+  CONFORMANCE_CLASS_INTERACTIVE = 1,
 
   /**
    * v1_alert: サーバー主導警報、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤200ms、server→client
    *
-   * @generated from enum value: V1_ALERT = 2;
+   * @generated from enum value: CONFORMANCE_CLASS_ALERT = 2;
    */
-  V1_ALERT = 2,
+  CONFORMANCE_CLASS_ALERT = 2,
 
   /**
    * v1_event_feed: Domain Event 配信、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤5000ms、server→client
    *
-   * @generated from enum value: V1_EVENT_FEED = 3;
+   * @generated from enum value: CONFORMANCE_CLASS_EVENT_FEED = 3;
    */
-  V1_EVENT_FEED = 3,
+  CONFORMANCE_CLASS_EVENT_FEED = 3,
 
   /**
    * v1_live_snapshot: 最新値表示、UNORDERED、half_close=UNUSED、resumable=NONE、lag≤500ms、server→client
    *
-   * @generated from enum value: V1_LIVE_SNAPSHOT = 4;
+   * @generated from enum value: CONFORMANCE_CLASS_LIVE_SNAPSHOT = 4;
    */
-  V1_LIVE_SNAPSHOT = 4,
+  CONFORMANCE_CLASS_LIVE_SNAPSHOT = 4,
 
   /**
    * v1_bulk_upload: 大量データ投入、UNORDERED、half_close=SUPPORTED、resumable=NONE、client→server
    *
-   * @generated from enum value: V1_BULK_UPLOAD = 5;
+   * @generated from enum value: CONFORMANCE_CLASS_BULK_UPLOAD = 5;
    */
-  V1_BULK_UPLOAD = 5,
+  CONFORMANCE_CLASS_BULK_UPLOAD = 5,
 }
 
 /**
@@ -150,16 +150,16 @@ export enum Ordering {
   /**
    * セッション内での順序保証あり（送信順で届く）
    *
-   * @generated from enum value: SESSION_ORDERED = 1;
+   * @generated from enum value: ORDERING_SESSION_ORDERED = 1;
    */
-  SESSION_ORDERED = 1,
+  ORDERING_SESSION_ORDERED = 1,
 
   /**
    * 順序保証なし（latest-wins または at-least-once）
    *
-   * @generated from enum value: UNORDERED = 2;
+   * @generated from enum value: ORDERING_UNORDERED = 2;
    */
-  UNORDERED = 2,
+  ORDERING_UNORDERED = 2,
 }
 
 /**
@@ -182,16 +182,16 @@ export enum HalfClose {
   /**
    * クライアントから終端を通知できる
    *
-   * @generated from enum value: SUPPORTED = 1;
+   * @generated from enum value: HALF_CLOSE_SUPPORTED = 1;
    */
-  SUPPORTED = 1,
+  HALF_CLOSE_SUPPORTED = 1,
 
   /**
    * 終端通知は使用しない
    *
-   * @generated from enum value: UNUSED = 2;
+   * @generated from enum value: HALF_CLOSE_UNUSED = 2;
    */
-  UNUSED = 2,
+  HALF_CLOSE_UNUSED = 2,
 }
 
 /**
@@ -214,16 +214,16 @@ export enum Resumable {
   /**
    * resume_token 経由で状態継続が必須
    *
-   * @generated from enum value: REQUIRED = 1;
+   * @generated from enum value: RESUMABLE_REQUIRED = 1;
    */
-  REQUIRED = 1,
+  RESUMABLE_REQUIRED = 1,
 
   /**
    * resume なし（再接続時は最初から）
    *
-   * @generated from enum value: NONE = 2;
+   * @generated from enum value: RESUMABLE_NONE = 2;
    */
-  NONE = 2,
+  RESUMABLE_NONE = 2,
 }
 
 /**
@@ -246,23 +246,23 @@ export enum Direction {
   /**
    * クライアント ↔ サーバー 双方向
    *
-   * @generated from enum value: BIDIRECTIONAL = 1;
+   * @generated from enum value: DIRECTION_BIDIRECTIONAL = 1;
    */
-  BIDIRECTIONAL = 1,
+  DIRECTION_BIDIRECTIONAL = 1,
 
   /**
    * サーバー → クライアント 一方向
    *
-   * @generated from enum value: SERVER_TO_CLIENT = 2;
+   * @generated from enum value: DIRECTION_SERVER_TO_CLIENT = 2;
    */
-  SERVER_TO_CLIENT = 2,
+  DIRECTION_SERVER_TO_CLIENT = 2,
 
   /**
    * クライアント → サーバー 一方向
    *
-   * @generated from enum value: CLIENT_TO_SERVER = 3;
+   * @generated from enum value: DIRECTION_CLIENT_TO_SERVER = 3;
    */
-  CLIENT_TO_SERVER = 3,
+  DIRECTION_CLIENT_TO_SERVER = 3,
 }
 
 /**
