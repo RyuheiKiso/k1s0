@@ -1,0 +1,92 @@
+# k1s0 tier2 テナント容量 enforcement_points 定義
+# テナント容量適合仕様 09 の 4 階層 enforcement を物理化する
+# library_token_bucket / gateway_rate_limit / db_conn_limit / infra_resource_limit
+
+# enforcement_points 定義バージョン
+apiVersion: k1s0/v1
+
+# リソース種別: enforcement_point_catalog
+kind: EnforcementPointCatalog
+
+# メタデータ
+metadata:
+  # ファイル名と一致させる
+  name: k1s0-tier2-enforcement-points
+  # 適合仕様のリファレンス
+  spec_reference: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
+
+# 4 階層 enforcement_points 定義
+enforcement_points:
+  # 第 1 階層: library_token_bucket
+  # SDK / library 層でのトークンバケットレート制限（クライアント側で先に弾く）
+  - id: library_token_bucket
+    # enforcement レイヤー（クライアント側 SDK 内で動作する）
+    layer: client_sdk
+    # enforcement の説明
+    description: SDK 内のトークンバケットアルゴリズムによる API リクエスト制限
+    # 動作: リクエスト前にトークンを消費する（不足時は即座にエラーを返す）
+    mechanism: token_bucket
+    # 設定パラメータ
+    parameters:
+      # バケット容量（バースト許容量）
+      bucket_capacity_factor: 1.1
+      # トークン補充レート（quota_class の api_requests_per_hour から算出する）
+      refill_rate_source: quota_class.api_requests_per_hour
+      # トークン不足時の動作: fast_fail（即座にエラーを返す）
+      on_exhaustion: fast_fail
+
+  # 第 2 階層: gateway_rate_limit
+  # API ゲートウェイ（Envoy / Nginx）でのレート制限（サーバー側の第一関門）
+  - id: gateway_rate_limit
+    # enforcement レイヤー（API ゲートウェイで動作する）
+    layer: api_gateway
+    # enforcement の説明
+    description: API ゲートウェイによるレート制限（429 Too Many Requests を返す）
+    # 動作: sliding window アルゴリズムで 1 時間あたりのリクエスト数を制限する
+    mechanism: sliding_window
+    # 設定パラメータ
+    parameters:
+      # ウィンドウサイズ（1 時間）
+      window_size_seconds: 3600
+      # 上限ソース（quota_class から読み込む）
+      limit_source: quota_class.api_requests_per_hour
+      # 上限超過時のレスポンスコード
+      response_code: 429
+      # Retry-After ヘッダを付与する
+      retry_after_header: true
+
+  # 第 3 階層: db_conn_limit
+  # PgBouncer / pgpool による DB コネクション数制限（DB 層の第二関門）
+  - id: db_conn_limit
+    # enforcement レイヤー（DB コネクションプーラーで動作する）
+    layer: db_connection_pooler
+    # enforcement の説明
+    description: PgBouncer によるテナント別 DB コネクション数制限
+    # 動作: テナント別の接続プールでコネクション数を制限する
+    mechanism: connection_pool_per_tenant
+    # 設定パラメータ
+    parameters:
+      # 上限ソース（quota_class から読み込む）
+      limit_source: quota_class.db_connections_max
+      # 上限超過時の動作: queue（キューで待機させる）
+      on_limit_exceeded: queue
+      # キューのタイムアウト（秒）
+      queue_timeout_seconds: 5
+
+  # 第 4 階層: infra_resource_limit
+  # Kubernetes ResourceQuota / LimitRange によるインフラリソース制限（最終防衛線）
+  - id: infra_resource_limit
+    # enforcement レイヤー（Kubernetes 層で動作する）
+    layer: kubernetes
+    # enforcement の説明
+    description: Kubernetes ResourceQuota によるテナント別 CPU / Memory 制限
+    # 動作: Namespace 単位の ResourceQuota でリソースを制限する
+    mechanism: k8s_resource_quota
+    # 設定パラメータ
+    parameters:
+      # CPU 上限（quota_class に応じた vCPU 数）
+      cpu_limit_source: quota_class.cpu_vcpu
+      # Memory 上限（quota_class に応じた GB 数）
+      memory_limit_source: quota_class.memory_gb
+      # 上限超過時の動作: reject（Pod 作成を拒否する）
+      on_limit_exceeded: reject

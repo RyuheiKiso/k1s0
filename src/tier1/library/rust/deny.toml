@@ -1,0 +1,19 @@
+# deny.toml — k1s0 tier1 Library Rust: cargo-deny [bans] 設定
+# tier1 Library の公開 API に OSS crate の型を直接露出することを禁止する。
+# L3/L2*/L1+ の facade 越しに間接参照することを強制する。
+# 禁止対象は Kafka / PostgreSQL / Redis 等の OSS crate（直接 use は tier1 境界外）。
+
+[bans]
+# deny: 直接依存を禁止する OSS crate リスト（facade 経由での間接参照のみ許可）
+deny = [
+  # rdkafka: Apache Kafka C ライブラリ（librdkafka）の Rust バインディング（直接使用禁止）
+  { name = "rdkafka" },
+  # rskafka: Kafka の純 Rust 実装クライアント（直接使用禁止）
+  { name = "rskafka" },
+  # sqlx: compile-time 型安全 SQL（repository.rs 内部は tier1 内利用のみ; 公開 API 露出禁止）
+  { name = "sqlx" },
+  # bb8: async connection pool（deadpool / 直接接続プール露出禁止）
+  { name = "bb8" },
+  # deadpool: async connection pool の汎用ライブラリ（直接接続プール露出禁止）
+  { name = "deadpool" },
+]

@@ -1,0 +1,53 @@
+{
+  // VS Code devcontainer 定義（設計方針 27 / 開発者体験）
+  // Rust / Go / Node / dotnet の 4 言語開発環境を統合する
+  "name": "k1s0-tier2-devcontainer",
+  // 使用するコンテナイメージ（ビルド済みの全言語対応イメージ）
+  "image": "harbor.k1s0.internal/k1s0/devcontainer:latest",
+  // devcontainer 起動後に実行するコマンド（依存ツールの最終セットアップ）
+  "postCreateCommand": "rustup update stable && go env GOPATH",
+  // フォワードするポート一覧（tier2-api / PostgreSQL / Kafka）
+  "forwardPorts": [8080, 5432, 9092],
+  // VS Code 拡張機能リスト
+  "customizations": {
+    "vscode": {
+      // インストールする VS Code 拡張機能
+      "extensions": [
+        // Rust Analyzer（Rust LSP サポート）
+        "rust-lang.rust-analyzer",
+        // Go 言語サポート拡張
+        "golang.go",
+        // C# / .NET 開発サポート（dotnet 8+）
+        "ms-dotnettools.csharp",
+        // ESLint（TypeScript / JavaScript 静的解析）
+        "dbaeumer.vscode-eslint",
+        // Prettier（コードフォーマッター）
+        "esbenp.prettier-vscode",
+        // YAML 言語サポート（Kubernetes マニフェスト編集に使用する）
+        "redhat.vscode-yaml",
+        // Docker サポート拡張
+        "ms-azuretools.vscode-docker",
+        // Kubernetes 拡張（クラスターリソースの表示と操作）
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+      ],
+      // VS Code 設定のオーバーライド
+      "settings": {
+        // Rust Analyzer の自動インポート有効化
+        "rust-analyzer.imports.granularity.group": "module",
+        // Go の保存時フォーマット有効化
+        "go.formatTool": "goimports",
+        // dotnet 暗黙的パッケージ復元の有効化
+        "dotnet.automaticWorkspaceInit": true,
+        // エディタのデフォルトフォーマッター
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      }
+    }
+  },
+  // コンテナ内で使用する環境変数
+  "remoteEnv": {
+    // Rust ターゲットディレクトリ（ホストとコンテナで共有しないように分離する）
+    "CARGO_TARGET_DIR": "/workspace/target",
+    // Go モジュールキャッシュパス
+    "GOPATH": "/workspace/.go"
+  }
+}

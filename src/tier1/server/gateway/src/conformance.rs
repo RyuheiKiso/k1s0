@@ -8,38 +8,38 @@ use serde::{Deserialize, Serialize};
 // UUID 生成のインポート
 use uuid::Uuid;
 
-// 5 つの conformance class 定義（generate_capabilities.py の _CONFORMANCE_CLASSES と一致する）
+// 5 つの conformance class 定義（capabilities.lock.yaml / capability_negotiation.rs の正値と一致する）
 pub const CONFORMANCE_CLASSES: &[&str] = &[
-    // 双方向ストリーミング conformance class
-    "v1_bidi_streaming",
-    // 単方向 RPC conformance class
-    "v1_unary_rpc",
-    // サーバーストリーミング conformance class
-    "v1_server_streaming",
-    // クライアントストリーミング conformance class
-    "v1_client_streaming",
-    // Connect プロトコル conformance class
-    "v1_connect_protocol",
+    // インタラクティブ双方向 conformance class（低レイテンシ双方向ストリーム）
+    "v1_interactive",
+    // アラート配信 conformance class（server→client 優先配信）
+    "v1_alert",
+    // イベントフィード conformance class（継続的イベントストリーム）
+    "v1_event_feed",
+    // ライブスナップショット conformance class（状態スナップショット + 差分配信）
+    "v1_live_snapshot",
+    // バルクアップロード conformance class（client→server 大容量転送）
+    "v1_bulk_upload",
 ];
 
-// 8 つの transport adapter 定義（generate_capabilities.py の _ADAPTERS と一致する）
+// 8 つの transport adapter 定義（capabilities.lock.yaml / capability_negotiation.rs の正値と一致する）
 pub const ADAPTERS: &[&str] = &[
-    // gRPC Go アダプター
-    "grpc_go",
-    // gRPC Java アダプター
-    "grpc_java",
-    // gRPC Python アダプター
-    "grpc_python",
-    // gRPC Node.js アダプター
-    "grpc_node",
-    // Connect Go アダプター
-    "connect_go",
-    // Connect Web アダプター
-    "connect_web",
-    // gRPC-Web アダプター
-    "grpc_web",
-    // .NET gRPC アダプター
-    "dotnet_grpc",
+    // gRPC native streaming（tonic bidi — 全 5 class をサポート）
+    "grpc_native",
+    // Connect-RPC bidi streaming（Connect-RPC — 全 5 class）
+    "connect_bidi",
+    // WebTransport H/3（quinn — 全 5 class、requires_fallback=true）
+    "web_transport",
+    // EventSource SSE（v1_alert / v1_event_feed / v1_live_snapshot）
+    "sse_paired",
+    // POST↔SSE 半二重（v1_interactive / v1_alert / v1_event_feed / v1_live_snapshot）
+    "paired_post_sse",
+    // fetch long-poll（v1_event_feed のみ）
+    "long_poll",
+    // HMAC-SHA256 webhook（v1_alert / v1_event_feed / v1_live_snapshot）
+    "webhook",
+    // Kafka messaging bridge（v1_event_feed / v1_live_snapshot / v1_bulk_upload）
+    "messaging_bridge",
 ];
 
 // 1 つの conformance テストセルの結果を表す構造体
@@ -165,9 +165,9 @@ mod tests {
     #[test]
     // cell_id の形式が {conformance_class}__{adapter} であることを確認する
     fn test_cell_id_format() {
-        // 単一セルのテストを実行する
-        let cell = run_cell_test("v1_bidi_streaming", "grpc_go");
+        // 単一セルのテストを実行する（spec 正値 v1_interactive × grpc_native を使用する）
+        let cell = run_cell_test("v1_interactive", "grpc_native");
         // cell_id が期待値と一致することを確認する
-        assert_eq!(cell.cell_id, "v1_bidi_streaming__grpc_go");
+        assert_eq!(cell.cell_id, "v1_interactive__grpc_native");
     }
 }

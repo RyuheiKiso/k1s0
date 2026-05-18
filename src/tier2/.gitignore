@@ -1,0 +1,5 @@
+# Rust build artifacts in standalone tier2 crates
+admin/target/
+attachment/target/
+cqrs/target/
+integration/target/

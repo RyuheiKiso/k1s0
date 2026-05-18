@@ -1,0 +1,49 @@
+# tier2 ABAC: 権限委譲ポリシー（設計方針 09 / 権限モデル）
+# 管理者がユーザーに権限を委譲する際のルールを定義する
+schema_version: "1.0"
+# 対象軸
+axis: tier2
+
+# 権限委譲ルール
+delegation_rules:
+
+  # 委譲の最大有効時間（時間）
+  # 委譲を受けたユーザーはこの時間が経過すると権限が失効する
+  max_duration_hours: 8
+
+  # デュアル承認必須フラグ
+  # true: 委譲を有効にするには 2 名の管理者が承認する必要がある
+  requires_dual_approval: true
+
+  # 委譲できるロールの上限
+  # 委譲元の管理者が持つロールの範囲内のみ委譲可能（権限昇格禁止）
+  max_role_elevation: none
+
+  # 委譲可能なロールのリスト（admin-delegation ポリシーが制御する）
+  allowed_delegation_roles:
+    # テナント読み取り専用ロール
+    - tenant-read-only
+    # テナントオペレーターロール（書き込み可能 / 管理操作不可）
+    - tenant-operator
+    # レポート閲覧ロール
+    - tenant-report-viewer
+
+  # 委譲禁止ロールのリスト（管理者ロールの委譲は禁止する）
+  forbidden_delegation_roles:
+    # テナント管理者ロールの委譲禁止（自己複製防止）
+    - tenant-admin
+    # スーパー管理者ロールの委譲禁止
+    - super-admin
+    # 緊急アクセスロールの委譲禁止
+    - emergency-access
+
+  # 委譲ログポリシー（全委譲操作を監査ログに記録する）
+  audit_policy:
+    # 委譲作成イベントを記録する
+    log_creation: true
+    # 委譲失効イベントを記録する
+    log_expiration: true
+    # 委譲を使用したアクセスイベントを記録する
+    log_usage: true
+    # 監査ログの保持期間（日数）
+    retention_days: 730

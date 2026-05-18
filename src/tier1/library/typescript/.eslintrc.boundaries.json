@@ -1,0 +1,78 @@
+{
+  "_comment": ".eslintrc.boundaries.json — k1s0 tier1 Library TypeScript eslint-plugin-boundaries 設定",
+  "_comment2": "tier1/CLAUDE.md の公開 API OSS 型露出禁止と依存方向の制約を ESLint で強制する。",
+  "plugins": ["boundaries", "import"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "kafkajs",
+            "message": "tier1 Library の公開 API シグネチャに kafkajs の型を露出禁止。MessagingProducer/MessagingConsumer interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@confluentinc/kafka-javascript",
+            "message": "tier1 Library の公開 API シグネチャに confluent kafka の型を露出禁止。MessagingProducer/MessagingConsumer interface 経由でアクセスすること。"
+          },
+          {
+            "name": "pg",
+            "message": "tier1 Library の公開 API シグネチャに pg (node-postgres) の型を露出禁止。DbClient/DbTx interface 経由でアクセスすること。"
+          },
+          {
+            "name": "postgres",
+            "message": "tier1 Library の公開 API シグネチャに postgres.js の型を露出禁止。DbClient/DbTx interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@temporalio/client",
+            "message": "tier1 Library の公開 API シグネチャに Temporal SDK の型を露出禁止。WorkflowClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@temporalio/worker",
+            "message": "tier1 Library の公開 API シグネチャに Temporal worker SDK の型を露出禁止。WorkflowWorker 相当の抽象型を使うこと。"
+          },
+          {
+            "name": "ioredis",
+            "message": "tier1 Library の公開 API シグネチャに ioredis の型を露出禁止。CacheClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@qdrant/js-client-rest",
+            "message": "tier1 Library の公開 API シグネチャに Qdrant client の型を露出禁止。VectorSearchClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@grpc/grpc-js",
+            "message": "tier1 Library の公開 API シグネチャに gRPC の型を露出禁止。RpcUnaryClient/RpcStreamingClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@connectrpc/connect",
+            "message": "tier1 Library の公開 API シグネチャに ConnectRPC の型を露出禁止。RpcUnaryClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@aws-sdk/client-s3",
+            "message": "tier1 Library の公開 API シグネチャに AWS S3 SDK の型を露出禁止。ObjectStorageClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "winston",
+            "message": "tier1 Library の公開 API シグネチャに winston の型を露出禁止。Logger interface 経由でアクセスすること。"
+          },
+          {
+            "name": "pino",
+            "message": "tier1 Library の公開 API シグネチャに pino の型を露出禁止。Logger interface 経由でアクセすること。"
+          },
+          {
+            "name": "@opentelemetry/sdk-trace-base",
+            "message": "tier1 Library の公開 API シグネチャに otel trace SDK の型を露出禁止。Tracer interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@open-policy-agent/opa-wasm",
+            "message": "tier1 Library の公開 API シグネチャに OPA WASM SDK の型を露出禁止。RuleEngineClient interface 経由でアクセスすること。"
+          },
+          {
+            "name": "@confluentinc/schemaregistry",
+            "message": "tier1 Library の公開 API シグネチャに Confluent Schema Registry の型を露出禁止。SchemaRegistryClient interface 経由でアクセスすること。"
+          }
+        ]
+      }
+    ]
+  }
+}

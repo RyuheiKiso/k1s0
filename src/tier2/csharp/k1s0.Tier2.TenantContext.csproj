@@ -17,4 +17,8 @@
     <!-- バージョン -->
     <Version>0.1.0</Version>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Npgsql: PostgreSQL クライアント（NpgsqlTransaction による実 transaction に使用する） -->
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+  </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 # k1s0 tier2 Rust ライブラリクレート: テナント分離の Repository abstraction を提供する
-# tier2 は独立 Cargo workspace として管理する（tier1/server とは別 workspace）
+# Cargo workspace 制約（メンバーはルート配下のみ）により tier2/rust は独立 workspace として管理する。
 [workspace]
 # このディレクトリ自体が workspace メンバー
 members = ["."]
@@ -29,7 +29,13 @@ anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
 # thiserror: エラー型定義ライブラリ（テナント境界違反エラーに使用する）
 thiserror = "1"
+# sqlx: PostgreSQL 非同期クライアント（実 transaction 実行に使用する）
+# features: postgres=Postgres ドライバ / runtime-tokio=tokio 非同期ランタイム
+# uuid=UUID 型ネイティブサポート / chrono=日時型ネイティブサポート / json=jsonb 型サポート
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid", "chrono", "json"] }
+# tokio: 非同期ランタイム（sqlx の runtime-tokio と対で使用する）
+tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
-# tokio: 非同期テストランタイム
+# tokio: 非同期テストランタイム（#[tokio::test] アトリビュートに使用する）
 tokio = { version = "1", features = ["full"] }

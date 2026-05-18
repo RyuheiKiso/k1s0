@@ -1,0 +1,115 @@
+# src/ops/escalation_engine/argo_escalation_workflow.yaml
+# Argo Workflows テンプレート: escalation engine の runbook 自動起動フロー
+# Alertmanager webhook → Tekton Trigger → 本 WorkflowTemplate の順で起動される
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  # WorkflowTemplate 名: k1s0 escalation engine
+  name: k1s0-escalation-engine
+  # ops namespace に配置する
+  namespace: k1s0-ops
+  labels:
+    # k1s0 ops axis に属することを示すラベル
+    k1s0.io/axis: ops
+    # escalation engine コンポーネントを示すラベル
+    k1s0.io/component: escalation-engine
+spec:
+  # entrypoint テンプレート名
+  entrypoint: escalate
+  # arguments: signal_class と IR ticket ID を引数として受け取る
+  arguments:
+    parameters:
+      # 発火した signal_class (v1_slo_breach / v1_capacity_breach 等)
+      - name: signal_class
+        value: v1_slo_breach
+      # incident ID (IR ticket の識別子)
+      - name: incident_id
+        value: ""
+      # 対象テナント slug
+      - name: tenant_slug
+        value: ""
+
+  templates:
+    # escalate: signal_class に応じた runbook を起動するメインテンプレート
+    - name: escalate
+      # steps で順番に実行する
+      steps:
+        # step 1: Mattermost に escalation 開始を通知する
+        - - name: notify-start
+            template: mattermost-notify
+            arguments:
+              parameters:
+                # 通知メッセージに signal_class を含める
+                - name: message
+                  value: "🚨 escalation 開始: signal={{`{{workflow.parameters.signal_class}}`}}, incident={{`{{workflow.parameters.incident_id}}`}}"
+        # step 2: signal_class に応じた runbook pipeline を起動する
+        - - name: run-runbook
+            template: tekton-runbook-trigger
+            arguments:
+              parameters:
+                # signal_class を Tekton Trigger に渡す
+                - name: signal_class
+                  value: "{{`{{workflow.parameters.signal_class}}`}}"
+        # step 3: Mattermost に escalation 完了を通知する
+        - - name: notify-complete
+            template: mattermost-notify
+            arguments:
+              parameters:
+                # 完了通知メッセージ
+                - name: message
+                  value: "✅ runbook 完了: signal={{`{{workflow.parameters.signal_class}}`}}, incident={{`{{workflow.parameters.incident_id}}`}}"
+
+    # mattermost-notify: Mattermost webhook で通知を送信するテンプレート
+    - name: mattermost-notify
+      inputs:
+        parameters:
+          # 送信するメッセージ内容
+          - name: message
+      # container で curl を使って Mattermost webhook を呼び出す
+      container:
+        # curl を含む alpine イメージを使用する
+        image: harbor.k1s0.internal/library/alpine:3.20
+        # Mattermost webhook URL は Secret から読み取る
+        command:
+          - sh
+          - -c
+          # Mattermost incoming webhook に POST する
+          - |
+            curl -s -X POST \
+              -H 'Content-Type: application/json' \
+              -d "{\"text\": \"{{`{{inputs.parameters.message}}`}}\"}" \
+              "$(MATTERMOST_WEBHOOK_URL)"
+        # 環境変数: Mattermost webhook URL を Secret から取得する
+        env:
+          - name: MATTERMOST_WEBHOOK_URL
+            valueFrom:
+              secretKeyRef:
+                # k1s0-ops-secrets Secret から取得する
+                name: k1s0-ops-secrets
+                # webhook URL キー
+                key: mattermost_webhook_url
+
+    # tekton-runbook-trigger: Tekton Trigger API を呼び出して runbook pipeline を起動するテンプレート
+    - name: tekton-runbook-trigger
+      inputs:
+        parameters:
+          # signal_class を受け取る
+          - name: signal_class
+      container:
+        # kubectl を含む bitnami/kubectl イメージを使用する
+        image: harbor.k1s0.internal/library/bitnami-kubectl:1.30
+        # Tekton Trigger の EventListener に curl で webhook を送信する
+        command:
+          - sh
+          - -c
+          - |
+            kubectl create -f - <<EOF
+            apiVersion: tekton.dev/v1
+            kind: PipelineRun
+            metadata:
+              generateName: runbook-{{`{{inputs.parameters.signal_class}}`}}-
+              namespace: k1s0-ops
+            spec:
+              pipelineRef:
+                name: k1s0-runbook-{{`{{inputs.parameters.signal_class}}`}}
+            EOF

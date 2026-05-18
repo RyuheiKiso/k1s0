@@ -1,0 +1,17 @@
+# k1s0 tier2 Rust .cargo/config.toml
+# tier2 Rust クレート固有の cargo 設定（ビルドフラグ・環境変数）を定義する
+# 全開発者・CI で同一のビルド設定を強制する
+
+[env]
+# CFLAGS: C コンパイラフラグを強制する
+# -target x86_64-linux-musl を強制して musl libc にリンクする（Alpine/scratch イメージ対応）
+# force = true: 環境変数が既に設定されている場合も上書きする
+CFLAGS = { value = "-target x86_64-linux-musl", force = true }
+# RUSTFLAGS: Rust コンパイラフラグを追加する
+# -C target-feature=+crt-static: 静的リンクを強制して外部 libc 依存を排除する
+RUSTFLAGS = { value = "-C target-feature=+crt-static", force = false }
+
+[build]
+# target: デフォルトビルドターゲットを設定する（cross-compile 時に使用する）
+# ローカル開発では不要なため行コメントで無効化する（CI で必要な場合は有効化する）
+# target = "x86_64-unknown-linux-musl"

@@ -26,6 +26,8 @@ tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 # serde_json: JSON 値の動的操作（state_read / state_write の Value 型に使用する）
 serde_json = "1"
+# reqwest: 非同期 HTTP クライアント (sidecar port 9999 への IPC 呼び出しに使用する、companion は localhost HTTP のみ TLS 不要)
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
 
 [lib]
 # Tauri が要求するクレートタイプ

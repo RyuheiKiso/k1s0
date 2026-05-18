@@ -52,6 +52,8 @@ TOPO_ORDER: list[str] = [
     "conflict_tree",
     "forbidden_export_symbols",
     "artifact_inventory",
+    "ops_loop",
+    "build_evidence",
     "release_gate",
 ]
 
@@ -94,6 +96,8 @@ def get_generator(name: str) -> type | None:
         "conflict_tree": ("tools.lock_yaml_generator.generate_conflict_tree", "ConflictTreeGenerator"),
         "forbidden_export_symbols": ("tools.lock_yaml_generator.generate_forbidden_export_symbols", "ForbiddenExportSymbolsGenerator"),
         "artifact_inventory": ("tools.lock_yaml_generator.generate_artifact_inventory", "ArtifactInventoryGenerator"),
+        "ops_loop": ("tools.lock_yaml_generator.generate_ops_loop", "OpsLoopGenerator"),
+        "build_evidence": ("tools.lock_yaml_generator.generate_build_evidence", "BuildEvidenceGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }
     if name not in module_map:

@@ -1,0 +1,21 @@
+# k1s0-tier2-cqrs: CQRS 読み取りモデル専用クレート（設計方針 15）
+# 独立クレートとして管理する（workspace メンバーには加えない）
+[package]
+# パッケージ名: k1s0-tier2-cqrs
+name = "k1s0-tier2-cqrs"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# uuid: テナント識別子および集約 ID の UUID 型
+uuid = { version = "1", features = ["v4", "serde"] }
+# serde: シリアライズ / デシリアライズフレームワーク
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON ライブラリ（ドメインイベントペイロードの逆シリアライズに使用する）
+serde_json = "1"
+# anyhow: エラーハンドリング（Result<()> の error type）
+anyhow = "1"
+# chrono: 日時ライブラリ（ReadModel の updated_at フィールドに使用する）
+chrono = { version = "0.4", features = ["serde"] }

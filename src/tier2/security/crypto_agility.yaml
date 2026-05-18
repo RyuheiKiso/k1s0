@@ -1,0 +1,71 @@
+# tier2 暗号アジリティレジストリ（設計方針 19 / セキュリティアーキテクチャ）
+# 使用中の暗号アルゴリズムとマイグレーションパスを定義する
+
+# レジストリスキーマバージョン
+schema_version: "1.0"
+# 対象軸
+axis: tier2
+
+# サポートアルゴリズムレジストリ
+algorithms:
+
+  # 対称暗号: AES-256-GCM（データ暗号化の標準アルゴリズム）
+  - algorithm_id: "SYM-001"
+    # アルゴリズム名
+    name: AES-256-GCM
+    # 用途
+    usage: data_encryption
+    # 状態（active / deprecated / removed）
+    status: active
+    # 鍵長（ビット）
+    key_size_bits: 256
+    # 認証タグ長（ビット）
+    tag_size_bits: 128
+    # マイグレーションパス（将来の置き換え候補）
+    migration_path:
+      # 後継アルゴリズム候補（量子耐性）
+      successor: AES-256-GCM-SIV
+      # マイグレーション条件（量子コンピュータの実用化が近づいた時点）
+      trigger: post_quantum_threat_level_high
+      # マイグレーション手順書参照
+      procedure_ref: "docs/04_詳細設計/02_強制機構/02_tier2強制機構.md"
+
+  # 非対称暗号: ECDSA-P256（コード署名および JWT 署名に使用する）
+  - algorithm_id: "ASYM-001"
+    # アルゴリズム名
+    name: ECDSA-P256
+    # 用途
+    usage: code_signing_and_jwt
+    # 状態
+    status: active
+    # 曲線名
+    curve: P-256
+    # ハッシュ関数
+    hash: SHA-256
+    # マイグレーションパス
+    migration_path:
+      # 後継アルゴリズム候補
+      successor: ECDSA-P384
+      # マイグレーション条件
+      trigger: nist_deprecation_notice
+      # マイグレーション手順書参照
+      procedure_ref: "docs/04_詳細設計/02_強制機構/02_tier2強制機構.md"
+
+  # ハッシュ関数: SHA-256（完全性検証に使用する）
+  - algorithm_id: "HASH-001"
+    # アルゴリズム名
+    name: SHA-256
+    # 用途
+    usage: integrity_verification
+    # 状態
+    status: active
+    # 出力長（ビット）
+    output_size_bits: 256
+    # マイグレーションパス
+    migration_path:
+      # 後継ハッシュ関数候補
+      successor: SHA-3-256
+      # マイグレーション条件
+      trigger: sha2_collision_attack_practical
+      # マイグレーション手順書参照
+      procedure_ref: "docs/04_詳細設計/02_強制機構/02_tier2強制機構.md"

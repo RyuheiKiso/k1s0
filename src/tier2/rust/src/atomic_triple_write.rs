@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 // 日時ライブラリ
 use chrono::{DateTime, Utc};
+// sqlx PostgreSQL クライアント（実 transaction 実行に使用する）
+use sqlx::Postgres;
 // テナントコンテキスト
 use crate::tenant_context::TenantContext;
 
@@ -77,15 +79,14 @@ pub struct TripleWriteResult {
 }
 
 // atomic 三表書込の実行エンジン
-// 実際の DB connection は inject せず、SQL 文字列生成と invariant 検証に集中する
+// sqlx::Transaction を受け取り、P1-P4 invariant を保証する
 #[derive(Debug)]
 pub struct AtomicTripleWrite {
     // テナントコンテキスト（GUC 注入・tenant_id 検証に使用する）
     context: TenantContext,
 }
 
-// execute() の戻り値型: 実際の sqlx::Transaction を受け取る場合のプレースホルダー
-// TODO: sqlx 統合時に sqlx::PgPool を受け取る引数を追加する
+// execute() の戻り値型
 // P1: BEGIN 〜 COMMIT の中で state_change / outbox / audit_event の 3 INSERT を実行する
 // P2: outbox INSERT が失敗した場合は txn を rollback して OutboxInsertFailed を返す
 // P3: tenant_id が GUC と一致しない場合は即座に reject して TransactionError を返す
@@ -95,33 +96,129 @@ pub type ExecuteResult = Result<TripleWriteResult, AtomicWriteError>;
 impl AtomicTripleWrite {
     // AtomicTripleWrite を生成する（TenantContext を受け取る）
     pub fn new(context: TenantContext) -> Self {
+        // TenantContext を格納した AtomicTripleWrite を返す
         Self { context }
     }
 
-    // P1-P4: atomic 三表書込を実行する非同期メソッド（型シグネチャのみ、実 txn は TODO）
-    // TODO: sqlx 統合時に &mut sqlx::Transaction<'_, sqlx::Postgres> を第 2 引数に追加する
-    // 現時点では SQL 文字列生成と invariant 検証のみを行い、Ok(result) を返す
-    pub async fn execute(&self, change: &StateChange) -> ExecuteResult {
+    // P1-P4: atomic 三表書込を実行する非同期メソッド（実 PostgreSQL transaction を使用する）
+    // tx: sqlx::Transaction<'_, Postgres> — 呼び出し元が BEGIN した transaction を受け取る
+    // 呼び出し元は Ok 返却後に tx.commit() を呼ぶ。Err 返却後は tx.rollback() または drop で rollback される。
+    pub async fn execute(
+        &self,
+        // 書込対象の状態変更（P1-P4 の対象）
+        change: &StateChange,
+        // 呼び出し元が管理する PostgreSQL transaction（同一 txn で 3 INSERT を実行する）
+        tx: &mut sqlx::Transaction<'_, Postgres>,
+    ) -> ExecuteResult {
         // P3: tenant_id 一致を事前検証する（GUC と aggregate 行の tenant_id が一致しない場合は即座にエラー）
         self.verify_tenant_id(change)?;
-        // P4: pii_segregated の場合は audit_event への記録が必須であることを検証する
-        let _pii_audit_required = self.verify_pii_audit_required(change);
-        // P1: 三表書込 SQL を生成する（実際の txn 実行は TODO）
-        // TODO: sqlx::Transaction を受け取り、3 INSERT + SET LOCAL を同一 txn で実行する
-        let _sql = self.build_triple_write_sql(change)?;
-        // P2: outbox INSERT が失敗した場合は rollback のためのエラーを返す
-        // TODO: sqlx txn.execute(&sql) の失敗を OutboxInsertFailed にマッピングする
-        // 現時点では成功結果を構築して返す（実 DB 実行なし）
+        // P3: SET LOCAL で 4 GUC を txn スコープに注入する（RLS FORCE が参照する）
+        let set_guc_sql = self.context.to_set_local_sql();
+        // SET LOCAL GUC を実行する（transaction スコープのみ有効、COMMIT で自動破棄される）
+        sqlx::query(&set_guc_sql)
+            .execute(&mut **tx)
+            .await
+            .map_err(|e| AtomicWriteError::TransactionError(e.to_string()))?;
+
+        // P4: pii_segregated の場合は audit_event への記録が必須であることを確認する
+        let pii_required = self.verify_pii_audit_required(change);
+        // pii_required フラグをログとして使用する（実際は audit_event INSERT で常に記録する）
+        let _ = pii_required;
+
+        // Outbox エントリの ID を生成する（P1 の atomic 三表書込で使用する）
         let outbox_id = Uuid::new_v4();
-        // audit_event の ID を生成する
+        // audit_event の ID を生成する（domain_event と audit_event で共有する）
         let audit_event_id = Uuid::new_v4();
-        // 書込完了日時を記録する
-        let committed_at = Utc::now();
-        // TripleWriteResult を返す（実 txn 統合前の型シグネチャ確認用）
+        // 書込完了日時を記録する（3 INSERT で統一した timestamp を使用する）
+        let committed_at: DateTime<Utc> = Utc::now();
+
+        // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
+        // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
+        sqlx::query(
+            r#"
+            INSERT INTO k1s0.domain_event
+                (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
+            VALUES
+                ($1, $2, current_setting('app.tenant_id')::uuid, 'StateChange', $3, $4, $5)
+            "#,
+        )
+        // audit_event_id を domain_event の主キーとして使用する
+        .bind(audit_event_id)
+        // 変更対象の aggregate ID をバインドする
+        .bind(change.aggregate_id)
+        // ペイロードを jsonb 型としてバインドする
+        .bind(&change.payload)
+        // aggregate バージョンをバインドする（楽観的ロックに使用する）
+        .bind(change.version)
+        // 書込完了日時をバインドする
+        .bind(committed_at)
+        // 同一 transaction で実行する（P1 の atomic 書込を保証する）
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| AtomicWriteError::TransactionError(e.to_string()))?;
+
+        // P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+        // P2: この INSERT が失敗した場合は OutboxInsertFailed を返し、呼び出し元が rollback する
+        sqlx::query(
+            r#"
+            INSERT INTO k1s0.outbox
+                (id, aggregate_id, tenant_id, event_kind, payload, created_at)
+            VALUES
+                ($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3, $4)
+            "#,
+        )
+        // outbox エントリの ID をバインドする
+        .bind(outbox_id)
+        // 変更対象の aggregate ID をバインドする
+        .bind(change.aggregate_id)
+        // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
+        .bind(&change.payload)
+        // 書込完了日時をバインドする
+        .bind(committed_at)
+        // 同一 transaction で実行する（P2 の rollback 要件を満たす）
+        .execute(&mut **tx)
+        .await
+        // P2: outbox INSERT 失敗は OutboxInsertFailed にマッピングして rollback を促す
+        .map_err(|e| AtomicWriteError::OutboxInsertFailed(e.to_string()))?;
+
+        // P1+P4: k1s0.audit_event テーブルに INSERT する（全操作を監査記録する）
+        // P4: pii_segregated は pgaudit も併用するが、アプリ層からも必ず audit_event を書く
+        sqlx::query(
+            r#"
+            INSERT INTO k1s0.audit_event
+                (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
+            VALUES
+                ($1, $2, current_setting('app.tenant_id')::uuid,
+                 current_setting('app.actor_id'),
+                 current_setting('app.purpose'),
+                 $3, $4, $5)
+            "#,
+        )
+        // audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
+        .bind(audit_event_id)
+        // 変更対象の aggregate ID をバインドする
+        .bind(change.aggregate_id)
+        // テーブルクラスを文字列としてバインドする
+        .bind(format!("{:?}", change.table_class))
+        // ペイロードを jsonb 型としてバインドする
+        .bind(&change.payload)
+        // 書込完了日時をバインドする
+        .bind(committed_at)
+        // 同一 transaction で実行する（P4 の audit 必須要件を満たす）
+        .execute(&mut **tx)
+        .await
+        // P4: audit_event INSERT 失敗は PiiAuditFailed にマッピングして rollback を促す
+        .map_err(|e| AtomicWriteError::PiiAuditFailed(e.to_string()))?;
+
+        // 三表書込の結果を返す（呼び出し元が tx.commit() を呼ぶことで確定する）
         Ok(TripleWriteResult {
+            // 書込んだ aggregate ID を返す
             aggregate_id: change.aggregate_id,
+            // 書込んだ outbox エントリの ID を返す
             outbox_id,
+            // 書込んだ audit_event の ID を返す
             audit_event_id,
+            // 書込完了日時を返す
             committed_at,
         })
     }
@@ -138,6 +235,7 @@ impl AtomicTripleWrite {
                 row: change.tenant_id,
             });
         }
+        // tenant_id が一致した場合は Ok を返す
         Ok(())
     }
 
@@ -148,7 +246,8 @@ impl AtomicTripleWrite {
     }
 
     // 三表書込に必要な SQL 文字列を生成する（P1 の atomic write の SQL 骨格）
-    // 実際の DB 実行は kind cluster 上の PostgreSQL で行う
+    // 実際の DB 実行は execute() が sqlx::Transaction 経由で行う
+    // このメソッドは単体テスト・デバッグ用に SQL 骨格を確認するために残す
     pub fn build_triple_write_sql(&self, change: &StateChange) -> Result<String, AtomicWriteError> {
         // P3: tenant_id 一致を事前検証する
         self.verify_tenant_id(change)?;
@@ -187,6 +286,7 @@ COMMIT;
             now        = now,
             table_class = format!("{:?}", change.table_class),
         );
+        // 生成した SQL 文字列を返す
         Ok(sql)
     }
 

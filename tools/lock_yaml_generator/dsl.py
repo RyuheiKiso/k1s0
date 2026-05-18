@@ -347,6 +347,98 @@ def eval_bidirectional(expr: str, lock_dir: Path) -> EvalResult:
 
 
 # ---------------------------------------------------------------------------
+# evidence()
+# ---------------------------------------------------------------------------
+
+# 有効な evidence_kind 値の一覧（build artifact 種別）
+_VALID_EVIDENCE_KINDS: frozenset[str] = frozenset([
+    "cargo_build_pass",
+    "pnpm_test_pass",
+    "buf_lint_pass",
+    "buf_lint_observability_pii_pass",
+    "buf_generate_drift_zero",
+    "testcontainers_e2e_pass",
+    "kind_cluster_drill_pass",
+    "pgtap_rls_force_pass",
+    "playwright_8_scenario_pass",
+    "openbao_transit_sign_verify_pass",
+    "axe_core_zero_violation",
+    "cargo_public_api_drift_zero",
+    "cargo_deny_pass",
+    "cargo_test_migration_pair_pass",
+    "eslint_boundaries_pass",
+    "bfl_oidc_e2e_pass",
+    "slo_burn_rate_test_pass",
+    "quota_enforcement_e2e_pass",
+    "atomic_triple_write_4lang_pass",
+    "cross_tenant_e2e_4lang_pass",
+    "vitest_reducer_4subtype_pass",
+    "sdk_dist_5class_e2e_pass",
+    "cosign_verify_pass",
+])
+
+
+def eval_evidence(expr: str, lock_dir: Path) -> EvalResult:
+    """evidence(`lock`, cell_id, kind) == green を評価する。
+
+    書式: evidence(`lock_name`, cell_id, evidence_kind) == green
+
+    評価手順:
+      1. lock_name から build_evidence.lock.yaml 相当の lock を読み込む。
+      2. entries または cells リスト内で cell_id が一致するエントリを探す。
+      3. エントリの build_evidence_id フィールドが kind を含むか確認する。
+      4. 存在・一致すれば green、不在なら yellow、不一致なら red を返す。
+    """
+    # evidence() == green 形式をパースする
+    m = re.fullmatch(
+        r"evidence\((.+?),\s*(.+?),\s*(.+?)\)\s*==\s*green",
+        expr.strip()
+    )
+    if not m:
+        return EvalResult("yellow", f"evidence DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    cell_id = m.group(2).strip().strip("`'\"")
+    kind = m.group(3).strip().strip("`'\"")
+
+    # lock ファイルを読み込む
+    data = _load(lock_dir, lock_name)
+    if not data:
+        # build_evidence.lock.yaml が存在しない場合は yellow (pending)
+        return EvalResult("yellow", f"{lock_name} not found (evidence pending)")
+
+    # entries / cells / obligations / axes いずれかのリストを探す
+    found_entry: dict[str, Any] | None = None
+    for list_key in ("entries", "cells", "evidence_entries"):
+        items = data.get(list_key, [])
+        if isinstance(items, list):
+            for item in items:
+                if isinstance(item, dict):
+                    # cell_id または id フィールドで照合する
+                    if item.get("cell_id") == cell_id or item.get("id") == cell_id:
+                        found_entry = item
+                        break
+        if found_entry:
+            break
+
+    # エントリが見つからない場合は yellow (pending)
+    if found_entry is None:
+        return EvalResult("yellow", f"{cell_id} の evidence エントリが未登録 (pending)")
+
+    # build_evidence_id フィールドを確認する
+    build_evidence_id: Any = found_entry.get("build_evidence_id")
+    if not build_evidence_id:
+        return EvalResult("yellow", f"{cell_id}: build_evidence_id 未設定 (pending)")
+
+    # build_evidence_id が期待する kind を含むか確認する
+    evidence_str = str(build_evidence_id)
+    if kind in evidence_str:
+        return EvalResult("green", f"{cell_id}: evidence {kind!r} confirmed ({evidence_str!r})")
+    else:
+        return EvalResult("red", f"{cell_id}: evidence kind mismatch (expected {kind!r}, got {evidence_str!r})")
+
+
+# ---------------------------------------------------------------------------
 # メインルーター
 # ---------------------------------------------------------------------------
 
@@ -382,5 +474,7 @@ def evaluate_dsl(expr: str, lock_dir: Path) -> EvalResult:
         return eval_len(expr, lock_dir)
     if expr.startswith("bidirectional_lock("):
         return eval_bidirectional(expr, lock_dir)
+    if expr.startswith("evidence("):
+        return eval_evidence(expr, lock_dir)
 
     return EvalResult("yellow", f"DSL 未知パターン: {expr!r}")

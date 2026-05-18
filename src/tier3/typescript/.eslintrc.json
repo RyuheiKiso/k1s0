@@ -27,8 +27,12 @@
       {
         "patterns": [
           {
-            "group": ["*tier1*", "@tier1/*"],
-            "message": "tier3 から tier1 への直接 import を禁止する"
+            "group": ["*tier1*", "@tier1/*", "@k1s0/tier1-*"],
+            "message": "tier3 から tier1 への直接 import を禁止する（tier2 SDK 経由必須）"
+          },
+          {
+            "group": ["@k1s0/tier2-admin-*"],
+            "message": "業務管理 API（tier2-admin）を tier3 業務 UI から直接 import 禁止"
           },
           {
             "group": ["*getAccessToken*", "*get_access_token*"],

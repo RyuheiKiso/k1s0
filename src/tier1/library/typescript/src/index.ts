@@ -1,0 +1,161 @@
+/**
+ * index.ts — k1s0 tier1 Library TypeScript 公開 API エントリーポイント
+ * 05_鍵管理適合仕様.md / 04_認証適合仕様.md / 17 機能カテゴリに基づく 4 言語等価強度 SDK の TypeScript 実装。
+ * 生 key bytes / 生 access_token は公開 API シグネチャに一切露出しない。
+ */
+
+// KeyClass enum + KeyHandle abstract class + StubKeyHandle class を再エクスポートする
+export { KeyClass, KeyHandle, StubKeyHandle } from "./keyHandle.js";
+
+// AuthClass enum + AuthContext class を再エクスポートする
+export { AuthClass, AuthContext } from "./authContext.js";
+
+// Repository<T> interface + RlsBypassError + verifyTenantId を再エクスポートする
+export { Repository, RlsBypassError, verifyTenantId } from "./repository.js";
+
+// Observability L3: Logger / Tracer / MetricMeter / ObservabilityProvider を再エクスポートする
+export type {
+  Attr,
+  Logger,
+  Span,
+  SpanContext,
+  Tracer,
+  MetricMeter,
+  ObservabilityProvider,
+  LogEntry,
+} from "./observability.js";
+export { attr, Severity, SpanKind } from "./observability.js";
+
+// Profiling L2*: Profiler / ContinuousProfiler を再エクスポートする
+export type {
+  ProfileOptions,
+  ProfileSummary,
+  ContinuousProfilerConfig,
+  Profiler,
+  ContinuousProfiler,
+} from "./profiling.js";
+export { ProfileType } from "./profiling.js";
+
+// Configuration / Feature Flag L2*: FeatureFlagClient / ConfigClient を再エクスポートする
+export type {
+  EvalContext,
+  BoolEvalResult,
+  StringEvalResult,
+  NumberEvalResult,
+  ConfigValue,
+  FeatureFlagClient,
+  ConfigClient,
+} from "./config.js";
+export { FlagEvalReason } from "./config.js";
+
+// KeyValue / Cache L3: CacheClient / CacheLock を再エクスポートする
+export type {
+  CacheTtl,
+  CacheSetOptions,
+  CacheClient,
+  CacheLockOptions,
+  CacheLock,
+} from "./cache.js";
+
+// Object Storage L3: ObjectStorageClient / MultipartObjectStorageClient を再エクスポートする
+export type {
+  StorageObjectMeta,
+  StoragePutOptions,
+  StorageGetOptions,
+  StorageListOptions,
+  StorageListResult,
+  PresignedUrlOptions,
+  ObjectStorageClient,
+  MultipartUploadHandle,
+  MultipartObjectStorageClient,
+} from "./storage.js";
+
+// RPC / Gateway L3: RpcUnaryClient / RpcStreamingClient / GatewayHandler を再エクスポートする
+export type {
+  RpcMetadata,
+  RpcCallOptions,
+  RpcStreamClient,
+  RpcUnaryClient,
+  RpcStreamingClient,
+  GatewayRequest,
+  GatewayResponse,
+  GatewayHandler,
+  GatewayMiddleware,
+} from "./rpc.js";
+export { RpcStatusCode, RpcError } from "./rpc.js";
+
+// Messaging / EventBus L1+: MessagingProducer / MessagingConsumer / OutboxRelay を再エクスポートする
+export type {
+  OutboxMessage,
+  DeliveredMessage,
+  MessagingProduceResult,
+  ConsumerGroupOptions,
+  MessagingConsumerHandler,
+  MessagingProducer,
+  MessagingConsumer,
+  OutboxRelay,
+} from "./messaging.js";
+
+// Schema Registry L2*: SchemaRegistryClient / SchemaCodec を再エクスポートする
+export type {
+  SchemaReference,
+  SchemaInfo,
+  SchemaRegistryClient,
+  SchemaCodec,
+} from "./schema.js";
+export { SchemaFormat, CompatibilityMode } from "./schema.js";
+
+// Relational Store / Single-leader L1+: DbClient / DbTx を再エクスポートする
+export type {
+  DbTxOptions,
+  DbTx,
+  DbClient,
+  DbPoolStats,
+} from "./db.js";
+export { DbTxIsoLevel } from "./db.js";
+
+// Relational Store / Distributed SQL L1+: DistributedDbClient / DistributedDbTx を再エクスポートする
+export type {
+  DistributedTxOptions,
+  DistributedDbTx,
+  DistributedDbClient,
+  DistributedDbNodeInfo,
+  BulkInsertOptions,
+  DistributedBulkClient,
+} from "./dbDistributed.js";
+export { DistributedTxPriority } from "./dbDistributed.js";
+
+// Vector Search L1+: VectorSearchClient を再エクスポートする
+export type {
+  Vector,
+  VectorPoint,
+  VectorSearchQuery,
+  VectorSearchResult,
+  HnswConfig,
+  VectorCollectionConfig,
+  VectorSearchClient,
+} from "./vector.js";
+export { VectorDistanceMetric, VectorIndexType } from "./vector.js";
+
+// Workflow / Long-running Saga L1+: WorkflowClient / WorkflowRun を再エクスポートする
+export type {
+  WorkflowOptions,
+  WorkflowExecution,
+  WorkflowRun,
+  WorkflowDescription,
+  WorkflowClient,
+} from "./workflow.js";
+export { WorkflowStatus } from "./workflow.js";
+
+// Rule Engine L1+: RuleEngineClient / CachedRuleEngineClient を再エクスポートする
+export type {
+  PolicyInput,
+  PolicyResult,
+  PolicyBundle,
+  PolicyValidateOptions,
+  RuleEngineClient,
+  CachedRuleEngineClient,
+  PolicyAuditEntry,
+} from "./rules.js";
+export { makePolicyPath } from "./rules.js";
+export type { PolicyPath } from "./rules.js";

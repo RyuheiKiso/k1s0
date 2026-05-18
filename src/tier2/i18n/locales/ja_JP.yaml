@@ -1,0 +1,44 @@
+# tier2 国際化: 日本語ロケール定義（設計方針 26 / ja_JP）
+# 業界中立語のみ使用する（業界固有語禁止規約準拠）
+locale: ja_JP
+# ロケール表示名
+display_name: "日本語"
+
+# メッセージ定義
+messages:
+
+  # エラーメッセージ
+  errors:
+    # テナント分離違反エラー
+    tenant_isolation_violation: "テナント境界違反: 他テナントのリソースへのアクセスは許可されていません"
+    # 認証トークン無効エラー
+    invalid_auth_token: "認証トークンが無効または期限切れです。再ログインしてください"
+    # クォータ超過エラー
+    quota_exceeded: "クォータ上限に達しました。管理者にお問い合わせください"
+    # リソース未発見エラー
+    resource_not_found: "指定されたリソースが見つかりません"
+    # 権限不足エラー
+    insufficient_permission: "この操作を実行する権限がありません"
+    # 内部サーバーエラー
+    internal_server_error: "内部サーバーエラーが発生しました。しばらく経ってから再試行してください"
+    # 入力バリデーションエラー
+    validation_failed: "入力値が不正です: {field} を確認してください"
+
+  # ステータスラベル
+  status:
+    # 処理中ステータス
+    processing: "処理中"
+    # 完了ステータス
+    completed: "完了"
+    # 失敗ステータス
+    failed: "失敗"
+    # 保留ステータス
+    pending: "保留中"
+    # 承認待ちステータス
+    awaiting_approval: "承認待ち"
+    # 承認済みステータス
+    approved: "承認済み"
+    # 却下ステータス
+    rejected: "却下"
+    # 一時停止ステータス
+    suspended: "一時停止中"

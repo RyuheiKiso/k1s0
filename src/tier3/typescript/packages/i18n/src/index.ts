@@ -9,6 +9,7 @@ export { parseICUMessage } from "./icu_parser";
 // ICU 変数マップの型エクスポート（ICUVars）
 export type { ICUVars } from "./icu_parser";
 // 辞書ローダーの全エクスポート（dynamic import / cache / dictGet）
+import type { TranslationDict } from "./dict_loader.js";
 export { loadDict, clearDictCache, dictGet } from "./dict_loader";
 // 辞書ローダーの型エクスポート（DictLocale / TranslationDict）
 export type { DictLocale, TranslationDict } from "./dict_loader";
@@ -24,8 +25,6 @@ export function isSupportedLocale(locale: string): locale is SupportedLocale {
   return (SUPPORTED_LOCALES as readonly string[]).includes(locale);
 }
 
-// 翻訳辞書の型（未定義 key は型エラー）
-export type TranslationDict = Readonly<Record<string, string>>;
 
 // locale 設定（Intl 対応）
 export interface LocaleConfig {

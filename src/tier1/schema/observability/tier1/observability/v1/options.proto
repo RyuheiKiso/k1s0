@@ -1,0 +1,66 @@
+// tier1 観測適合仕様 v1 — メソッドレベル observability annotation 定義
+// tier1/CLAUDE.md §必須 annotation「(tier1.observability.signal_class)」の物理化。
+// RPC メソッドが生成するテレメトリシグナルを機械可読形式で宣言する。
+//
+// Buf custom lint 責務:
+//   - 全 RPC method に (tier1.observability.v1.observability_method) が必須
+//   - SIGNAL_CLASS_UNSPECIFIED を含むメソッドは Buf lint が fail にする
+//   - audit_required=true のメソッドは pgaudit + audit_ingest が強制
+syntax = "proto3";
+
+// パッケージ名: tier1.observability.v1（他の tier1 annotation と同一命名空間）
+package tier1.observability.v1;
+
+// google.protobuf.MethodOptions: メソッドレベル option を定義するために必要
+import "google/protobuf/descriptor.proto";
+
+// Go パッケージパス
+option go_package = "github.com/k1s0-io/k1s0/tier1/observability/v1;observabilityv1";
+// Java クラス名（多ファイル展開）
+option java_multiple_files = true;
+// Java パッケージ名
+option java_package = "io.k1s0.tier1.observability.v1";
+
+// SignalClass は RPC メソッドが生成するテレメトリシグナルの種別を宣言する。
+// 03_観測適合仕様.md §5 signal class セット（logs / metrics / traces / profiles / audit）と 1:1 対応。
+enum SignalClass {
+  // デフォルト（未指定）— Buf lint が fail にする
+  SIGNAL_CLASS_UNSPECIFIED = 0;
+  // LOGS: 構造化ログ出力（OpenTelemetry OTLP → ClickHouse / Loki）
+  LOGS = 1;
+  // METRICS: カウンタ / ヒストグラム / ゲージ（OpenTelemetry OTLP → Prometheus）
+  METRICS = 2;
+  // TRACES: 分散トレーシング（OpenTelemetry OTLP + W3C traceparent → Jaeger）
+  TRACES = 3;
+  // PROFILES: 継続的プロファイリング（pprof → Parca）
+  PROFILES = 4;
+  // AUDIT: セキュリティ / コンプライアンス監査イベント（pgaudit + audit_ingest → ClickHouse）
+  AUDIT = 5;
+}
+
+// ObservabilityMethodOptions は RPC メソッドに付与する observability option セットを宣言する。
+// tier1/CLAUDE.md §必須 annotation「(tier1.observability.observability_method)」の実体。
+message ObservabilityMethodOptions {
+  // signals: このメソッドが生成するテレメトリシグナルの種別一覧（最低 1 つが必須）
+  // 空の場合は Buf lint が fail にする（SIGNAL_CLASS_UNSPECIFIED を含む場合も同様）
+  repeated SignalClass signals = 1;
+  // audit_required: 監査証跡が必須の場合 true を宣言する（pgaudit + audit_ingest が強制される）
+  // audit_required=true の場合 AUDIT が signals に含まれていること（Buf lint が確認する）
+  bool audit_required = 2;
+  // slo_trace_id_required: SLO 追跡用のトレース ID が必須の場合 true を宣言する
+  bool slo_trace_id_required = 3;
+}
+
+// observability_method は RPC メソッドに付与するカスタム option を宣言する。
+// 使用例:
+//   rpc UpdateOrder (UpdateOrderRequest) returns (UpdateOrderResponse) {
+//     option (tier1.observability.v1.observability_method) = {
+//       signals: [LOGS, METRICS, TRACES, AUDIT],
+//       audit_required: true
+//     };
+//   }
+// field_id 50020: tier1 annotation の番号帯（50000–50999 を tier1 が管理する）
+extend google.protobuf.MethodOptions {
+  // observability_method: メソッドごとの observability 属性を宣言する
+  ObservabilityMethodOptions observability_method = 50020;
+}

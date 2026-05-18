@@ -1,0 +1,62 @@
+# k1s0 tier2 cargo-deny 設定ファイル
+# cargo deny check で依存クレートのライセンス・脆弱性・禁止クレートを検証する
+# CI で必須: cargo deny check が fail したら merge 禁止（enforcement 層の 1 つ）
+
+# ===== advisories セクション ==================================================
+# 脆弱性データベース（RustSec Advisory DB）のチェック設定
+[advisories]
+# ignore: 確認済みで無視する CVE ID のリスト（空リスト = 全脆弱性を報告する）
+ignore = []
+
+# ===== licenses セクション ====================================================
+# 依存クレートのライセンスチェック設定
+[licenses]
+# allow: 許可するライセンス一覧（OSS として配布可能なライセンスのみ許可する）
+allow = [
+    # Apache License 2.0: 商用利用可、特許条項付き
+    "Apache-2.0",
+    # MIT License: 商用利用可、シンプル
+    "MIT",
+    # BSD 2-Clause: 商用利用可
+    "BSD-2-Clause",
+    # BSD 3-Clause: 商用利用可
+    "BSD-3-Clause",
+    # ISC License: MIT 互換
+    "ISC",
+    # Unicode-DFS-2016: unicode-ident クレートが使用する
+    "Unicode-DFS-2016",
+    # Zlib License: 商用利用可
+    "Zlib",
+]
+# unlicensed: ライセンスが不明なクレートの扱い（deny = CI fail）
+unlicensed = "deny"
+# copyleft: GPL 系ライセンスの扱い（warn = 警告のみ、deny にすると GPL クレートは全 fail）
+copyleft = "warn"
+
+# ===== bans セクション ========================================================
+# 禁止クレートと重複クレートのチェック設定
+[bans]
+# multiple-versions: 同一クレートの複数バージョンが依存ツリーに存在した場合の扱い
+# warn = 警告のみ（deny にすると semver が異なるバージョンを持つクレートで fail する）
+multiple-versions = "warn"
+# wildcards: ワイルドカード依存（version = "*"）を禁止する（バージョン固定を強制する）
+wildcards = "deny"
+# deny: 禁止クレートのリスト
+# tier2 は tier1 の OSS クレートを直接 public API に露出することを禁止する
+# （tier1 の内部実装クレートを tier2 の public API に leak させない）
+deny = [
+    # 例: tier1 専用の crate を tier2 が直接 import することを禁止する
+    # { name = "k1s0-tier1-server" },
+]
+# skip: 重複バージョンを許容するクレート（推移的依存でバージョン競合が起きる場合に追加する）
+skip = []
+
+# ===== sources セクション =====================================================
+# クレートソースのホワイトリスト設定（crates.io 以外のソースを制限する）
+[sources]
+# unknown-registry: crates.io 以外のレジストリを禁止する
+unknown-registry = "deny"
+# unknown-git: 未知の git ソースを禁止する（git 依存は明示的に allow に追加する）
+unknown-git = "deny"
+# allow-registry: 許可するレジストリ（crates.io のみ許可する）
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

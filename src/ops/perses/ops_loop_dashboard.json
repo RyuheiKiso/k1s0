@@ -1,0 +1,226 @@
+{
+  "$schema": "https://perses.dev/schemas/dashboard/v0.6.0",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "k1s0-ops-loop",
+    "project": "k1s0",
+    "labels": {
+      "k1s0.io/axis": "ops",
+      "k1s0.io/component": "ops-loop"
+    }
+  },
+  "spec": {
+    "display": {
+      "name": "k1s0 ops loop — 5 signal_class × 5 phase",
+      "description": "ops 適合仕様 17: 5 signal_class × 5 phase のリアルタイム監視ダッシュボード"
+    },
+    "duration": "PT1H",
+    "refreshInterval": "PT1M",
+    "panels": {
+      "slo_burn_rate": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "SLO error budget burn rate (v1_slo_breach)",
+            "description": "13 SLO の error budget burn rate の現在値"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "legend": {
+                "position": "bottom",
+                "mode": "list"
+              },
+              "yAxis": {
+                "format": {
+                  "unit": "decimal"
+                }
+              },
+              "thresholds": {
+                "steps": [
+                  {
+                    "value": 6.0,
+                    "color": "yellow"
+                  },
+                  {
+                    "value": 14.4,
+                    "color": "red"
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "sum(rate(k1s0_request_errors_total[1h])) / sum(rate(k1s0_request_total[1h])) / on() group_left() k1s0_slo_error_rate_threshold",
+                    "seriesNameFormat": "burn_rate_1h"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "capacity_usage": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "テナント容量使用率 (v1_capacity_breach)",
+            "description": "テナントごとの volume 使用率"
+          },
+          "plugin": {
+            "kind": "GaugeChart",
+            "spec": {
+              "max": 1.0,
+              "thresholds": {
+                "steps": [
+                  {
+                    "value": 0.8,
+                    "color": "yellow"
+                  },
+                  {
+                    "value": 0.9,
+                    "color": "red"
+                  }
+                ]
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "k1s0_tenant_volume_used_bytes / k1s0_tenant_volume_quota_bytes",
+                    "seriesNameFormat": "{{tenant_id}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ops_loop_phase_status": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "ops loop phase status (5 × 5 cell)",
+            "description": "各 signal_class の現在 phase"
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last",
+              "format": {
+                "unit": "decimal",
+                "decimalPlaces": 0
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "k1s0_ops_loop_active_incidents",
+                    "seriesNameFormat": "{{signal_class}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "error_budget_remaining": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "error budget 残量 (全 SLO)",
+            "description": "13 SLO の error budget 残量合計"
+          },
+          "plugin": {
+            "kind": "TimeSeriesChart",
+            "spec": {
+              "yAxis": {
+                "format": {
+                  "unit": "percentDecimal"
+                }
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "1 - (sum(rate(k1s0_request_errors_total[30d])) / sum(rate(k1s0_request_total[30d]))) / on() group_left() k1s0_slo_error_rate_threshold",
+                    "seriesNameFormat": "error_budget_remaining_30d"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "ops loop — リアルタイム監視"
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/slo_burn_rate"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/capacity_usage"
+              }
+            },
+            {
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/ops_loop_phase_status"
+              }
+            },
+            {
+              "x": 12,
+              "y": 8,
+              "width": 12,
+              "height": 4,
+              "content": {
+                "$ref": "#/spec/panels/error_budget_remaining"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

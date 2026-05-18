@@ -1,0 +1,98 @@
+# tier2 セキュリティアーキテクチャ: 脅威モデルバインディング（設計方針 19）
+# tier2 脅威セルと軽減実装のマッピングを定義する
+
+# バインディングスキーマバージョン
+schema_version: "1.0"
+# 対象軸
+axis: tier2
+# 設計方針参照
+design_policy: "19"
+
+# 脅威セルと軽減実装のマッピングリスト
+threat_bindings:
+
+  # 脅威セル 1: テナント横断 SELECT（クロステナントデータアクセス）
+  - threat_id: "T-TIER2-001"
+    # 脅威名
+    threat_name: cross_tenant_select
+    # 脅威の説明
+    description: "RLS ポリシー欠落により別テナントの行を SELECT できる脅威"
+    # 軽減実装への参照
+    mitigations:
+      # PostgreSQL RLS FORCE ポリシー（テナント GUC 必須設定）
+      - impl_ref: "src/data/rls_policies/"
+        control_type: preventive
+        # 実施状況: P9 で検証済み
+        status: verified
+      # sqlx query! マクロによる compile-time 型安全 SQL
+      - impl_ref: "src/tier2/rust/src/repository.rs"
+        control_type: preventive
+        status: verified
+
+  # 脅威セル 2: 監査ログ改ざん（audit_log テーブルへの不正 UPDATE / DELETE）
+  - threat_id: "T-TIER2-002"
+    # 脅威名
+    threat_name: audit_tampering
+    # 脅威の説明
+    description: "audit_log テーブルへの不正な UPDATE / DELETE による証跡消去"
+    # 軽減実装への参照
+    mitigations:
+      # pgaudit 拡張による DDL / DML 監査（P9 で実装済み）
+      - impl_ref: "src/data/pgaudit_config/"
+        control_type: detective
+        status: verified
+      # atomic 三表書込の rollback 不可設計
+      - impl_ref: "src/tier2/rust/src/atomic_triple_write.rs"
+        control_type: preventive
+        status: verified
+
+  # 脅威セル 3: KEK ローテーション失敗（鍵更新中のデータアクセス不能）
+  - threat_id: "T-TIER2-003"
+    # 脅威名
+    threat_name: kek_rotation_failure
+    # 脅威の説明
+    description: "OpenBao Transit KEK ローテーション中の暗号化 / 復号失敗"
+    # 軽減実装への参照
+    mitigations:
+      # OpenBao Transit の key_handle ローテーション設計
+      - impl_ref: "src/tier2/security/secret_rotation_policy.yaml"
+        control_type: preventive
+        status: verified
+      # エンベロープ暗号化による旧 KEK でのフォールバック復号
+      - impl_ref: "src/tier2/attachment/src/envelope_encryption.rs"
+        control_type: corrective
+        status: verified
+
+  # 脅威セル 4: セッションハイジャック（Bearer トークン窃取と再利用）
+  - threat_id: "T-TIER2-004"
+    # 脅威名
+    threat_name: session_hijack
+    # 脅威の説明
+    description: "Bearer トークン窃取による不正なテナント操作"
+    # 軽減実装への参照
+    mitigations:
+      # セッションキーの短期 TTL（8h ローテーション）
+      - impl_ref: "src/tier2/security/secret_rotation_policy.yaml"
+        control_type: preventive
+        status: verified
+      # Keycloak セッション無効化 API 連携
+      - impl_ref: "src/tier2/admin/src/admin_boundary.rs"
+        control_type: detective
+        status: verified
+
+  # 脅威セル 5: サプライチェーン攻撃（悪意ある依存クレートの混入）
+  - threat_id: "T-TIER2-005"
+    # 脅威名
+    threat_name: supply_chain_attack
+    # 脅威の説明
+    description: "悪意ある依存クレートの混入によるランタイム侵害"
+    # 軽減実装への参照
+    mitigations:
+      # cargo-deny による依存ライセンス / advisory チェック
+      - impl_ref: "src/tier2/rust/deny.toml"
+        control_type: preventive
+        status: verified
+      # Harbor と cosign による OCI イメージ署名検証
+      - impl_ref: "src/tier2/security/crypto_agility.yaml"
+        control_type: preventive
+        status: verified

@@ -1,0 +1,62 @@
+# tier2 Helm チャート: Deployment テンプレート（設計方針 22 / 配布形態）
+# k1s0-tier2 Pod を管理する Kubernetes Deployment リソースの定義
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Deployment 名（Helm release 名をプレフィックスとする）
+  name: {{ include "k1s0-tier2.fullname" . }}
+  # デプロイ先 Namespace（helm install の --namespace で指定する）
+  namespace: {{ .Release.Namespace }}
+  # Deployment ラベル（Helm が管理するラベルセット）
+  labels:
+    {{- include "k1s0-tier2.labels" . | nindent 4 }}
+spec:
+  # レプリカ数（values.yaml の replicaCount から取得する）
+  replicas: {{ .Values.replicaCount }}
+  # Pod 選択ラベル（Deployment が管理する Pod を識別する）
+  selector:
+    matchLabels:
+      {{- include "k1s0-tier2.selectorLabels" . | nindent 6 }}
+  # Pod テンプレート定義
+  template:
+    metadata:
+      # Pod ラベル（selector.matchLabels と一致させる）
+      labels:
+        {{- include "k1s0-tier2.selectorLabels" . | nindent 8 }}
+    spec:
+      # Pod セキュリティコンテキスト（非 root 実行 / production / development 区別禁止規約準拠）
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        # tier2-api コンテナ定義
+        - name: tier2-api
+          # コンテナイメージ（repository:tag の形式で組み立てる）
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          # イメージプルポリシー
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # コンテナがリッスンするポート
+          ports:
+            # HTTP API ポート
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Liveness プローブ（Pod が生存していることを確認する）
+          livenessProbe:
+            httpGet:
+              # ヘルスチェックエンドポイント
+              path: /healthz
+              port: http
+            # 初期遅延（コンテナ起動完了を待つ）
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          # Readiness プローブ（Pod がトラフィックを受け入れる準備ができているか確認する）
+          readinessProbe:
+            httpGet:
+              # 準備完了チェックエンドポイント
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          # リソース制限（values.yaml から取得する）
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

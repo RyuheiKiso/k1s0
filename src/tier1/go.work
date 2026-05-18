@@ -7,6 +7,10 @@ use (
 	../tier2/go
 	// tier3 クライアント状態（4 言語等価強度 Go 実装）
 	../tier3/go
+	// tier1 Library（4 言語等価強度: KeyHandle / AuthContext / Repository）
+	./library/go
 	// Tier1Service CRD Reconciler（controller-runtime 使用）
 	./operator
+	// buf generate 出力（protobuf 生成型）
+	./schema/gen/go
 )

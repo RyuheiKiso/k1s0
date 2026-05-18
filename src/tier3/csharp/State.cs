@@ -1,8 +1,50 @@
 // k1s0 tier3 4 layer client state reducer（C# .NET 8+ 等価強度実装）
 // TypeScript primary と同等の抽象を C# で実装する
 // 適合仕様 11_クライアント状態適合仕様.md の v1 layer セットに準拠する
+// Phase E: FieldDiff disjoint/intersect 分岐 + ChainIdempotencyKey を追加する
 
 namespace K1s0.Tier3.State;
+
+// FieldDiff は field-level diff を表す record（TypeScript FieldDiff と等価）
+public sealed record FieldDiff(
+    // client が変更したフィールド名のリスト
+    IReadOnlyList<string> ClientFields,
+    // server が変更したフィールド名のリスト
+    IReadOnlyList<string> ServerFields
+)
+{
+    // IsDisjoint: client と server の変更フィールドが disjoint かどうかを返す
+    // true = rebase_clean（auto resend 可能）
+    // false = rebase_dirty（3way merge UI 必要）
+    public bool IsDisjoint =>
+        // client フィールドの HashSet を生成して O(1) 検索を可能にする
+        !ServerFields.Any(f => ClientFields.Contains(f));
+
+    // Intersecting: client と server の変更フィールドの交差（共通部分）を返す
+    public IReadOnlyList<string> Intersecting =>
+        // 交差フィールドを LINQ で取得する
+        ServerFields.Where(f => ClientFields.Contains(f)).ToList();
+}
+
+// ChainIdempotencyKey: base key から chain された新しい idempotency key を生成する
+// TypeScript の chainIdempotencyKey（outbox.ts）と等価の実装
+public static class IdempotencyKeyHelper
+{
+    // ChainIdempotencyKey: base から chain された新しい key を生成する
+    // base: 元の idempotency key（chain 親）
+    // next: 追加の識別子（aggregate ID + method のハッシュ等）
+    public static string ChainIdempotencyKey(string @base, string next)
+    {
+        // ランダムサフィックスを生成する（Guid で UUID v4 相当）
+        var randomSuffix = Guid.NewGuid().ToString("N")[..16];
+        // base の先頭 12 文字を prefix に使用する（長すぎる場合は切り詰める）
+        var basePrefix = @base.Length > 12 ? @base[..12] : @base;
+        // next の先頭 8 文字を prefix に使用する
+        var nextPrefix = next.Length > 8 ? next[..8] : next;
+        // chain された key を生成する（base_prefix + next_prefix + random_suffix）
+        return $"{basePrefix}_{nextPrefix}_{randomSuffix}";
+    }
+}
 
 // layer を識別する enum
 public enum LayerId
@@ -27,8 +69,13 @@ public sealed record OptimisticAcknowledgedEvent(string IdempotencyKey, long Con
 public sealed record OptimisticRejectedEvent(string IdempotencyKey, string ErrorCode, BusinessConflictSubtype? ConflictSubtype = null) : ConflictEvent;
 // ネットワーク復帰 / アプリ再開
 public sealed record PendingQueueResumeEvent(string ResumeReason = "network_recovery") : ConflictEvent;
-// api_response_409 + subtype
-public sealed record BusinessConflictReceivedEvent(BusinessConflictSubtype Subtype, string AggregateId) : ConflictEvent;
+// api_response_409 + subtype（FieldDiff 付き）
+public sealed record BusinessConflictReceivedEvent(
+    BusinessConflictSubtype Subtype,
+    string AggregateId,
+    // field-level diff（stale_write / lost_update 判定に使用、null は safe 側フォールバック）
+    FieldDiff? FieldDiff = null
+) : ConflictEvent;
 
 // BusinessConflict subtype（4 種固定）
 public enum BusinessConflictSubtype
@@ -139,8 +186,8 @@ public static class ClientStateReducer
             OptimisticRejectedEvent(var key, var code, var subtype) => ReduceOptimisticRejected(state, key, code, subtype),
             // pending_queue_resume: PQ を in-order で送信する
             PendingQueueResumeEvent => ReducePendingQueueResume(state),
-            // business_conflict_received: subtype に応じて決定論的に dispatch する
-            BusinessConflictReceivedEvent(var subtype, _) => ReduceBusinessConflict(state, subtype),
+            // business_conflict_received: subtype に応じて決定論的に dispatch する（FieldDiff 分岐含む）
+            BusinessConflictReceivedEvent(var subtype, _, var fieldDiff) => ReduceBusinessConflict(state, subtype, fieldDiff),
             // 網羅性チェック（新 event 追加時はコンパイルエラー）
             _ => throw new ArgumentOutOfRangeException(nameof(ev), $"Unknown event: {ev.GetType().Name}"),
         };
@@ -201,14 +248,16 @@ public static class ClientStateReducer
         return new(state, [new SendQueueInOrderAction()]);
     }
 
-    // business_conflict_received の reducer
-    private static ReducerResult ReduceBusinessConflict(ClientState state, BusinessConflictSubtype subtype)
+    // business_conflict_received の reducer（FieldDiff 分岐あり）
+    private static ReducerResult ReduceBusinessConflict(ClientState state, BusinessConflictSubtype subtype, FieldDiff? fieldDiff = null)
     {
         // subtype に応じて決定論的に actions を返す（分岐 override 禁止）
         return subtype switch
         {
-            // stale_write: safe 側（dirty）に倒して 3way merge UI + hold
-            BusinessConflictSubtype.StaleWrite or BusinessConflictSubtype.LostUpdate =>
+            // stale_write: FieldDiff.IsDisjoint で rebase_clean/dirty を分岐する
+            BusinessConflictSubtype.StaleWrite => ReduceStaleWrite(state, fieldDiff),
+            // lost_update: safe 側（dirty）に倒して 3way merge UI + hold
+            BusinessConflictSubtype.LostUpdate =>
                 new(state with { QueueHeld = true }, [new Present3WayMergeUiAction(), new HoldQueueAction()]),
             // supersede: PQ 先頭 entry 削除 + silent toast
             BusinessConflictSubtype.Supersede => ReduceSupersede(state),
@@ -218,6 +267,29 @@ public static class ClientStateReducer
             // 網羅性チェック
             _ => throw new ArgumentOutOfRangeException(nameof(subtype)),
         };
+    }
+
+    // stale_write の reducer（FieldDiff.IsDisjoint で rebase_clean/dirty を分岐する）
+    private static ReducerResult ReduceStaleWrite(ClientState state, FieldDiff? fieldDiff)
+    {
+        // FieldDiff が存在し disjoint の場合は rebase_clean → auto resend
+        if (fieldDiff is { IsDisjoint: true })
+        {
+            // OL の idempotency key を取得して chain する
+            var baseKey = state.OptimisticLocalKey ?? "unknown";
+            // chain された新しい idempotency key を生成する
+            var newKey = IdempotencyKeyHelper.ChainIdempotencyKey(baseKey, "rebase");
+            // OL を rollback して auto resend する
+            var nextState = state with { OptimisticLocalKey = null };
+            return new(nextState, [
+                new RollbackOptimisticAction(),
+                new SendQueueInOrderAction(),
+                // chain した新 key を detail に含む silent toast で通知する
+                new NotifySilentToastAction($"rebase_clean: auto resend with key={newKey}"),
+            ]);
+        }
+        // FieldDiff がない / intersecting の場合は rebase_dirty → 3way merge UI + hold
+        return new(state with { QueueHeld = true }, [new Present3WayMergeUiAction(), new HoldQueueAction()]);
     }
 
     // supersede の reducer

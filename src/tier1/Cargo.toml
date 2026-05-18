@@ -1,0 +1,42 @@
+# k1s0 tier1 Cargo workspace root
+# tier1/CLAUDE.md「Cargo workspace root: src/tier1/Cargo.toml」の物理化。
+# Library Rust と tier2 Rust を同一 workspace に統合し、依存バージョンを一元管理する。
+# server/* は src/tier1/server/Cargo.toml で独立 workspace として管理する。
+[workspace]
+# Cargo workspace resolver v2 を使用する（feature unification の精度向上）
+resolver = "2"
+# Library Rust を workspace に含める
+# NOTE: Cargo は workspace メンバーがルート配下である制約あり。tier2/rust は独立 workspace で管理する。
+members = [
+    # tier1 Library Rust: KeyHandle / AuthContext / Repository<T> の 4 言語等価 SDK Rust 実装
+    "library/rust",
+    # tier2 Rust: TenantContext / AtomicTripleWrite / Outbox / Repository の Rust 実装
+]
+
+[workspace.dependencies]
+# serde: シリアライズ/デシリアライズ（derive feature を有効化する）
+serde = { version = "1", features = ["derive"] }
+# anyhow: エラーハンドリング（Result 型の統一）
+anyhow = "1"
+# thiserror: エラー型定義（tier2 テナント境界違反エラー等に使用する）
+thiserror = "1"
+# uuid: UUID v4/v7 生成（セッション ID / aggregate_id / trace_id に使用する）
+uuid = { version = "1", features = ["v4", "serde"] }
+# chrono: 日時ライブラリ（timestamp / step_up_proven_at に使用する）
+chrono = { version = "0.4", features = ["serde"] }
+# serde_json: JSON ライブラリ（OpenBao API / payload 変換に使用する）
+serde_json = "1"
+# tokio: 非同期ランタイム（async fn / join / select に使用する）
+tokio = { version = "1", features = ["full"] }
+# tracing: 構造化ロギング（audit_event emit / span propagation に使用する）
+tracing = "0.1"
+# zeroize: 機密データのゼロクリア（KeyHandle / KeyMaterial drop 時に使用する）
+zeroize = { version = "1", features = ["derive"] }
+# sqlx: compile-time 型安全 SQL（postgres + uuid + chrono + json feature を統合する）
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
+# async-trait: async fn in trait を stable で使用するためのマクロ
+async-trait = "0.1"
+# reqwest: HTTP クライアント（OpenBao Transit API 呼び出しに使用する）
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+# base64: OpenBao Transit API の input / plaintext フィールド用 Base64 エンコード
+base64 = "0.22"

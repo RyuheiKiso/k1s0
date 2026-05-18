@@ -313,6 +313,155 @@ async fn get_sidecar_version() -> impl IntoResponse {
     (StatusCode::OK, env!("CARGO_PKG_VERSION")).into_response()
 }
 
+// ヘルスチェックレスポンスを表す構造体
+#[derive(Debug, Serialize)]
+struct HealthResponse {
+    // サービス稼働状態 ("ok" を返す)
+    status: String,
+    // バイナリバージョン (Cargo.toml の package.version から埋め込む)
+    version: String,
+}
+
+// 状態同期リクエストを表す構造体 (Tauri companion から受け取る)
+#[derive(Debug, Deserialize)]
+struct StateSyncRequest {
+    // 同期対象レイヤ名 (spec 正値: server_truth / optimistic_local / pending_queue / draft)
+    layer: String,
+    // BFF 転送先エンドポイント URL (省略時はローカル受理のみ)
+    bff_url: Option<String>,
+    // 同期するエントリリスト (JSON 値のベクター)
+    entries: Vec<serde_json::Value>,
+}
+
+// 状態同期レスポンスを表す構造体
+#[derive(Debug, Serialize)]
+struct StateSyncResponse {
+    // 同期成功フラグ
+    success: bool,
+    // 同期済みエントリ数
+    synced_count: usize,
+    // エラーメッセージ (失敗時のみ存在する)
+    error: Option<String>,
+}
+
+// ヘルスチェックハンドラ: サービス稼働状態と現在バージョンを返す
+async fn health_check() -> impl IntoResponse {
+    // ヘルスチェックレスポンスを構築する
+    let resp = HealthResponse {
+        // 稼働状態 "ok" を設定する
+        status: "ok".to_string(),
+        // Cargo.toml から埋め込まれたバージョン文字列を設定する
+        version: env!("CARGO_PKG_VERSION").to_string(),
+    };
+    // ヘルスチェックログを出力する
+    info!("ヘルスチェック OK: version={}", resp.version);
+    // JSON レスポンスを返す
+    (StatusCode::OK, Json(resp)).into_response()
+}
+
+// 状態同期ハンドラ: Tauri companion から受け取った状態を BFF に転送する
+async fn state_sync_handler(
+    // リクエストボディ (JSON 形式の StateSyncRequest) を受け取る
+    Json(req): Json<StateSyncRequest>,
+) -> impl IntoResponse {
+    // 同期対象レイヤとエントリ数をログに出力する
+    info!("状態同期リクエスト受信: layer={}, entries={}", req.layer, req.entries.len());
+    // BFF URL が指定されている場合は転送する
+    if let Some(bff_url) = req.bff_url {
+        // reqwest クライアントをタイムアウト 10 秒で生成する
+        let client = match reqwest::Client::builder()
+            // タイムアウトを 10 秒に設定する
+            .timeout(Duration::from_secs(10))
+            // クライアントをビルドする
+            .build()
+        {
+            // クライアント生成成功の場合は続行する
+            Ok(c) => c,
+            // クライアント生成失敗の場合はエラーレスポンスを返す
+            Err(e) => {
+                // クライアント生成失敗ログを記録する
+                error!("reqwest クライアント生成失敗: {}", e);
+                // エラーレスポンスを構築して返す
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(StateSyncResponse {
+                    // 失敗フラグを設定する
+                    success: false,
+                    // 同期済みエントリ数を 0 に設定する
+                    synced_count: 0,
+                    // エラーメッセージを設定する
+                    error: Some(format!("reqwest クライアント生成失敗: {}", e)),
+                })).into_response();
+            }
+        };
+        // BFF に転送するペイロードを構築する (layer と entries を含む JSON オブジェクト)
+        let payload = serde_json::json!({
+            // 同期対象レイヤ名を設定する
+            "layer": req.layer,
+            // エントリリストを設定する
+            "entries": req.entries,
+        });
+        // BFF エンドポイントに POST リクエストを送信する
+        match client.post(&bff_url).json(&payload).send().await {
+            // BFF 転送成功の場合は結果を返す
+            Ok(response) => {
+                // BFF レスポンスが成功 (2xx) かどうかを確認する
+                if response.status().is_success() {
+                    // 転送成功ログを出力する
+                    info!("BFF 転送成功: url={}, entries={}", bff_url, req.entries.len());
+                    // 成功レスポンスを返す
+                    (StatusCode::OK, Json(StateSyncResponse {
+                        // 成功フラグを設定する
+                        success: true,
+                        // 同期済みエントリ数を設定する
+                        synced_count: req.entries.len(),
+                        // エラーなし
+                        error: None,
+                    })).into_response()
+                } else {
+                    // BFF からのエラーレスポンスのステータスコードを取得する
+                    let status = response.status();
+                    // BFF エラーログを記録する
+                    warn!("BFF 転送失敗: url={}, status={}", bff_url, status);
+                    // エラーレスポンスを返す
+                    (StatusCode::BAD_GATEWAY, Json(StateSyncResponse {
+                        // 失敗フラグを設定する
+                        success: false,
+                        // 同期済みエントリ数を 0 に設定する
+                        synced_count: 0,
+                        // BFF からのエラーステータスを含むメッセージを設定する
+                        error: Some(format!("BFF エラー: HTTP {}", status)),
+                    })).into_response()
+                }
+            }
+            // reqwest 送信失敗 (ネットワークエラー等) の場合はエラーを返す
+            Err(e) => {
+                // 転送失敗ログを記録する
+                error!("BFF 転送失敗: url={}, error={}", bff_url, e);
+                // エラーレスポンスを返す
+                (StatusCode::SERVICE_UNAVAILABLE, Json(StateSyncResponse {
+                    // 失敗フラグを設定する
+                    success: false,
+                    // 同期済みエントリ数を 0 に設定する
+                    synced_count: 0,
+                    // エラーメッセージを設定する
+                    error: Some(format!("BFF 転送失敗: {}", e)),
+                })).into_response()
+            }
+        }
+    } else {
+        // BFF URL が指定されていない場合はローカル受理のみ行う
+        info!("状態同期: BFF URL なし、ローカル受理: layer={}, entries={}", req.layer, req.entries.len());
+        // ローカル受理成功レスポンスを返す
+        (StatusCode::OK, Json(StateSyncResponse {
+            // 成功フラグを設定する
+            success: true,
+            // 同期済みエントリ数を設定する
+            synced_count: req.entries.len(),
+            // エラーなし
+            error: None,
+        })).into_response()
+    }
+}
+
 // メイン関数: Sidecar HTTP サーバーを起動する
 #[tokio::main]
 async fn main() {
@@ -333,6 +482,10 @@ async fn main() {
 
     // axum ルーターを構築する
     let app = Router::new()
+        // ヘルスチェックエンドポイントを登録する (Tauri companion が死活監視に使用する)
+        .route("/health", get(health_check))
+        // 状態同期エンドポイントを登録する (Tauri companion から BFF へ状態を転送する)
+        .route("/state/sync", post(state_sync_handler))
         // シリアルポート一覧取得エンドポイントを登録する
         .route("/serial/list", get(list_serial_ports))
         // シリアルポート接続エンドポイントを登録する

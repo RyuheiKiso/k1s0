@@ -14,6 +14,8 @@ package atomictriplewrite
 import (
 	// context パッケージ: Execute の ctx 引数に使用する
 	"context"
+	// database/sql パッケージ: *sql.Tx による実 transaction に使用する
+	"database/sql"
 	// errors パッケージ: エラー生成に使用する
 	"errors"
 	// fmt パッケージ: SQL 文字列フォーマットに使用する
@@ -27,6 +29,8 @@ import (
 	"github.com/google/uuid"
 	// tenantcontext パッケージ: TenantContext を受け取る
 	"github.com/k1s0/tier2/tenantcontext"
+	// pgx stdlib ドライバ: database/sql 互換ドライバとして pgx を登録する
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // TableClass: 書込対象テーブルクラス（10_テナント分離適合仕様.md の 4 class と一致する）
@@ -117,7 +121,7 @@ type TripleWriteResult struct {
 }
 
 // AtomicTripleWrite: atomic 三表書込の実行エンジン
-// pgx/v5 の pgx.Tx を受け取る execute メソッドを持つ
+// database/sql の *sql.Tx を受け取る Execute メソッドを持つ
 // TenantContext を使って GUC 注入と tenant_id 検証を行う
 type AtomicTripleWrite struct {
 	// テナントコンテキスト（GUC 注入・tenant_id 検証に使用する）
@@ -149,8 +153,8 @@ func (a *AtomicTripleWrite) VerifyPiiAuditRequired(change *StateChange) bool {
 	return change.TableClass == TableClassPiiSegregated
 }
 
-// BuildTripleWriteSQL: P1 の atomic write に必要な SQL 文字列を生成する
-// 実際の DB 実行は pgx.Tx 経由で Execute() が行う
+// BuildTripleWriteSQL: P1 の atomic write に必要な SQL 文字列を生成する（デバッグ・テスト用）
+// 実際の DB 実行は Execute() が *sql.Tx 経由で行う
 func (a *AtomicTripleWrite) BuildTripleWriteSQL(change *StateChange) (string, error) {
 	// P3: tenant_id 一致を事前検証する
 	if err := a.VerifyTenantID(change); err != nil {
@@ -195,13 +199,14 @@ COMMIT;
 	return sql, nil
 }
 
-// Execute: P1-P4 — atomic 三表書込を実行する非同期メソッド（型シグネチャのみ、実 txn は TODO）
-// TODO: pgx 統合時に pgx.Tx を第 2 引数に追加する
-// P1: BEGIN 〜 COMMIT の中で state_change / outbox / audit_event の 3 INSERT を実行する
-// P2: outbox INSERT が失敗した場合は txn を rollback して ErrOutboxInsertFailed を返す
+// Execute: P1-P4 — atomic 三表書込を実行する非同期メソッド（実 *sql.Tx を使用する）
+// tx: 呼び出し元が BEGIN した *sql.Tx を受け取る
+// 呼び出し元は Ok 返却後に tx.Commit() を呼ぶ。エラー返却後は tx.Rollback() を呼ぶ。
+// P1: state_change / outbox / audit_event の 3 INSERT を同一 tx で実行する
+// P2: outbox INSERT が失敗した場合は ErrOutboxInsertFailed を返し、呼び出し元が Rollback する
 // P3: tenant_id が GUC と一致しない場合は即座に reject して ErrTenantIdMismatch を返す
-// P4: pii_segregated テーブルへのアクセスは audit_event に記録してから txn を実行する
-func (a *AtomicTripleWrite) Execute(ctx context.Context, change *StateChange) (*TripleWriteResult, error) {
+// P4: pii_segregated テーブルへのアクセスは audit_event に記録してから tx を実行する
+func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *StateChange) (*TripleWriteResult, error) {
 	// ctx の cancel を確認する（ctx.Done() で cancel 済みの場合は即座にエラーを返す）
 	select {
 	case <-ctx.Done():
@@ -210,33 +215,116 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, change *StateChange) (*
 	default:
 		// context がアクティブな場合は処理を続行する
 	}
+
 	// P3: tenant_id 一致を事前検証する（GUC と aggregate 行の tenant_id が一致しない場合は即座にエラー）
 	if err := a.VerifyTenantID(change); err != nil {
-		// 検証失敗の場合はエラーを返す
+		// 検証失敗の場合はエラーを返す（呼び出し元が Rollback を呼ぶ）
 		return nil, err
 	}
+
 	// P4: pii_segregated の場合は audit_event への記録が必須であることを確認する
 	_ = a.VerifyPiiAuditRequired(change)
-	// P1: 三表書込 SQL を生成する（実際の txn 実行は TODO）
-	// TODO: pgx.Tx を受け取り、3 INSERT + SET LOCAL を同一 txn で実行する
-	_, err := a.BuildTripleWriteSQL(change)
-	if err != nil {
-		// SQL 生成失敗の場合はエラーを返す
-		return nil, err
+
+	// P3: SET LOCAL で 4 GUC を txn スコープに注入する（RLS FORCE が参照する）
+	setGUC := a.context.ToSetLocalSQL()
+	// SET LOCAL GUC を tx 内で実行する（transaction スコープのみ有効）
+	if _, err := tx.ExecContext(ctx, setGUC); err != nil {
+		// GUC 注入失敗はトランザクションエラーとして返す
+		return nil, fmt.Errorf("%w: set local guc failed: %v", ErrTransactionFailed, err)
 	}
-	// P2: outbox INSERT が失敗した場合は rollback のためのエラーを返す
-	// TODO: pgx.Tx.Exec(&sql) の失敗を ErrOutboxInsertFailed にマッピングする
-	// 現時点では成功結果を構築して返す（実 DB 実行なし）
+
+	// outbox エントリの ID を生成する（P1 の atomic 三表書込で使用する）
 	outboxID := uuid.New()
-	// audit_event の ID を生成する
+	// audit_event の ID を生成する（domain_event と audit_event で共有する）
 	auditEventID := uuid.New()
-	// 書込完了日時を記録する
+	// 書込完了日時を記録する（3 INSERT で統一した timestamp を使用する）
 	committedAt := time.Now().UTC()
-	// TripleWriteResult を返す（実 txn 統合前の型シグネチャ確認用）
+
+	// P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
+	// current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
+	const domainEventSQL = `
+		INSERT INTO k1s0.domain_event
+			(id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
+		VALUES
+			($1, $2, current_setting('app.tenant_id')::uuid, 'StateChange', $3::jsonb, $4, $5)
+	`
+	// domain_event INSERT を tx 内で実行する（P1 の atomic 書込を保証する）
+	if _, err := tx.ExecContext(ctx, domainEventSQL,
+		// audit_event_id を domain_event の主キーとして使用する
+		auditEventID,
+		// 変更対象の aggregate ID をバインドする
+		change.AggregateID,
+		// ペイロードを jsonb 文字列としてバインドする
+		change.Payload,
+		// aggregate バージョンをバインドする（楽観的ロックに使用する）
+		change.Version,
+		// 書込完了日時をバインドする
+		committedAt,
+	); err != nil {
+		// domain_event INSERT 失敗はトランザクションエラーとして返す
+		return nil, fmt.Errorf("%w: domain_event insert failed: %v", ErrTransactionFailed, err)
+	}
+
+	// P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+	// P2: この INSERT が失敗した場合は ErrOutboxInsertFailed を返し、呼び出し元が Rollback する
+	const outboxSQL = `
+		INSERT INTO k1s0.outbox
+			(id, aggregate_id, tenant_id, event_kind, payload, created_at)
+		VALUES
+			($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3::jsonb, $4)
+	`
+	// outbox INSERT を tx 内で実行する（P2 の rollback 要件を満たす）
+	if _, err := tx.ExecContext(ctx, outboxSQL,
+		// outbox エントリの ID をバインドする
+		outboxID,
+		// 変更対象の aggregate ID をバインドする
+		change.AggregateID,
+		// ペイロードを jsonb 文字列としてバインドする（PII は redact 済みのみ含む）
+		change.Payload,
+		// 書込完了日時をバインドする
+		committedAt,
+	); err != nil {
+		// P2: outbox INSERT 失敗は ErrOutboxInsertFailed にマッピングして rollback を促す
+		return nil, fmt.Errorf("%w: %v", ErrOutboxInsertFailed, err)
+	}
+
+	// P1+P4: k1s0.audit_event テーブルに INSERT する（全操作を監査記録する）
+	// P4: pii_segregated は pgaudit も併用するが、アプリ層からも必ず audit_event を書く
+	const auditEventSQL = `
+		INSERT INTO k1s0.audit_event
+			(id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
+		VALUES
+			($1, $2, current_setting('app.tenant_id')::uuid,
+			 current_setting('app.actor_id'),
+			 current_setting('app.purpose'),
+			 $3, $4::jsonb, $5)
+	`
+	// audit_event INSERT を tx 内で実行する（P4 の audit 必須要件を満たす）
+	if _, err := tx.ExecContext(ctx, auditEventSQL,
+		// audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
+		auditEventID,
+		// 変更対象の aggregate ID をバインドする
+		change.AggregateID,
+		// テーブルクラスを文字列としてバインドする
+		change.TableClass.String(),
+		// ペイロードを jsonb 文字列としてバインドする
+		change.Payload,
+		// 書込完了日時をバインドする
+		committedAt,
+	); err != nil {
+		// P4: audit_event INSERT 失敗は ErrPiiAuditFailed にマッピングして rollback を促す
+		return nil, fmt.Errorf("%w: %v", ErrPiiAuditFailed, err)
+	}
+
+	// 三表書込の結果を返す（呼び出し元が tx.Commit() を呼ぶことで確定する）
 	return &TripleWriteResult{
-		AggregateID:  change.AggregateID,
-		OutboxID:     outboxID,
+		// 書込んだ aggregate ID を返す
+		AggregateID: change.AggregateID,
+		// 書込んだ outbox エントリの ID を返す
+		OutboxID: outboxID,
+		// 書込んだ audit_event の ID を返す
 		AuditEventID: auditEventID,
-		CommittedAt:  committedAt,
+		// 書込完了日時を返す
+		CommittedAt: committedAt,
 	}, nil
 }

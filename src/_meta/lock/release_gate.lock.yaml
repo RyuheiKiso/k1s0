@@ -3,7 +3,7 @@ release_gate_status: green
 total_cells: 54
 red_count: 0
 yellow_count: 0
-generated_at: '2026-05-17T15:46:15Z'
+generated_at: '2026-05-18T11:28:07Z'
 cells:
 - axis_id: meta
   cell_id: meta.axis_registry_complete
@@ -184,7 +184,7 @@ cells:
   cell_id: security.build_provenance_slsa_l3plus
   source_lock: artifact_inventory.lock.yaml
   status: green
-  detail: field total_signed=0 >= '0'
+  detail: all 2 clauses green
 - axis_id: ops
   cell_id: ops.loop_closure_complete
   source_lock: proof_status.lock.yaml
@@ -199,81 +199,81 @@ cells:
   cell_id: tier1.bidi_conformance_complete
   source_lock: ../../tier1/lock/capabilities.lock.yaml
   status: green
-  detail: count=29 == 29
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.migration_pair_dry_run_green
   source_lock: ../../tier1/lock/dry_run.lock.yaml
   status: green
-  detail: count=4 >= 4
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.observation_signal_complete
   source_lock: ../../tier1/lock/signals.lock.yaml
   status: green
-  detail: count=5 >= 5
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.auth_idp_capability_complete
   source_lock: ../../tier1/lock/idp_capabilities.lock.yaml
   status: green
-  detail: count=5 >= 5
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.kek_backend_drill_green
   source_lock: ../../tier1/lock/backends.lock.yaml
   status: green
-  detail: count=5 >= 5
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.schema_registry_drift_zero
   source_lock: ../../tier1/lock/registries.lock.yaml
   status: green
-  detail: count=6 >= 6
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.slo_compliance_quarterly_green
   source_lock: ../../tier1/lock/instruments.lock.yaml
   status: green
-  detail: count=6 >= 6
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.oss_lifecycle_drill_green
   source_lock: ../../tier1/lock/oss_inventory.lock.yaml
   status: green
-  detail: count=4 >= 1
+  detail: all 2 clauses green
 - axis_id: tier1
   cell_id: tier1.tenant_capacity_drill_green
   source_lock: ../../tier1/lock/enforcement_points.lock.yaml
   status: green
-  detail: count=5 >= 5
+  detail: all 2 clauses green
 - axis_id: tier2
   cell_id: tier2.tenant_isolation_drill_green
   source_lock: ../../tier2/lock/migration.lock.yaml
   status: green
-  detail: count=3 >= 3
+  detail: all 2 clauses green
 - axis_id: tier2
   cell_id: tier2.atomic_triple_write_verified
   source_lock: ../../tier2/lock/migration.lock.yaml
   status: green
-  detail: count=4 >= 3
+  detail: all 2 clauses green
 - axis_id: tier2
   cell_id: tier2.cross_tenant_isolation_zero
   source_lock: ../../tier2/lock/migration.lock.yaml
   status: green
-  detail: count=3 >= 3
+  detail: all 2 clauses green
 - axis_id: tier3
   cell_id: tier3.client_state_conformance_complete
   source_lock: ../../tier3/lock/conflict_tree.lock.yaml
   status: green
-  detail: count=5 >= 5
+  detail: all 2 clauses green
 - axis_id: tier3
   cell_id: tier3.conflict_tree_subtypes_green
   source_lock: ../../tier3/lock/conflict_tree.lock.yaml
   status: green
-  detail: count=4 >= 4
+  detail: all 2 clauses green
 - axis_id: tier3
   cell_id: tier3.forbidden_export_symbols_enforced
   source_lock: ../../tier3/lock/forbidden_export_symbols.lock.yaml
   status: green
-  detail: count=6 >= 3
+  detail: all 2 clauses green
 - axis_id: client
   cell_id: client.sdk_distribution_5class_green
   source_lock: ../../tier1/lock/capabilities.lock.yaml
   status: green
-  detail: count=29 >= 5
+  detail: all 2 clauses green
 yellow_cells: []
 red_cells: []
