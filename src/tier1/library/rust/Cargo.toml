@@ -27,3 +27,7 @@ serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 # async-trait: async fn in trait を安定版で使用するためのマクロ
 async-trait = "0.1"
+# reqwest: HTTP クライアント（OpenBao Transit API 呼び出しに使用する）
+reqwest = { workspace = true }
+# base64: OpenBao Transit API の input / signature フィールド用 Base64 エンコード
+base64 = { workspace = true }

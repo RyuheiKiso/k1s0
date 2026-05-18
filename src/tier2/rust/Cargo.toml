@@ -1,5 +1,5 @@
 # k1s0 tier2 Rust ライブラリクレート: テナント分離の Repository abstraction を提供する
-# tier2 は独立 Cargo workspace として管理する（tier1/server とは別 workspace）
+# Cargo workspace 制約（メンバーはルート配下のみ）により tier2/rust は独立 workspace として管理する。
 [workspace]
 # このディレクトリ自体が workspace メンバー
 members = ["."]

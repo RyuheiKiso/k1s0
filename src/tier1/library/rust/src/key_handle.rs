@@ -15,6 +15,8 @@ use zeroize::Zeroize;
 use std::fmt;
 // sync::Arc: KeyMaterial を複数のサービス間で安全に共有する
 use std::sync::Arc;
+// base64: OpenBao Transit API の input / signature フィールド用 Base64 エンコード/デコード
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STD};
 
 // KeyClass は 05_鍵管理適合仕様.md §v1 key_class セット（5 class）を宣言する。
 // class 1 値が purpose / rotation_cadence / scope / backend / destruction_method を一意に導出する
@@ -151,17 +153,93 @@ impl KeyHandle for OpenBaoKeyHandle {
         self.is_valid
     }
 
-    // sign は OpenBao Transit の sign API を呼び出す（stub は常に空 Vec を返す）。
-    // production 実装では OpenBao Transit /v1/transit/sign/:name を呼び出す。
-    async fn sign(&self, _payload: &[u8]) -> Result<Vec<u8>> {
-        // stub 実装: OpenBao Transit への委譲先は bfl/src/openbao.rs を参照する
-        Ok(vec![])
+    // sign は OpenBao Transit の sign API を呼び出して署名バイト列を返す。
+    // 05_鍵管理適合仕様.md §5 層 defense-in-depth 層 B（runtime: OpenBao Transit 委譲）を実装する。
+    async fn sign(&self, payload: &[u8]) -> Result<Vec<u8>> {
+        // OPENBAO_ADDR 環境変数からベース URL を取得する（デフォルト: http://openbao.k1s0.svc:8200）
+        let base_url = std::env::var("OPENBAO_ADDR")
+            .unwrap_or_else(|_| "http://openbao.k1s0.svc:8200".to_string());
+        // OPENBAO_TOKEN 環境変数からトークンを取得する（未設定時はエラー）
+        let token = std::env::var("OPENBAO_TOKEN")
+            .map_err(|_| anyhow::anyhow!("OPENBAO_TOKEN 環境変数が設定されていない"))?;
+        // key_class を OpenBao Transit key name にマッピングする（例: "v1_data_dek"）
+        let key_name = self.key_class.to_string();
+        // payload を Base64 エンコードする（OpenBao Transit の input フィールドは Base64 要求）
+        let input_b64 = BASE64_STD.encode(payload);
+        // reqwest クライアントを構築する（タイムアウト 5 秒）
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .map_err(|e| anyhow::anyhow!("reqwest Client 構築失敗: {e}"))?;
+        // POST /v1/transit/sign/{key_name} を呼び出す
+        let url = format!("{base_url}/v1/transit/sign/{key_name}");
+        let resp = client
+            .post(&url)
+            .header("X-Vault-Token", &token)
+            .json(&serde_json::json!({ "input": input_b64 }))
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("OpenBao Transit sign 送信失敗: {e}"))?;
+        // HTTP ステータスを確認する
+        if !resp.status().is_success() {
+            // エラーステータス時はボディを含めてエラーを返す
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow::anyhow!("OpenBao Transit sign HTTP {status} body={body}"));
+        }
+        // レスポンス JSON をパースする
+        let data: serde_json::Value = resp.json().await
+            .map_err(|e| anyhow::anyhow!("OpenBao Transit sign レスポンス JSON パース失敗: {e}"))?;
+        // signature フィールドを取得する（"vault:v1:<base64>" 形式）
+        let sig_str = data["data"]["signature"].as_str()
+            .ok_or_else(|| anyhow::anyhow!("OpenBao Transit sign: signature フィールドが存在しない"))?;
+        // "vault:v1:" プレフィックスを除去して Base64 部分を取り出す
+        let sig_b64 = sig_str.strip_prefix("vault:v1:").unwrap_or(sig_str);
+        // Base64 デコードして署名バイト列を返す
+        BASE64_STD.decode(sig_b64)
+            .map_err(|e| anyhow::anyhow!("OpenBao Transit signature Base64 デコード失敗: {e}"))
     }
 
-    // verify は OpenBao Transit の verify API を呼び出す（stub は常に true を返す）。
-    // production 実装では OpenBao Transit /v1/transit/verify/:name を呼び出す。
-    async fn verify(&self, _payload: &[u8], _signature: &[u8]) -> Result<bool> {
-        // stub 実装: OpenBao Transit への委譲先は bfl/src/openbao.rs を参照する
-        Ok(true)
+    // verify は OpenBao Transit の verify API を呼び出して検証結果を返す。
+    // 05_鍵管理適合仕様.md §5 層 defense-in-depth 層 B（runtime: OpenBao Transit 委譲）を実装する。
+    async fn verify(&self, payload: &[u8], signature: &[u8]) -> Result<bool> {
+        // OPENBAO_ADDR 環境変数からベース URL を取得する
+        let base_url = std::env::var("OPENBAO_ADDR")
+            .unwrap_or_else(|_| "http://openbao.k1s0.svc:8200".to_string());
+        // OPENBAO_TOKEN 環境変数からトークンを取得する
+        let token = std::env::var("OPENBAO_TOKEN")
+            .map_err(|_| anyhow::anyhow!("OPENBAO_TOKEN 環境変数が設定されていない"))?;
+        // key_class を OpenBao Transit key name にマッピングする
+        let key_name = self.key_class.to_string();
+        // payload を Base64 エンコードする
+        let input_b64 = BASE64_STD.encode(payload);
+        // signature を "vault:v1:<base64>" 形式にエンコードする
+        let sig_b64 = format!("vault:v1:{}", BASE64_STD.encode(signature));
+        // reqwest クライアントを構築する
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .map_err(|e| anyhow::anyhow!("reqwest Client 構築失敗: {e}"))?;
+        // POST /v1/transit/verify/{key_name} を呼び出す
+        let url = format!("{base_url}/v1/transit/verify/{key_name}");
+        let resp = client
+            .post(&url)
+            .header("X-Vault-Token", &token)
+            .json(&serde_json::json!({ "input": input_b64, "signature": sig_b64 }))
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("OpenBao Transit verify 送信失敗: {e}"))?;
+        // HTTP ステータスを確認する
+        if !resp.status().is_success() {
+            // エラーステータス時はボディを含めてエラーを返す
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(anyhow::anyhow!("OpenBao Transit verify HTTP {status} body={body}"));
+        }
+        // レスポンス JSON をパースする
+        let data: serde_json::Value = resp.json().await
+            .map_err(|e| anyhow::anyhow!("OpenBao Transit verify レスポンス JSON パース失敗: {e}"))?;
+        // valid フィールドを取得して返す（存在しない場合は false とする）
+        Ok(data["data"]["valid"].as_bool().unwrap_or(false))
     }
 }

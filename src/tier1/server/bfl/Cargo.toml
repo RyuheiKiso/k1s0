@@ -28,3 +28,5 @@ uuid = { workspace = true }
 jsonwebtoken = { workspace = true }
 # reqwest: HTTP クライアント（JWKS endpoint フェッチ / SPIRE bundle endpoint に使用する; TLS なし = envoy が終端する）
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
+# base64: OpenBao Transit API の input / signature フィールド用 Base64 エンコード
+base64 = { workspace = true }

@@ -7,6 +7,8 @@
 mod auth_context;
 // oidc モジュール: OIDC + DPoP 検証（v1_human_session / v1_emergency_step_up）
 mod oidc;
+// openbao モジュール: OpenBao Transit API クライアント（sign / verify）
+mod openbao;
 
 // axum: HTTP サーバーとハンドラー
 use axum::{Json, Router, routing::{get, post}};

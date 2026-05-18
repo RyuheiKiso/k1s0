@@ -190,11 +190,11 @@ mod tests {
     #[test]
     // 正常ハンドシェイクフローが完走することを検証する
     fn test_normal_handshake_flow() {
-        // セッションを Init 状態で生成する
+        // セッションを Init 状態で生成する（spec 正値 grpc_native × v1_interactive を使用する）
         let mut session = BidiSession::new(
             "test-session-001".to_string(),
-            "grpc_go".to_string(),
-            "v1_bidi_streaming".to_string(),
+            "grpc_native".to_string(),
+            "v1_interactive".to_string(),
         );
         // send_hello → receive_hello → send_ack → complete の正常フローを実行する
         assert!(session.send_hello().is_ok());
@@ -210,11 +210,11 @@ mod tests {
     #[test]
     // NoDoubleHandshake 違反（二重 Hello 送信）を検出することを検証する
     fn test_double_handshake_violation() {
-        // セッションを Init 状態で生成する
+        // セッションを Init 状態で生成する（spec 正値 connect_bidi × v1_alert を使用する）
         let mut session = BidiSession::new(
             "test-session-002".to_string(),
-            "connect_go".to_string(),
-            "v1_unary_rpc".to_string(),
+            "connect_bidi".to_string(),
+            "v1_alert".to_string(),
         );
         // 最初の Hello 送信は成功する
         assert!(session.send_hello().is_ok());
@@ -232,11 +232,11 @@ mod tests {
     #[test]
     // 不変条件チェックが正常に機能することを検証する
     fn test_invariant_holds_after_complete() {
-        // セッションを生成して完了まで実行する
+        // セッションを生成して完了まで実行する（spec 正値 grpc_native × v1_event_feed を使用する）
         let mut session = BidiSession::new(
             "test-session-003".to_string(),
-            "grpc_node".to_string(),
-            "v1_server_streaming".to_string(),
+            "grpc_native".to_string(),
+            "v1_event_feed".to_string(),
         );
         // 全ステップを実行する
         session.send_hello().unwrap();

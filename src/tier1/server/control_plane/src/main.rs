@@ -5,6 +5,8 @@
 
 // CRD watcher モジュール（kube 0.95 runtime::watcher API）
 mod crd_watcher;
+// flagd publisher モジュール（ConfigMap 経由の OpenFeature flagd feature flag 配布）
+mod flagd_publisher;
 
 // axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};
@@ -22,6 +24,8 @@ use std::sync::Arc;
 
 // crd_watcher モジュールから型を import する
 use crd_watcher::{CrdWatchEvent, CrdWatcher};
+// flagd_publisher モジュールから FlagdPublisher を import する
+use flagd_publisher::FlagdPublisher;
 
 // ControlPlaneStatus はコントロールプレーンの稼働状態を宣言する。
 #[derive(Serialize)]
@@ -116,13 +120,29 @@ async fn main() -> anyhow::Result<()> {
     // CRD イベントを処理するバックグラウンドタスクを起動する
     let kube_connected_for_event = kube_connected_clone.clone();
     tokio::spawn(async move {
+        // FlagdPublisher を構築する（Kubernetes API への接続が必要）
+        // kubernetes_connected が false（degraded mode）の場合は Publisher は非活性となる
+        let maybe_publisher: Option<FlagdPublisher> = {
+            // kube::Client を再取得して FlagdPublisher を初期化する
+            match kube::Client::try_default().await {
+                Ok(client) => {
+                    // Kubernetes API 接続成功時は FlagdPublisher を構築する
+                    Some(FlagdPublisher::new(client))
+                }
+                Err(_) => {
+                    // Kubernetes API 接続失敗時は FlagdPublisher を無効化する（degraded mode）
+                    warn!("FlagdPublisher: kube::Client 接続失敗 — degraded mode で動作する");
+                    None
+                }
+            }
+        };
         // CrdWatchEvent を受信して処理するループ
         loop {
             match event_rx.recv().await {
                 Ok(event) => {
                     // Kubernetes 接続が確認できたため true に設定する
                     kube_connected_for_event.store(true, std::sync::atomic::Ordering::SeqCst);
-                    // イベントの種別に応じてログを出力する
+                    // イベントの種別に応じて flagd publisher に転送する
                     match &event {
                         CrdWatchEvent::Added { namespace, name, spec } => {
                             // 新しい Tier1Service が作成された
@@ -133,7 +153,17 @@ async fn main() -> anyhow::Result<()> {
                                 adapter = %spec.adapter,
                                 "CrdWatcher: Tier1Service Added"
                             );
-                            // TODO: flagd_publisher で feature flag を配布する
+                            // flagd_publisher で feature flag を ConfigMap に配布する
+                            if let Some(ref publisher) = maybe_publisher {
+                                // ConfigMap 経由で flagd に feature flag を publish する
+                                if let Err(e) = publisher
+                                    .publish(namespace, name, &spec.conformance_class, &spec.adapter)
+                                    .await
+                                {
+                                    // 配布失敗は警告のみ（CRD watcher ループは継続する）
+                                    warn!(error = %e, "FlagdPublisher: Added publish 失敗");
+                                }
+                            }
                         }
                         CrdWatchEvent::Modified { namespace, name, spec } => {
                             // 既存の Tier1Service が変更された
@@ -144,7 +174,17 @@ async fn main() -> anyhow::Result<()> {
                                 adapter = %spec.adapter,
                                 "CrdWatcher: Tier1Service Modified"
                             );
-                            // TODO: flagd_publisher で feature flag を更新する
+                            // flagd_publisher で feature flag を更新する（publish で冪等 apply）
+                            if let Some(ref publisher) = maybe_publisher {
+                                // 既存 ConfigMap を server-side apply で上書きする（冪等性）
+                                if let Err(e) = publisher
+                                    .publish(namespace, name, &spec.conformance_class, &spec.adapter)
+                                    .await
+                                {
+                                    // 更新失敗は警告のみ
+                                    warn!(error = %e, "FlagdPublisher: Modified publish 失敗");
+                                }
+                            }
                         }
                         CrdWatchEvent::Deleted { namespace, name } => {
                             // Tier1Service が削除された
@@ -153,7 +193,14 @@ async fn main() -> anyhow::Result<()> {
                                 name = %name,
                                 "CrdWatcher: Tier1Service Deleted"
                             );
-                            // TODO: flagd_publisher で feature flag を削除する
+                            // flagd_publisher で feature flag の ConfigMap を削除する
+                            if let Some(ref publisher) = maybe_publisher {
+                                // 対応する ConfigMap を削除する（存在しない場合は冪等に成功する）
+                                if let Err(e) = publisher.delete(namespace, name).await {
+                                    // 削除失敗は警告のみ
+                                    warn!(error = %e, "FlagdPublisher: Deleted delete 失敗");
+                                }
+                            }
                         }
                     }
                 }
