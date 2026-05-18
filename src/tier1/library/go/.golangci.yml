@@ -1,0 +1,86 @@
+# .golangci.yml — k1s0 tier1 Library Go lint 設定
+# depguard 設定で OSS 型の直接 import を deny する（L3/L2*/L1+ 規約強制）。
+# 公開シグネチャに OSS 型を露出しない tier1/CLAUDE.md の要件を CI で強制する。
+
+# golangci-lint 設定バージョン
+version: "2"
+
+# linters: 有効にする linter の設定
+linters:
+  # default: none で全 linter を無効にしてから必要なものを有効にする
+  default: none
+  enable:
+    # depguard: 許可リストに含まれない依存パッケージの import を禁止する
+    - depguard
+    # govet: 標準的な Go vet チェック
+    - govet
+    # errcheck: エラー戻り値の未チェックを検出する
+    - errcheck
+    # staticcheck: 静的解析（旧 megacheck）
+    - staticcheck
+    # unused: 未使用のコードを検出する
+    - unused
+    # gofmt: フォーマットチェック
+    - gofmt
+
+# linters-settings: 各 linter の詳細設定
+linters-settings:
+  depguard:
+    # rules: 複数のルールを定義する
+    rules:
+      # oss-direct-import-deny: OSS の直接 import を拒否するルール
+      oss-direct-import-deny:
+        # deny: 直接 import を禁止するパッケージリスト
+        deny:
+          # confluent-kafka-go: Kafka OSS クライアント（L1+ Messaging: Library 語彙経由でアクセスする）
+          - pkg: "github.com/confluentinc/confluent-kafka-go/kafka"
+            desc: "tier1 Library の公開 API シグネチャに confluent-kafka-go の型を露出禁止。MessagingProducer/MessagingConsumer interface 経由でアクセスすること。"
+          # rdkafka: sarama ベースの Kafka クライアント（同上）
+          - pkg: "github.com/IBM/sarama"
+            desc: "tier1 Library の公開 API シグネチャに sarama の型を露出禁止。MessagingProducer/MessagingConsumer interface 経由でアクセスすること。"
+          # pgx: PostgreSQL OSS クライアント（L1+ DB: Library 語彙経由でアクセスする）
+          - pkg: "github.com/jackc/pgx/v5"
+            desc: "tier1 Library の公開 API シグネチャに pgx/v5 の型を露出禁止。DbClient/DbTx interface 経由でアクセスすること。"
+          # pgxpool: pgx 接続プール（同上）
+          - pkg: "github.com/jackc/pgx/v5/pgxpool"
+            desc: "tier1 Library の公開 API シグネチャに pgxpool の型を露出禁止。DbClient interface 経由でアクセスすること。"
+          # temporal-go: Temporal OSS クライアント（L1+ Workflow: Library 語彙経由でアクセスする）
+          - pkg: "go.temporal.io/sdk/client"
+            desc: "tier1 Library の公開 API シグネチャに temporal SDK client の型を露出禁止。WorkflowClient interface 経由でアクセスすること。"
+          # temporal-go/temporal: Temporal workflow package（同上）
+          - pkg: "go.temporal.io/sdk/temporal"
+            desc: "tier1 Library の公開 API シグネチャに temporal SDK の型を露出禁止。WorkflowClient interface 経由でアクセスすること。"
+          # temporal-go/workflow: Temporal workflow context（同上）
+          - pkg: "go.temporal.io/sdk/workflow"
+            desc: "tier1 Library の公開 API シグネチャに temporal workflow コンテキストの型を露出禁止。WorkflowClient interface 経由でアクセスすること。"
+          # redis: go-redis OSS クライアント（L3 Cache: Library 語彙経由でアクセスする）
+          - pkg: "github.com/redis/go-redis/v9"
+            desc: "tier1 Library の公開 API シグネチャに go-redis の型を露出禁止。CacheClient interface 経由でアクセスすること。"
+          # qdrant-go: Qdrant OSS クライアント（L1+ Vector: Library 語彙経由でアクセスする）
+          - pkg: "github.com/qdrant/go-client"
+            desc: "tier1 Library の公開 API シグネチャに qdrant-go の型を露出禁止。VectorSearchClient interface 経由でアクセスすること。"
+          # grpc: gRPC OSS クライアント（L3 RPC: Library 語彙経由でアクセスする）
+          - pkg: "google.golang.org/grpc"
+            desc: "tier1 Library の公開 API シグネチャに grpc の型を露出禁止。RpcUnaryClient/RpcStreamingClient interface 経由でアクセスすること。"
+          # s3: AWS SDK S3 クライアント（L3 Storage: Library 語彙経由でアクセスする）
+          - pkg: "github.com/aws/aws-sdk-go-v2/service/s3"
+            desc: "tier1 Library の公開 API シグネチャに AWS S3 SDK の型を露出禁止。ObjectStorageClient interface 経由でアクセスすること。"
+          # zap: OSS ロガー（L3 Logging: Library 語彙経由でアクセスする）
+          - pkg: "go.uber.org/zap"
+            desc: "tier1 Library の公開 API シグネチャに zap の型を露出禁止。Logger interface 経由でアクセスすること。"
+          # otel/trace: OpenTelemetry trace SDK（L3 Tracing: Library 語彙経由でアクセスする）
+          - pkg: "go.opentelemetry.io/otel/trace"
+            desc: "tier1 Library の公開 API シグネチャに otel trace SDK の型を露出禁止。Tracer interface 経由でアクセスすること。"
+          # opa/rego: OPA Rego SDK（L1+ Rule Engine: Library 語彙経由でアクセスする）
+          - pkg: "github.com/open-policy-agent/opa/rego"
+            desc: "tier1 Library の公開 API シグネチャに OPA rego の型を露出禁止。RuleEngineClient interface 経由でアクセスすること。"
+          # schemaregistry: Confluent Schema Registry クライアント（L2* Schema: Library 語彙経由でアクセスする）
+          - pkg: "github.com/confluentinc/confluent-kafka-go/schemaregistry"
+            desc: "tier1 Library の公開 API シグネチャに schemaregistry の型を露出禁止。SchemaRegistryClient interface 経由でアクセスすること。"
+
+# run: lint 実行設定
+run:
+  # テストファイルも lint 対象に含める
+  tests: true
+  # タイムアウト: 5 分
+  timeout: 5m

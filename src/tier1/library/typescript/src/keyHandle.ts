@@ -112,11 +112,11 @@ export class OpenBaoKeyHandle extends KeyHandle {
   // sign メソッド実装: OpenBao Transit へ委譲する
   override async sign(payload: Uint8Array): Promise<Uint8Array> {
     // OPENBAO_ADDR 環境変数からベース URL を取得する（デフォルト: http://openbao.k1s0.svc:8200）
-    const baseUrl: string = (typeof process !== "undefined" && process.env.OPENBAO_ADDR)
-      ? process.env.OPENBAO_ADDR
+    const baseUrl: string = (typeof process !== "undefined" && process.env['OPENBAO_ADDR'])
+      ? process.env['OPENBAO_ADDR']
       : "http://openbao.k1s0.svc:8200";
     // OPENBAO_TOKEN 環境変数からトークンを取得する（未設定時はエラー）
-    const token: string | undefined = typeof process !== "undefined" ? process.env.OPENBAO_TOKEN : undefined;
+    const token: string | undefined = typeof process !== "undefined" ? process.env['OPENBAO_TOKEN'] : undefined;
     if (!token) {
       // トークン未設定は設定エラーとして扱う
       throw new Error("OPENBAO_TOKEN 環境変数が設定されていない");
@@ -159,11 +159,11 @@ export class OpenBaoKeyHandle extends KeyHandle {
   // verify メソッド実装: OpenBao Transit へ委譲する
   override async verify(payload: Uint8Array, signature: Uint8Array): Promise<boolean> {
     // OPENBAO_ADDR 環境変数からベース URL を取得する
-    const baseUrl: string = (typeof process !== "undefined" && process.env.OPENBAO_ADDR)
-      ? process.env.OPENBAO_ADDR
+    const baseUrl: string = (typeof process !== "undefined" && process.env['OPENBAO_ADDR'])
+      ? process.env['OPENBAO_ADDR']
       : "http://openbao.k1s0.svc:8200";
     // OPENBAO_TOKEN 環境変数からトークンを取得する
-    const token: string | undefined = typeof process !== "undefined" ? process.env.OPENBAO_TOKEN : undefined;
+    const token: string | undefined = typeof process !== "undefined" ? process.env['OPENBAO_TOKEN'] : undefined;
     if (!token) {
       // トークン未設定は設定エラーとして扱う
       throw new Error("OPENBAO_TOKEN 環境変数が設定されていない");

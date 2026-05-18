@@ -76,9 +76,9 @@ export class AuthContext {
     // scopes: OAuth scopes
     readonly scopes: readonly string[];
     // dpopJkt: DPoP key thumbprint（オプション）
-    readonly dpopJkt?: string;
+    readonly dpopJkt?: string | undefined;
     // attestationLevel: device attestation level（オプション）
-    readonly attestationLevel?: string;
+    readonly attestationLevel?: string | undefined;
     // stepUpProven: step_up 済みフラグ
     readonly stepUpProven: boolean;
     // isValid: 検証結果
@@ -137,7 +137,7 @@ export class AuthContext {
     // scopes: OAuth scopes
     readonly scopes: readonly string[];
     // dpopJkt: DPoP key thumbprint（オプション）
-    readonly dpopJkt?: string;
+    readonly dpopJkt?: string | undefined;
     // stepUpProven: step_up 済みフラグ
     readonly stepUpProven: boolean;
   }): AuthContext {
@@ -290,7 +290,7 @@ export class AuthContext {
     // sessionId: break-glass セッション識別子
     readonly sessionId: string;
     // dpopJkt: DPoP key thumbprint（オプション）
-    readonly dpopJkt?: string;
+    readonly dpopJkt?: string | undefined;
   }): AuthContext {
     // v1_emergency_step_up の固定属性を適用する（always step_up + purpose=emergency 強制）
     return new AuthContext({
