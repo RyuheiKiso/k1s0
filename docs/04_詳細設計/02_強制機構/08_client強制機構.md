@@ -3,7 +3,8 @@ id: detail.client.client_enforcement
 axis: client
 phase: detail
 kind: enforcement
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.client.client_index
   - arch.client.codegen_policy

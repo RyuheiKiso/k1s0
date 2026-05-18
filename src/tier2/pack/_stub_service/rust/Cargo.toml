@@ -1,0 +1,9 @@
+# tier2 第二業界 stub service (Rust)
+# pack/manufacturing と同型の構造で業界中立性を検証する
+[package]
+# パッケージ名: tier2-stub-service
+name = "tier2-stub-service"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"

@@ -1,0 +1,40 @@
+# tier1 OSSInventory 必須 policy
+# tier1 namespace には対応する OSSInventory CR が必要であることを enforce する
+# 08_OSSライフサイクル適合仕様.md §oss-lifecycle-class annotation 必須化 に準拠する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: tier1 OSSInventory annotation 必須化
+  name: tier1-oss-inventory-required
+  annotations:
+    # 対応する tier1 適合仕様 spec_id
+    k1s0.io/spec-id: detail.tier1.oss_lifecycle_conformance
+    # ポリシーの説明
+    policies.kyverno.io/description: "tier1 Tier1Service リソースに k1s0.io/oss-lifecycle-class annotation が必須であることを enforce する (08_OSSライフサイクル適合仕様)"
+spec:
+  # Audit モード: 違反を記録するが作成・更新は許可する（段階的適用のため）
+  # 全テナントの OSSInventory CR 作成完了後に Enforce に移行する
+  validationFailureAction: Audit
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: oss-lifecycle-class annotation の必須化
+    - name: require-oss-inventory-annotation
+      # 適用対象: Tier1Service カスタムリソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Tier1Service リソースに適用する
+                - Tier1Service
+      # oss-lifecycle-class annotation の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "tier1: metadata.annotations['k1s0.io/oss-lifecycle-class'] は必須です (08_OSSライフサイクル適合仕様)"
+        # oss-lifecycle-class annotation が任意の非空文字列で存在することを確認するパターン
+        pattern:
+          metadata:
+            annotations:
+              # oss-lifecycle-class annotation が空でない文字列であることを検証する
+              k1s0.io/oss-lifecycle-class: "?*"

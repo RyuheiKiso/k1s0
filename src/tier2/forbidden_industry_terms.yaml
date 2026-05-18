@@ -1,0 +1,23 @@
+# tier2 業界固有語禁止リスト
+# この語彙を公開 API / 公開型名に使用すると CI fail になる
+version: 1.0.0
+terms:
+  # 製造業固有語 (pack/manufacturing に隔離すること)
+  - term: 設備
+    english: equipment
+    allowed_in: [pack/manufacturing]
+  - term: ロット
+    english: lot
+    allowed_in: [pack/manufacturing]
+  - term: 品目
+    english: item
+    allowed_in: [pack/manufacturing]
+  - term: 拠点
+    english: site
+    allowed_in: [pack/manufacturing]
+  - term: BOM
+    english: bill_of_materials
+    allowed_in: [pack/manufacturing]
+  - term: ManufacturingOrder
+    english: manufacturing_order
+    allowed_in: [pack/manufacturing]

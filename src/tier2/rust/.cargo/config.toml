@@ -2,6 +2,19 @@
 # tier2 Rust クレート固有の cargo 設定（ビルドフラグ・環境変数）を定義する
 # 全開発者・CI で同一のビルド設定を強制する
 
+# tier2 Rust cargo 設定: 内部 registry mirror を優先する
+# 外部クレートの直接取得を制限し、内部審査済みレジストリ経由に強制する
+
+# source replacement: crates.io を内部 mirror に置換する
+[source.crates-io]
+# replace-with の値は環境変数で提供される場合は設定不要 (placeholder)
+replace-with = "internal-mirror"
+
+# 内部ミラー設定
+[source.internal-mirror]
+# 内部 registry のエンドポイント (環境変数 K1S0_CARGO_REGISTRY_URL で差し替え可能)
+registry = "https://placeholder.internal.k1s0.io/api/v1/crates"
+
 [env]
 # CFLAGS: C コンパイラフラグを強制する
 # -target x86_64-linux-musl を強制して musl libc にリンクする（Alpine/scratch イメージ対応）

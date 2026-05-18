@@ -3,7 +3,8 @@ id: detail.tier2.tier2_enforcement
 axis: tier2
 phase: detail
 kind: enforcement
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier2.tier2_index
   - arch.tier2.industry_extension_model

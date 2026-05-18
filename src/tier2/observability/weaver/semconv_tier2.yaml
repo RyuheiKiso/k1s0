@@ -1,0 +1,35 @@
+# tier2 Semantic Conventions 拡張
+# OpenTelemetry Weaver で tier2 固有の telemetry attributes を定義する
+groups:
+  # テナント識別子グループ
+  - id: tier2.tenant
+    type: attribute_group
+    brief: tier2 マルチテナント識別属性
+    attributes:
+      # テナント ID (AuthContext から自動注入、API 引数禁止)
+      - id: tenant.id
+        type: string
+        brief: テナント固有識別子 (AuthContext から取得)
+        requirement_level: required
+        examples: ["tenant-001", "tenant-acme"]
+
+  # クォータ計測グループ
+  - id: tier2.quota
+    type: attribute_group
+    brief: tier2 クォータ計測属性
+    attributes:
+      # クォータクラス識別子
+      - id: quota.class
+        type:
+          members:
+            - id: lite
+              value: v1_lite
+            - id: standard
+              value: v1_standard
+            - id: professional
+              value: v1_professional
+            - id: enterprise
+              value: v1_enterprise
+            - id: dedicated
+              value: v1_dedicated
+        requirement_level: recommended

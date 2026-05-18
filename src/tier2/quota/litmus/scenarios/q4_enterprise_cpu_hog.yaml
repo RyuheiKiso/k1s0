@@ -1,0 +1,37 @@
+# Litmus ChaosEngine: v1_enterprise クォータクラスの CPU hog テスト
+# v1_enterprise テナントが CPU を過剰消費しても他テナントに影響しないことを検証する
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosEngine リソース宣言
+kind: ChaosEngine
+metadata:
+  # ChaosEngine 名: tier2 v1_enterprise CPU hog
+  name: tier2-quota-enterprise-cpu-hog
+  # 実行名前空間
+  namespace: tier2-test
+spec:
+  appinfo:
+    # 対象アプリケーションの名前空間
+    appns: tier2-test
+    # v1_enterprise クォータクラスのアプリを対象にするラベルセレクタ
+    applabel: "quota.class=v1_enterprise"
+  # Litmus サービスアカウント
+  chaosServiceAccount: litmus-admin
+  experiments:
+    # pod-cpu-hog: v1_enterprise の最大 CPU 割り当てを使い切る状態を再現する
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            # カオス実施時間（秒）を指定する
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            # v1_enterprise クラスの CPU 上限コア数を指定する
+            - name: CPU_CORES
+              value: "16"
+            # 対象 Pod 名を指定する
+            - name: TARGET_PODS
+              value: "tier2-test-enterprise-tenant"
+        status:
+          # テスト結果名を指定する
+          - name: ChaosResult
+            value: v1_enterprise_cpu_hog_isolation_pass

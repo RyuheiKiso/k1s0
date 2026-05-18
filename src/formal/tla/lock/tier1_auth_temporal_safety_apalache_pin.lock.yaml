@@ -1,0 +1,11 @@
+# tier1_auth_temporal_safety_apalache_pin.lock.yaml
+# Apalache モデルチェッカーのバージョンとランダムシード固定
+# 04_認証適合仕様: auth_class step-up FSM の no_silent_demotion 検証用
+_AUTO_GENERATED: false
+spec_id: tier1_auth_temporal_safety
+apalache_version: 0.45.4
+random_seed: 20260518
+tla_file: tier1_auth_temporal_safety.tla
+property: NoSilentDemotion
+last_verified_at: '2026-05-18T00:00:00Z'
+verification_status: stub

@@ -1,0 +1,16 @@
+{
+  "name": "@k1s0/tier1-oss-lifecycle-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "tier1 OSS ライフサイクルテスト: 08_OSSライフサイクル適合仕様に基づく 8 signal × 6 lifecycle_class の検証",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

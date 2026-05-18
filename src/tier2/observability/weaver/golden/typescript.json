@@ -1,0 +1,9 @@
+{
+  "comment": "tier2 TypeScript telemetry golden value",
+  "generated_at": "2026-05-18T00:00:00Z",
+  "attributes": {
+    "tenant.id": "tenant-001",
+    "quota.class": "v1_standard",
+    "http.route": "/api/v1/resources"
+  }
+}

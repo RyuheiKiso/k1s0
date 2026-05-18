@@ -3,7 +3,8 @@ id: arch.client.client_index
 axis: client
 phase: architecture
 kind: index
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - req.overview.provided_scope
   - req.overview.non_scope

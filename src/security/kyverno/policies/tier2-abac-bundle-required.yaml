@@ -1,0 +1,35 @@
+# tier2 ABAC OPA bundle 必須 policy
+# tier2 の認可は OPA bundle 経由で行うことを enforce する
+apiVersion: kyverno.io/v1
+# Kyverno ClusterPolicy リソース宣言
+kind: ClusterPolicy
+metadata:
+  # ポリシー名: tier2 ABAC OPA bundle 必須
+  name: tier2-abac-bundle-required
+  annotations:
+    # このポリシーが対応する適合仕様の spec-id を記載する
+    k1s0.io/spec-id: detail.tier2.tenant_isolation_conformance
+spec:
+  # ポリシー違反時は監査ログに記録する (段階的に Enforce に移行)
+  validationFailureAction: Audit
+  # バックグラウンドスキャンを有効にする
+  background: true
+  rules:
+    # ルール名: OPA sidecar annotation 必須チェック
+    - name: require-opa-sidecar-annotation
+      # tier2 の Deployment を対象とする
+      match:
+        any:
+          - resources:
+              # 対象リソース種別: Deployment のみ
+              kinds: [Deployment]
+              # tier2 名前空間パターンに一致するものを対象とする
+              namespaces: ["tier2-*"]
+      validate:
+        # abac-mode annotation が未設定の場合はエラーメッセージを返す
+        message: "tier2: OPA sidecar が必要です (abac_opa annotation を設定してください)"
+        pattern:
+          metadata:
+            annotations:
+              # OPA bundle モードまたは passthrough モードのいずれかを必須とする
+              k1s0.io/abac-mode: "opa-bundle|passthrough"

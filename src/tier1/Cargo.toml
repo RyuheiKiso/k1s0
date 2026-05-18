@@ -11,6 +11,12 @@ members = [
     # tier1 Library Rust: KeyHandle / AuthContext / Repository<T> の 4 言語等価 SDK Rust 実装
     "library/rust",
     # tier2 Rust: TenantContext / AtomicTripleWrite / Outbox / Repository の Rust 実装
+    # tier1 test harness: migration pair 4 × 5 phase (02_移行Pair適合仕様)
+    "tests/migration",
+    # tier1 test harness: chaos noisy neighbor 5 quota_class (09_テナント容量適合仕様)
+    "tests/chaos",
+    # tier1 test harness: KEK M=3 N=5 Shamir ceremony (05_鍵管理適合仕様)
+    "tests/kek_ceremony",
 ]
 
 [workspace.dependencies]
@@ -40,3 +46,7 @@ async-trait = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 # base64: OpenBao Transit API の input / plaintext フィールド用 Base64 エンコード
 base64 = "0.22"
+# sha2: SHA-256 ハッシュ計算（kek_ceremony のシャード検証・フィンガープリント計算に使用する）
+sha2 = "0.10"
+# serde_yaml: YAML パース（migration test_matrix.yaml の読み込みに使用する）
+serde_yaml = "0.9"

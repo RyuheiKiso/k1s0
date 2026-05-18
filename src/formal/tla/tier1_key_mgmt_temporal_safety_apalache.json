@@ -1,0 +1,12 @@
+{
+  "version": "0.45.4",
+  "input": {
+    "files": ["tier1_key_mgmt_temporal_safety.tla"],
+    "main": "tier1_key_mgmt_temporal_safety"
+  },
+  "checker": {
+    "length": 6,
+    "inv": ["TypeInvariant", "NoRawBytesInFlight"],
+    "search": "TransitionFusion"
+  }
+}

@@ -1,0 +1,23 @@
+# tier1 chaos テスト用 Cargo.toml
+# 09_テナント容量適合仕様に基づく noisy neighbor 検査テストクレートを定義する
+[package]
+# クレート名: tier1-chaos-tests
+name = "tier1-chaos-tests"
+# バージョン: 初期版
+version = "0.1.0"
+# エディション: 2021（最新安定版）
+edition = "2021"
+
+# ランタイム依存クレート（本番依存なし: テスト専用クレート）
+[dependencies]
+
+# 開発・テスト専用依存クレート
+[dev-dependencies]
+# tokio: 非同期ランタイム（async test executor に使用する）
+tokio = { version = "1", features = ["full"] }
+# serde: シリアライズ/デシリアライズ（テスト結果の JSON 出力に使用する）
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON ライブラリ（テスト結果の出力に使用する）
+serde_json = "1"
+# anyhow: テスト内エラーハンドリングの統一に使用する
+anyhow = "1"

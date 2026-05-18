@@ -1,0 +1,52 @@
+# migration pair テストマトリックス
+# 02_移行Pair適合仕様に基づく 4 pair × 5 phase の組み合わせを定義する
+# このファイルは tools/lock_yaml_generator/ が参照するテストマトリックス定義ファイルである
+
+# migration_pairs: 4 つの移行ペアを列挙する
+migration_pairs:
+  # relational_pg: PostgreSQL CNPG → StackGres の移行ペア
+  - pair_id: relational_pg
+    # 移行元: Cloud Native PostgreSQL (CNPG) オペレーター
+    from: cnpg
+    # 移行先: StackGres PostgreSQL オペレーター
+    to: stackgres
+    # 5 フェーズをすべて実行する
+    phases: [prepare, export, transform, import, verify]
+
+  # messaging_kafka: Kafka Strimzi → RedPanda の移行ペア
+  - pair_id: messaging_kafka
+    # 移行元: Strimzi Kafka オペレーター
+    from: strimzi
+    # 移行先: RedPanda Kafka 互換ブローカー
+    to: redpanda
+    # 5 フェーズをすべて実行する
+    phases: [prepare, export, transform, import, verify]
+
+  # workflow_engine: Temporal → 自製ワークフローエンジンの移行ペア
+  - pair_id: workflow_engine
+    # 移行元: Temporal ワークフローエンジン
+    from: temporal
+    # 移行先: k1s0 内製ワークフローエンジン
+    to: internal_workflow
+    # 5 フェーズをすべて実行する
+    phases: [prepare, export, transform, import, verify]
+
+  # rule_engine: zen_rule → internal_rule の移行ペア
+  - pair_id: rule_engine
+    # 移行元: zen_rule エンジン
+    from: zen_rule
+    # 移行先: k1s0 内製ルールエンジン
+    to: internal_rule
+    # 5 フェーズをすべて実行する
+    phases: [prepare, export, transform, import, verify]
+
+# テストマトリックスのメタデータ
+metadata:
+  # 仕様書参照: 02_移行Pair適合仕様
+  spec_ref: "docs/04_詳細設計/01_適合仕様/02_移行Pair適合仕様.md"
+  # テスト対象フェーズ数
+  phase_count: 5
+  # テスト対象ペア数
+  pair_count: 4
+  # 総テストセル数 (4 pair × 5 phase)
+  total_cells: 20

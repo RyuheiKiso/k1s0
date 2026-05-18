@@ -1,0 +1,9 @@
+{
+  "_comment": "tier1 gateway provider Pact スケルトン",
+  "provider": {
+    "name": "k1s0-tier1-gateway"
+  },
+  "consumer_count": 5,
+  "interactions": [],
+  "stub_note": "Provider verification は Stage 5 で実装"
+}

@@ -1,0 +1,12 @@
+{
+  "version": "0.45.4",
+  "input": {
+    "files": ["tier1_tenant_capacity_temporal_safety.tla"],
+    "main": "tier1_tenant_capacity_temporal_safety"
+  },
+  "checker": {
+    "length": 10,
+    "inv": ["TypeInvariant", "NoisyNeighborIsolation"],
+    "search": "TransitionFusion"
+  }
+}

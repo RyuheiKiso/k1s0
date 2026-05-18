@@ -1,0 +1,33 @@
+# tier2 Scheduler テナントスコープ policy
+# Argo CronWorkflow は必ずテナントスコープ内で実行する
+apiVersion: kyverno.io/v1
+# Kyverno ClusterPolicy リソース宣言
+kind: ClusterPolicy
+metadata:
+  # ポリシー名: tier2 Scheduler テナントスコープ必須
+  name: tier2-scheduler-tenant-scoped
+  annotations:
+    # このポリシーが対応する適合仕様の spec-id を記載する
+    k1s0.io/spec-id: detail.tier2.tenant_isolation_conformance
+spec:
+  # 違反時は即時拒否する (Enforce モード)
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効にする
+  background: true
+  rules:
+    # ルール名: CronWorkflow テナントラベル必須チェック
+    - name: require-tenant-label-on-cronworkflow
+      # Argo CronWorkflow リソースを対象とする
+      match:
+        any:
+          - resources:
+              # 対象リソース: Argo Workflows の CronWorkflow カスタムリソース
+              kinds: ["argoproj.io/v1alpha1/CronWorkflow"]
+      validate:
+        # tenant ラベルが未設定の場合はエラーメッセージを返す
+        message: "tier2 Scheduler: CronWorkflow は k1s0.io/tenant ラベルが必須です"
+        pattern:
+          metadata:
+            labels:
+              # テナントラベルが 1 文字以上の任意の値を持つことを必須とする
+              k1s0.io/tenant: "?*"

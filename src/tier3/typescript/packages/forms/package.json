@@ -1,0 +1,17 @@
+{
+  "name": "@k1s0/tier3-forms",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "tier3 forms package - ESLint tenant_id 禁止ルールを含む",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.0"
+  }
+}

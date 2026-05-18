@@ -16,7 +16,7 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 from tools.lock_yaml_generator.dsl import evaluate_dsl
 
 # ---------------------------------------------------------------------------
-# 46 cell カタログ
+# 70 cell カタログ (v1.0.0 拡張: 54 → 70 cells)
 # (cell_id, source_lock, dsl_expr)
 # ---------------------------------------------------------------------------
 _CELL_CATALOG: list[tuple[str, str, str]] = [
@@ -318,13 +318,111 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "../../tier3/lock/forbidden_export_symbols.lock.yaml",
         "count(`../../tier3/lock/forbidden_export_symbols.lock.yaml`, symbols[?status=='banned']) >= 3 AND evidence(`build_evidence.lock.yaml`, tier3.forbidden_export_symbols_enforced, eslint_boundaries_pass) == green",
     ),
-    # client
+    # tier2 (拡張: 7 cell 追加 — quota / abac_opa / scheduler_argo / weaver / api_neutrality / second_industry_stub / registry_pin)
     (
-        # tier1 Bidi capabilities の applicable 29 cell うち 5 class 以上が green
-        # = client SDK の 5 transport class が動作可能なことの proxy 確認
+        # 09_テナント容量適合仕様 5 quota_class が green であることを確認する
+        "tier2.quota_5class_green",
+        "../../tier2/lock/quota.lock.yaml",
+        "count(`../../tier2/lock/quota.lock.yaml`, classes[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier2.quota_5class_green, quota_enforcement_e2e_pass) == green",
+    ),
+    (
+        # ABAC OPA bundle が物理宣言済みであることを確認する
+        "tier2.abac_opa_green",
+        "../../tier2/lock/abac_opa.lock.yaml",
+        "count(`../../tier2/lock/abac_opa.lock.yaml`, policies[?status=='declared']) >= 2 AND evidence(`build_evidence.lock.yaml`, tier2.abac_opa_green, opa_policy_test_pass) == green",
+    ),
+    (
+        # Argo Workflow が 1 本以上 green であることを確認する
+        "tier2.scheduler_argo_green",
+        "../../tier2/lock/scheduler_argo.lock.yaml",
+        "count(`../../tier2/lock/scheduler_argo.lock.yaml`, workflows[?status=='green']) >= 1 AND evidence(`build_evidence.lock.yaml`, tier2.scheduler_argo_green, argo_workflow_lint_pass) == green",
+    ),
+    (
+        # Weaver semantic convention tier2 拡張が green であることを確認する
+        "tier2.weaver_semantic_conv_match_green",
+        "../../tier2/lock/weaver.lock.yaml",
+        "field(`../../tier2/lock/weaver.lock.yaml`, semconv_tier2_status) == green AND evidence(`build_evidence.lock.yaml`, tier2.weaver_semantic_conv_match_green, weaver_semconv_match) == green",
+    ),
+    (
+        # 業界中立性 API が宣言済みであることを確認する
+        "tier2.api_neutrality_green",
+        "../../tier2/lock/api_neutrality.lock.yaml",
+        "field(`../../tier2/lock/api_neutrality.lock.yaml`, neutrality_status) == declared AND evidence(`build_evidence.lock.yaml`, tier2.api_neutrality_green, api_neutrality_check_pass) == green",
+    ),
+    (
+        # 第二業界 stub サービスが宣言済みであることを確認する
+        "tier2.second_industry_stub_green",
+        "../../tier2/lock/second_industry_stub.lock.yaml",
+        "field(`../../tier2/lock/second_industry_stub.lock.yaml`, compile_status) == declared AND evidence(`build_evidence.lock.yaml`, tier2.second_industry_stub_green, second_industry_stub_compile_pass) == green",
+    ),
+    (
+        # 4 言語の内部 registry pin が設定済みであることを確認する
+        "tier2.registry_pin_green",
+        "../../tier2/lock/registry_pin.lock.yaml",
+        "count(`../../tier2/lock/registry_pin.lock.yaml`, languages[?pin_status=='pinned']) >= 4 AND evidence(`build_evidence.lock.yaml`, tier2.registry_pin_green, registry_pin_pass) == green",
+    ),
+    # tier3 (拡張: 5 cell 追加 — a11y_audit / e2e_8scenarios / forms_eslint / notifications_idempotent / design_tokens_contrast)
+    (
+        # axe-core 検査で tier3 UI アクセシビリティが保証されていることを確認する
+        "tier3.a11y_audit_green",
+        "../../tier3/lock/conflict_tree.lock.yaml",
+        "count(`../../tier3/lock/conflict_tree.lock.yaml`, events[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier3.a11y_audit_green, axe_core_zero_violation) == green",
+    ),
+    (
+        # Playwright e2e 8 scenario が宣言済みであることを確認する
+        "tier3.e2e_8scenarios_green",
+        "../../tier3/lock/test_matrix.lock.yaml",
+        "count(`../../tier3/lock/test_matrix.lock.yaml`, scenarios[?status=='declared']) >= 8 AND evidence(`build_evidence.lock.yaml`, tier3.e2e_8scenarios_green, playwright_8_scenario_pass) == green",
+    ),
+    (
+        # forms package の ESLint tenant_id 禁止ルールが violations=0 であることを確認する
+        "tier3.forms_eslint_no_tenant_id_green",
+        "../../tier3/lock/forms_lint.lock.yaml",
+        "field(`../../tier3/lock/forms_lint.lock.yaml`, violations) == 0 AND evidence(`build_evidence.lock.yaml`, tier3.forms_eslint_no_tenant_id_green, eslint_boundaries_pass) == green",
+    ),
+    (
+        # notifications package の idempotency property が宣言済みであることを確認する
+        "tier3.notifications_idempotent_green",
+        "../../tier3/lock/notifications_property.lock.yaml",
+        "field(`../../tier3/lock/notifications_property.lock.yaml`, property_status) == declared AND evidence(`build_evidence.lock.yaml`, tier3.notifications_idempotent_green, pnpm_test_pass) == green",
+    ),
+    (
+        # design-tokens の WCAG AA コントラスト比が宣言済みであることを確認する
+        "tier3.design_tokens_contrast_green",
+        "../../tier3/lock/design_tokens_contrast.lock.yaml",
+        "field(`../../tier3/lock/design_tokens_contrast.lock.yaml`, wcag_aa_status) == declared AND evidence(`build_evidence.lock.yaml`, tier3.design_tokens_contrast_green, pnpm_test_pass) == green",
+    ),
+    # client (false-green 解消: source_lock を sdk_inventory.lock.yaml に差し替え + 4 cell 追加)
+    (
+        # sdk_inventory.lock.yaml の 5 class が物理宣言されていることを確認する
+        # (旧 source は tier1 capabilities を流用する false-green だったため差し替え)
         "client.sdk_distribution_5class_green",
-        "../../tier1/lock/capabilities.lock.yaml",
-        "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, client.sdk_distribution_5class_green, sdk_dist_5class_e2e_pass) == green",
+        "../../client/lock/sdk_inventory.lock.yaml",
+        "count(`../../client/lock/sdk_inventory.lock.yaml`, packages) >= 5 AND evidence(`build_evidence.lock.yaml`, client.sdk_distribution_5class_green, sdk_dist_5class_e2e_pass) == green",
+    ),
+    (
+        # Pact contract test 5 consumer × 1 provider が宣言済みであることを確認する
+        "client.pact_contract_green",
+        "../../client/lock/pact_results.lock.yaml",
+        "count(`../../client/lock/pact_results.lock.yaml`, results[?status=='declared']) >= 5 AND evidence(`build_evidence.lock.yaml`, client.pact_contract_green, pact_provider_verify_pass) == green",
+    ),
+    (
+        # cosign supply chain 署名が 5 SDK class に存在することを確認する
+        "client.supply_chain_signed_green",
+        "../../client/lock/sdk_inventory.lock.yaml",
+        "count(`../../client/lock/sdk_inventory.lock.yaml`, packages) >= 5 AND evidence(`build_evidence.lock.yaml`, client.supply_chain_signed_green, cosign_verify_pass) == green",
+    ),
+    (
+        # SBOM Grype で high severity 脆弱性がゼロであることを確認する
+        "client.sbom_grype_green",
+        "../../client/lock/sdk_inventory.lock.yaml",
+        "count(`../../client/lock/sdk_inventory.lock.yaml`, packages) >= 5 AND evidence(`build_evidence.lock.yaml`, client.sbom_grype_green, sbom_grype_no_high) == green",
+    ),
+    (
+        # SLSA L3+ attestation が 5 SDK class すべてに存在することを確認する
+        "client.slsa_l3_attested_green",
+        "../../client/lock/sdk_inventory.lock.yaml",
+        "count(`../../client/lock/sdk_inventory.lock.yaml`, packages) >= 5 AND evidence(`build_evidence.lock.yaml`, client.slsa_l3_attested_green, slsa_attest_pass) == green",
     ),
 ]
 
@@ -332,7 +430,7 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
 class ReleaseGateV2Generator(BaseGenerator):
     """release_gate.lock.yaml 生成器（v2）。
 
-    46 cell の AND-gate を DSL 評価によって計算する。
+    70 cell の AND-gate を DSL 評価によって計算する（v1.0.0 拡張版）。
     """
 
     OUTPUT_NAME = "release_gate.lock.yaml"

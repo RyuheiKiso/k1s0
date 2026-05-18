@@ -1,0 +1,43 @@
+# SDK 配布 conformance シナリオカタログ
+# 各シナリオは Pact / property test / E2E のいずれかで検証する
+version: 1.0.0
+scenarios:
+  # ブラウザ SPA Pact consumer test
+  - id: browser_spa_pact_consumer
+    class: browser_spa
+    level: contract
+    description: Browser SPA が tier1 gateway と正しく Pact contract を結ぶことを確認する
+    implementation_path: src/client/pact/consumer/browser_spa.pact.json
+    conformance_cadence_days: 30
+
+  # Tauri Pact consumer test
+  - id: tauri_pact_consumer
+    class: tauri
+    level: contract
+    description: Tauri アプリが tier1 gateway と正しく Pact contract を結ぶことを確認する
+    implementation_path: src/client/pact/consumer/tauri.pact.json
+    conformance_cadence_days: 30
+
+  # dotnet_fw Pact consumer test
+  - id: dotnet_fw_pact_consumer
+    class: dotnet_fw
+    level: contract
+    description: .NET Framework SDK が tier1 gateway と Pact contract を結ぶことを確認する
+    implementation_path: src/client/pact/consumer/dotnet_fw.pact.json
+    conformance_cadence_days: 90
+
+  # full_native property test
+  - id: full_native_property_retry
+    class: full_native
+    level: property
+    description: Full native SDK の retry backoff が exponential であることを確認する
+    implementation_path: src/client/property_tests/nodejs/retry.test.js
+    conformance_cadence_days: 30
+
+  # thin_api E2E test
+  - id: thin_api_openapi_conformance
+    class: thin_api
+    level: e2e
+    description: Thin API client が OpenAPI spec に準拠していることを確認する
+    implementation_path: src/client/thin_api/openapi.yaml
+    conformance_cadence_days: 30

@@ -1,0 +1,37 @@
+# Litmus ChaosEngine: v1_professional クォータクラスの burst テスト
+# v1_professional テナントがバースト時に他テナントへの影響を与えないことを検証する
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosEngine リソース宣言
+kind: ChaosEngine
+metadata:
+  # ChaosEngine 名: tier2 v1_professional burst
+  name: tier2-quota-professional-burst
+  # 実行名前空間
+  namespace: tier2-test
+spec:
+  appinfo:
+    # 対象アプリケーションの名前空間
+    appns: tier2-test
+    # v1_professional クォータクラスのアプリを対象にするラベルセレクタ
+    applabel: "quota.class=v1_professional"
+  # Litmus サービスアカウント
+  chaosServiceAccount: litmus-admin
+  experiments:
+    # pod-cpu-hog: 短時間の CPU バーストを再現する
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            # バースト継続時間（秒）を指定する（短時間バーストを再現）
+            - name: TOTAL_CHAOS_DURATION
+              value: "15"
+            # バースト時の CPU コア数を v1_professional の burst 上限に設定する
+            - name: CPU_CORES
+              value: "8"
+            # 対象 Pod 名を指定する
+            - name: TARGET_PODS
+              value: "tier2-test-professional-tenant"
+        status:
+          # テスト結果名を指定する
+          - name: ChaosResult
+            value: v1_professional_burst_isolation_pass

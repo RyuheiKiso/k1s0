@@ -1,0 +1,106 @@
+# tier1 library 4 言語 parity 検証ベクトル
+# Rust / Go / C# / TypeScript の実装が同一入力から同一出力を返すことを保証する
+# 各ベクトルは id / module / operation / input / expected_output_schema で構成する
+version: 1.0.0
+# parity ベクトル一覧
+vectors:
+  # KeyHandle: キー生成 parity ベクトル
+  # key_handle_generate_ed25519 は 4 言語の KeyHandle 実装が ed25519 アルゴリズムを
+  # 正しく返すことを確認する
+  - id: key_handle_generate_ed25519
+    # テスト対象モジュール
+    module: KeyHandle
+    # テスト対象操作: キー生成
+    operation: generate
+    # 入力値
+    input:
+      # 鍵の種類: ed25519 楕円曲線鍵
+      key_type: ed25519
+      # 鍵の用途: 署名
+      purpose: signing
+    # 期待出力スキーマ（型のみ規定する。値は各言語実装が決定する）
+    expected_output_schema:
+      # key_id フィールドは文字列であること
+      key_id: string
+      # algorithm フィールドは "ed25519" であること
+      algorithm: ed25519
+      # has_private フィールドは false であること（公開 API に生 key bytes を露出しない）
+      has_private: false
+
+  # AuthContext: トークン形式検証 parity ベクトル
+  # auth_context_validate_jwt_format は 4 言語の AuthContext 実装が
+  # JWT 形式（header.payload.signature 3 パート）を正しく検証することを確認する
+  - id: auth_context_validate_jwt_format
+    # テスト対象モジュール
+    module: AuthContext
+    # テスト対象操作: JWT 形式検証
+    operation: validate_format
+    # 入力値: stub JWT トークン（EdDSA 署名、payload は空オブジェクト）
+    input:
+      # JWT stub トークン: header.payload.signature の 3 パート構造
+      token: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.e30.stub"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # valid_format フィールドはブール値であること（有効な JWT 形式なら true）
+      valid_format: boolean
+      # algorithm フィールドは文字列であること（例: "EdDSA"）
+      algorithm: string
+
+  # Repository: テナントスコープ parity ベクトル
+  # repository_tenant_scope_query は 4 言語の Repository 実装が
+  # テナントスコープのクエリを正しく実行することを確認する
+  - id: repository_tenant_scope_query
+    # テスト対象モジュール
+    module: Repository
+    # テスト対象操作: テナントスコープチェック
+    operation: tenant_scope_check
+    # 入力値
+    input:
+      # テナント ID: テスト用固定値
+      tenant_id: "test-tenant-001"
+      # リソース ID: テスト用固定値
+      resource_id: "resource-001"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # in_scope フィールドはブール値であること（テナントスコープ内なら true）
+      in_scope: boolean
+
+  # Quota: レート制限 parity ベクトル
+  # quota_rate_limit_check は 4 言語の Quota 実装が
+  # quota class に基づくレート制限を正しく判定することを確認する
+  - id: quota_rate_limit_check
+    # テスト対象モジュール
+    module: Quota
+    # テスト対象操作: レート制限チェック
+    operation: check_limit
+    # 入力値
+    input:
+      # quota class: v1_standard クラス（QPS 上限 10,000）
+      class: v1_standard
+      # 現在の QPS: 100（制限値 10,000 より十分低い）
+      current_qps: 100
+    # 期待出力スキーマ
+    expected_output_schema:
+      # allowed フィールドはブール値であること（制限内なら true）
+      allowed: boolean
+      # remaining フィールドは整数であること（残余 QPS 量）
+      remaining: integer
+
+  # Bidi: ハンドシェイク capabilities parity ベクトル
+  # bidi_handshake_capabilities は 4 言語の Bidi 実装が
+  # 01_Bidi適合仕様.md §v1 conformance_class セットを正しくネゴシエートすることを確認する
+  - id: bidi_handshake_capabilities
+    # テスト対象モジュール
+    module: Bidi
+    # テスト対象操作: capabilities ネゴシエーション
+    operation: negotiate_capabilities
+    # 入力値
+    input:
+      # conformance_class: c1_bidirectional_full（完全双方向通信対応クラス）
+      conformance_class: c1_bidirectional_full
+    # 期待出力スキーマ
+    expected_output_schema:
+      # accepted フィールドはブール値であること（ネゴシエーション成功なら true）
+      accepted: boolean
+      # negotiated_class フィールドは文字列であること（合意した conformance_class 値）
+      negotiated_class: string

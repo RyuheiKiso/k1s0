@@ -1,0 +1,45 @@
+# tier2 テナント分離 property test 共通ベクター
+# 4 言語 (Rust/Go/C#/TypeScript) が同一入力で同一の cross-tenant 分離を保証することを検証する
+version: 1.0.0
+property_vectors:
+  # クロステナント読み取り拒否ベクター
+  - id: cross_tenant_read_denied
+    # テナント A のリソースをテナント B から読み取れないことを検証する
+    description: テナント A のリソースをテナント B から読み取れないことを検証する
+    input:
+      # リクエスト元テナント識別子
+      requesting_tenant: "tenant-B"
+      # リソース所有テナント識別子
+      resource_tenant: "tenant-A"
+      # 操作種別
+      operation: read
+    # 期待結果: アクセス拒否
+    expected: denied
+
+  # 同一テナント読み取り許可ベクター
+  - id: same_tenant_read_allowed
+    # テナント A のリソースをテナント A 自身が読み取れることを検証する
+    description: テナント A のリソースをテナント A 自身が読み取れることを検証する
+    input:
+      # リクエスト元テナント識別子
+      requesting_tenant: "tenant-A"
+      # リソース所有テナント識別子
+      resource_tenant: "tenant-A"
+      # 操作種別
+      operation: read
+    # 期待結果: アクセス許可
+    expected: allowed
+
+  # クロステナント書き込み拒否ベクター
+  - id: cross_tenant_write_denied
+    # テナント A のリソースをテナント B から書き込めないことを検証する
+    description: テナント A のリソースをテナント B から書き込めないことを検証する
+    input:
+      # リクエスト元テナント識別子
+      requesting_tenant: "tenant-B"
+      # リソース所有テナント識別子
+      resource_tenant: "tenant-A"
+      # 操作種別
+      operation: write
+    # 期待結果: アクセス拒否
+    expected: denied
