@@ -47,7 +47,8 @@ export function resolveSubtypeActions(
       const isClean = isRebaseClean(fieldDiff);
       if (isClean) {
         // rebase_clean: auto resend（chain 元を記録した新 key を生成）
-        const newKey = `${idempotencyKey}_chained_${Date.now()}`;
+        // wall-clock TTL 禁止規約に従い Date.now() を使用せず crypto.randomUUID() で一意性を確保する
+        const newKey = `${idempotencyKey}_chained_${crypto.randomUUID()}`;
         return [
           { actionType: "auto_resend_with_chained_key", chainedFrom: idempotencyKey, newKey } satisfies StaleWriteAction,
         ];

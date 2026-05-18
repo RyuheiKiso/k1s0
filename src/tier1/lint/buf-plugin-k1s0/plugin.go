@@ -71,30 +71,32 @@ func CheckMethodAnnotations(sd protoreflect.ServiceDescriptor) []AnnotationViola
 			// 次のメソッドに進む
 			continue
 		}
-		// proto descriptor のオプション文字列を取得して annotation 存在確認する
-		// NOTE: 実際の Buf plugin は buf.build/go/protoplugin の API を使って
-		// custom option の field presence を確認するが、ここでは proto descriptor の
-		// ProtoMessage().ProtoReflect() を使って確認する
-		optsStr := opts.ProtoReflect().Range
-		// optsStr から各必須 annotation の存在を確認する（簡略実装）
-		// 実際の Buf plugin では protoreflect.FieldDescriptor で field presence を確認する
-		_ = optsStr
-		// proto message のテキスト表現から annotation を確認する（フォールバック実装）
-		protoText := opts.ProtoReflect().Descriptor().FullName()
+		// メソッドオプションの proto reflection を取得する
+		optsReflect := opts.ProtoReflect()
 		// 各必須 annotation が存在するかチェックする
 		for _, ann := range RequiredAnnotations {
-			// annotation の短縮名（最後の . 以降）を取得する
-			annShort := ann
-			// ドット区切りで最後の部分を取得する
-			if idx := strings.LastIndexByte(ann, '.'); idx >= 0 {
-				annShort = ann[idx+1:]
-			}
-			// proto descriptor の FullName に annotation 短縮名が含まれるかチェックする
-			// NOTE: これは簡略実装。実際の Buf plugin は protoreflect.ExtensionDesc で
-			// field presence を確認する必要がある。
-			fullNameStr := string(protoText)
-			if !strings.Contains(fullNameStr, annShort) {
-				// annotation が欠落している場合は違反として記録する
+			// annotation の存在フラグを初期化する（false = 欠落とみなす）
+			found := false
+			// options message の設定済みフィールドを走査して annotation の存在を確認する
+			// NOTE: protoreflect.Message.Range は設定済み（非 UNSPECIFIED）フィールドのみを返す。
+			// これにより annotation の field presence（= 非デフォルト値が設定されていること）を確認できる。
+			// 文字列 contains 検査より精度が高く、UNSPECIFIED（= 0）値を「設定済み」と誤認しない。
+			optsReflect.Range(func(fd protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+				// フィールドの完全修飾名（FullName）に annotation 名が含まれるか確認する
+				// annotation の完全修飾名（例: tier1.bidi.conformance_class）と比較する
+				if strings.Contains(string(fd.FullName()), ann) {
+					// annotation が存在することを記録して走査を停止する
+					found = true
+					// Range を早期終了する（false を返すと Range が停止する）
+					return false
+				}
+				// 次のフィールドに進む
+				return true
+			})
+			// annotation が存在しない（または UNSPECIFIED = デフォルト値のまま）場合は違反として記録する
+			// IMPROVEMENT: 将来的には protoreflect.ExtensionDesc で extension field presence を直接確認すること
+			if !found {
+				// annotation が欠落または UNSPECIFIED の場合は違反として記録する
 				violations = append(violations, AnnotationViolation{
 					// サービス名を設定する
 					ServiceName: string(sd.FullName()),

@@ -32,6 +32,14 @@ table_classes:
       - version
     # 典型用途
     description: "業務 entity / aggregate / Read Model"
+    # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
+    allowed_purpose:
+      # 主要業務処理（aggregate の読み書き）
+      - primary_business
+      # 分析用の読み取り専用アクセス
+      - analytics_readonly
+      # 監査イベントの emit（audit_local 書込）
+      - audit_emit
 
   # ============================================================
   # tenant_master: テナントマスタ（role 制限付き）
@@ -56,6 +64,12 @@ table_classes:
       - version
     # 典型用途
     description: "テナント所有マスタ（通貨レート・製品カタログ等）"
+    # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
+    allowed_purpose:
+      # 主要業務処理（マスタの読み書き、master.admin role 必須）
+      - primary_business
+      # 監査イベントの emit（audit_local 書込）
+      - audit_emit
 
   # ============================================================
   # platform_global: プラットフォームグローバル（tenant 越境 read 可）
@@ -79,6 +93,12 @@ table_classes:
       - version
     # 典型用途
     description: "通貨 / 国 / 業界共通分類（全 tenant 参照可能）"
+    # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
+    allowed_purpose:
+      # 分析用の読み取り専用アクセス（全 tenant が参照可能）
+      - analytics_readonly
+      # プラットフォーム管理者による書込・メンテナンス（platform_admin role 必須）
+      - platform_admin
 
   # ============================================================
   # pii_segregated: PII 隔離（最高レベルのアクセス制限）
@@ -107,3 +127,9 @@ table_classes:
       - version
     # 典型用途
     description: "PII を含む user / partner（個人情報保護法・GDPR 対象）"
+    # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
+    allowed_purpose:
+      # PII アクセス（support_engineer role + purpose_check を通過した場合のみ許可）
+      - pii_access
+      # 監査イベントの emit（全アクセスを pgaudit + audit_local で記録）
+      - audit_emit

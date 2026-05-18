@@ -168,9 +168,10 @@ public sealed class AtomicTripleWrite : IAtomicTripleWrite
         sb.AppendLine($"INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)");
         sb.AppendLine($"VALUES ('{auditId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, 'StateChange', '{escapedPayload}'::jsonb, {change.Version}, '{now}');");
         sb.AppendLine();
-        // P1: outbox (Debezium CDC 経由で Kafka に転送される)
-        sb.AppendLine("-- P1: outbox (Debezium CDC 経由で Kafka に転送される)");
-        sb.AppendLine($"INSERT INTO k1s0.outbox (id, aggregate_id, tenant_id, event_kind, payload, created_at)");
+        // P1: outbox_message (Debezium CDC 経由で Kafka に転送される)
+        sb.AppendLine("-- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)");
+        // outbox_message テーブルに INSERT する（migration SoT: k1s0.outbox_message）
+        sb.AppendLine($"INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)");
         sb.AppendLine($"VALUES ('{outboxId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '{escapedPayload}'::jsonb, '{now}');");
         sb.AppendLine();
         // P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
@@ -247,10 +248,11 @@ public sealed class AtomicTripleWrite : IAtomicTripleWrite
         // P1 の domain_event INSERT を非同期実行する（同一 txn で実行する）
         await domainEventCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
-        // P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+        // P1: k1s0.outbox_message テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
         // P2: この INSERT が失敗した場合は例外をスローし、呼び出し元が RollbackAsync を呼ぶ
+        // migration SoT: 0001_initial_schema.sql が CREATE TABLE k1s0.outbox_message を発行している
         const string outboxSql = @"
-            INSERT INTO k1s0.outbox
+            INSERT INTO k1s0.outbox_message
                 (id, aggregate_id, tenant_id, event_kind, payload, created_at)
             VALUES
                 (@id, @agg_id, current_setting('app.tenant_id')::uuid, 'OutboxRelay', @payload::jsonb, @created_at)

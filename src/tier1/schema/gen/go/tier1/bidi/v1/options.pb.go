@@ -39,34 +39,34 @@ const (
 	// デフォルト（未指定）— Buf lint が fail にする
 	ConformanceClass_CONFORMANCE_CLASS_UNSPECIFIED ConformanceClass = 0
 	// v1_interactive: 双方向対話、SESSION_ORDERED、half_close=SUPPORTED、resumable=REQUIRED、lag≤200ms
-	ConformanceClass_V1_INTERACTIVE ConformanceClass = 1
+	ConformanceClass_CONFORMANCE_CLASS_INTERACTIVE ConformanceClass = 1
 	// v1_alert: サーバー主導警報、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤200ms、server→client
-	ConformanceClass_V1_ALERT ConformanceClass = 2
+	ConformanceClass_CONFORMANCE_CLASS_ALERT ConformanceClass = 2
 	// v1_event_feed: Domain Event 配信、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤5000ms、server→client
-	ConformanceClass_V1_EVENT_FEED ConformanceClass = 3
+	ConformanceClass_CONFORMANCE_CLASS_EVENT_FEED ConformanceClass = 3
 	// v1_live_snapshot: 最新値表示、UNORDERED、half_close=UNUSED、resumable=NONE、lag≤500ms、server→client
-	ConformanceClass_V1_LIVE_SNAPSHOT ConformanceClass = 4
+	ConformanceClass_CONFORMANCE_CLASS_LIVE_SNAPSHOT ConformanceClass = 4
 	// v1_bulk_upload: 大量データ投入、UNORDERED、half_close=SUPPORTED、resumable=NONE、client→server
-	ConformanceClass_V1_BULK_UPLOAD ConformanceClass = 5
+	ConformanceClass_CONFORMANCE_CLASS_BULK_UPLOAD ConformanceClass = 5
 )
 
 // Enum value maps for ConformanceClass.
 var (
 	ConformanceClass_name = map[int32]string{
 		0: "CONFORMANCE_CLASS_UNSPECIFIED",
-		1: "V1_INTERACTIVE",
-		2: "V1_ALERT",
-		3: "V1_EVENT_FEED",
-		4: "V1_LIVE_SNAPSHOT",
-		5: "V1_BULK_UPLOAD",
+		1: "CONFORMANCE_CLASS_INTERACTIVE",
+		2: "CONFORMANCE_CLASS_ALERT",
+		3: "CONFORMANCE_CLASS_EVENT_FEED",
+		4: "CONFORMANCE_CLASS_LIVE_SNAPSHOT",
+		5: "CONFORMANCE_CLASS_BULK_UPLOAD",
 	}
 	ConformanceClass_value = map[string]int32{
-		"CONFORMANCE_CLASS_UNSPECIFIED": 0,
-		"V1_INTERACTIVE":                1,
-		"V1_ALERT":                      2,
-		"V1_EVENT_FEED":                 3,
-		"V1_LIVE_SNAPSHOT":              4,
-		"V1_BULK_UPLOAD":                5,
+		"CONFORMANCE_CLASS_UNSPECIFIED":  0,
+		"CONFORMANCE_CLASS_INTERACTIVE":  1,
+		"CONFORMANCE_CLASS_ALERT":        2,
+		"CONFORMANCE_CLASS_EVENT_FEED":   3,
+		"CONFORMANCE_CLASS_LIVE_SNAPSHOT": 4,
+		"CONFORMANCE_CLASS_BULK_UPLOAD":  5,
 	}
 )
 
@@ -103,22 +103,22 @@ type Ordering int32
 const (
 	Ordering_ORDERING_UNSPECIFIED Ordering = 0
 	// セッション内での順序保証あり（送信順で届く）
-	Ordering_SESSION_ORDERED Ordering = 1
+	Ordering_ORDERING_SESSION_ORDERED Ordering = 1
 	// 順序保証なし（latest-wins または at-least-once）
-	Ordering_UNORDERED Ordering = 2
+	Ordering_ORDERING_UNORDERED Ordering = 2
 )
 
 // Enum value maps for Ordering.
 var (
 	Ordering_name = map[int32]string{
 		0: "ORDERING_UNSPECIFIED",
-		1: "SESSION_ORDERED",
-		2: "UNORDERED",
+		1: "ORDERING_SESSION_ORDERED",
+		2: "ORDERING_UNORDERED",
 	}
 	Ordering_value = map[string]int32{
-		"ORDERING_UNSPECIFIED": 0,
-		"SESSION_ORDERED":      1,
-		"UNORDERED":            2,
+		"ORDERING_UNSPECIFIED":      0,
+		"ORDERING_SESSION_ORDERED":  1,
+		"ORDERING_UNORDERED":        2,
 	}
 )
 
@@ -155,22 +155,22 @@ type HalfClose int32
 const (
 	HalfClose_HALF_CLOSE_UNSPECIFIED HalfClose = 0
 	// クライアントから終端を通知できる
-	HalfClose_SUPPORTED HalfClose = 1
+	HalfClose_HALF_CLOSE_SUPPORTED HalfClose = 1
 	// 終端通知は使用しない
-	HalfClose_UNUSED HalfClose = 2
+	HalfClose_HALF_CLOSE_UNUSED HalfClose = 2
 )
 
 // Enum value maps for HalfClose.
 var (
 	HalfClose_name = map[int32]string{
 		0: "HALF_CLOSE_UNSPECIFIED",
-		1: "SUPPORTED",
-		2: "UNUSED",
+		1: "HALF_CLOSE_SUPPORTED",
+		2: "HALF_CLOSE_UNUSED",
 	}
 	HalfClose_value = map[string]int32{
 		"HALF_CLOSE_UNSPECIFIED": 0,
-		"SUPPORTED":              1,
-		"UNUSED":                 2,
+		"HALF_CLOSE_SUPPORTED":   1,
+		"HALF_CLOSE_UNUSED":      2,
 	}
 )
 
@@ -207,22 +207,22 @@ type Resumable int32
 const (
 	Resumable_RESUMABLE_UNSPECIFIED Resumable = 0
 	// resume_token 経由で状態継続が必須
-	Resumable_REQUIRED Resumable = 1
+	Resumable_RESUMABLE_REQUIRED Resumable = 1
 	// resume なし（再接続時は最初から）
-	Resumable_NONE Resumable = 2
+	Resumable_RESUMABLE_NONE Resumable = 2
 )
 
 // Enum value maps for Resumable.
 var (
 	Resumable_name = map[int32]string{
 		0: "RESUMABLE_UNSPECIFIED",
-		1: "REQUIRED",
-		2: "NONE",
+		1: "RESUMABLE_REQUIRED",
+		2: "RESUMABLE_NONE",
 	}
 	Resumable_value = map[string]int32{
 		"RESUMABLE_UNSPECIFIED": 0,
-		"REQUIRED":              1,
-		"NONE":                  2,
+		"RESUMABLE_REQUIRED":    1,
+		"RESUMABLE_NONE":        2,
 	}
 )
 
@@ -259,26 +259,26 @@ type Direction int32
 const (
 	Direction_DIRECTION_UNSPECIFIED Direction = 0
 	// クライアント ↔ サーバー 双方向
-	Direction_BIDIRECTIONAL Direction = 1
+	Direction_DIRECTION_BIDIRECTIONAL Direction = 1
 	// サーバー → クライアント 一方向
-	Direction_SERVER_TO_CLIENT Direction = 2
+	Direction_DIRECTION_SERVER_TO_CLIENT Direction = 2
 	// クライアント → サーバー 一方向
-	Direction_CLIENT_TO_SERVER Direction = 3
+	Direction_DIRECTION_CLIENT_TO_SERVER Direction = 3
 )
 
 // Enum value maps for Direction.
 var (
 	Direction_name = map[int32]string{
 		0: "DIRECTION_UNSPECIFIED",
-		1: "BIDIRECTIONAL",
-		2: "SERVER_TO_CLIENT",
-		3: "CLIENT_TO_SERVER",
+		1: "DIRECTION_BIDIRECTIONAL",
+		2: "DIRECTION_SERVER_TO_CLIENT",
+		3: "DIRECTION_CLIENT_TO_SERVER",
 	}
 	Direction_value = map[string]int32{
-		"DIRECTION_UNSPECIFIED": 0,
-		"BIDIRECTIONAL":         1,
-		"SERVER_TO_CLIENT":      2,
-		"CLIENT_TO_SERVER":      3,
+		"DIRECTION_UNSPECIFIED":       0,
+		"DIRECTION_BIDIRECTIONAL":     1,
+		"DIRECTION_SERVER_TO_CLIENT":  2,
+		"DIRECTION_CLIENT_TO_SERVER":  3,
 	}
 )
 

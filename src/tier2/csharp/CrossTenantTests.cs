@@ -160,7 +160,8 @@ public sealed class CrossTenantTests
         // BEGIN と COMMIT の間に 3 つの INSERT が含まれることを確認する
         AssertHelper.Contains("BEGIN", sql);
         AssertHelper.Contains("domain_event", sql);
-        AssertHelper.Contains("outbox", sql);
+        // outbox_message テーブル名が SQL に含まれることを確認する（migration SoT: k1s0.outbox_message）
+        AssertHelper.Contains("outbox_message", sql);
         AssertHelper.Contains("audit_event", sql);
         AssertHelper.Contains("COMMIT", sql);
         // GUC 注入が含まれることを確認する

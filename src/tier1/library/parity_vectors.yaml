@@ -104,3 +104,71 @@ vectors:
       accepted: boolean
       # negotiated_class フィールドは文字列であること（合意した conformance_class 値）
       negotiated_class: string
+
+  # AuthContext: v1_human_session セッション生成 parity ベクトル
+  # auth_context_v1_human_session は 4 言語の AuthContext 実装が
+  # v1_human_session クラスの AuthContext を生成して opaque 型で返すことを確認する
+  # 05_鍵管理適合仕様.md §public_api_type_constraint: access_token を公開 API に露出しない
+  - id: auth_context_v1_human_session
+    # テスト対象モジュール
+    module: AuthContext
+    # テスト対象操作: v1_human_session AuthContext の生成
+    operation: create_session
+    # 入力値
+    input:
+      # 認証クラス: v1_human_session（人間ユーザーのセッション型）
+      auth_class: v1_human_session
+      # セッション ID: テスト用固定値
+      session_id: "test-session-id-1234"
+      # テナント ID: テスト用 UUID 固定値
+      tenant_id: "550e8400-e29b-41d4-a716-446655440000"
+    # 期待出力スキーマ（型・制約のみ規定する。値は各言語実装が決定する）
+    expected_output_schema:
+      # access_token が公開シグネチャに露出していないことを確認する（opaque 型必須）
+      access_token_exposed: false
+      # auth_class が正しく設定されていることを確認する
+      auth_class: v1_human_session
+      # テナント ID が正しく設定されていることを確認する
+      tenant_id: "550e8400-e29b-41d4-a716-446655440000"
+
+  # KeyHandle: v1_signing キー生成 parity ベクトル
+  # key_handle_v1_signing は 4 言語の KeyHandle 実装が
+  # v1_signing KeyHandle を生成して raw key bytes が公開 API に露出しないことを確認する
+  # 05_鍵管理適合仕様.md §public_api_type_constraint: KeyHandle は opaque 型である
+  - id: key_handle_v1_signing
+    # テスト対象モジュール
+    module: KeyHandle
+    # テスト対象操作: v1_signing KeyHandle の生成
+    operation: generate_signing_key
+    # 入力値
+    input:
+      # キークラス: v1_signing（署名用鍵クラス）
+      key_class: v1_signing
+    # 期待出力スキーマ
+    expected_output_schema:
+      # raw key bytes が公開シグネチャに露出していないことを確認する
+      raw_bytes_exposed: false
+      # key_id フィールドは文字列であること
+      key_id: string
+
+  # IdempotencyKey: chaining parity ベクトル
+  # idempotency_key_chaining は 4 言語の IdempotencyKey 実装が
+  # chainIdempotencyKey が wall-clock を使わず UUID ベースで生成することを確認する
+  # src/CLAUDE.md §wall-clock TTL 禁止: wall-clock タイムスタンプは chaining に使用禁止
+  - id: idempotency_key_chaining
+    # テスト対象モジュール
+    module: IdempotencyKey
+    # テスト対象操作: idempotency key のチェーン生成
+    operation: chain_key
+    # 入力値
+    input:
+      # 元の idempotency key: チェーン元となる基底キー
+      original_key: "base-key-abcd1234"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # 出力が original_key を prefix として含むこと
+      starts_with_original_key: true
+      # 出力が wall-clock タイムスタンプを含まないこと（HLC 禁止規則に準拠する）
+      contains_wall_clock_timestamp: false
+      # 出力キーが文字列型であること
+      result_type: string

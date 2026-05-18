@@ -175,41 +175,41 @@ export enum AuthClass {
    * v1_human_session: 業務担当者 SPA セッション
    * OIDC code flow + DPoP 鍵束縛（RFC 9449）、rotating refresh、on_high_risk step_up
    *
-   * @generated from enum value: V1_HUMAN_SESSION = 1;
+   * @generated from enum value: AUTH_CLASS_HUMAN_SESSION = 1;
    */
-  V1_HUMAN_SESSION = 1,
+  AUTH_CLASS_HUMAN_SESSION = 1,
 
   /**
    * v1_workload_jwt: K8s ServiceAccount projection / SPIFFE/SPIRE SVID
    * 短 TTL JWT（<5m）、自動 renew は workload runtime 担当、step_up=never
    *
-   * @generated from enum value: V1_WORKLOAD_JWT = 2;
+   * @generated from enum value: AUTH_CLASS_WORKLOAD_JWT = 2;
    */
-  V1_WORKLOAD_JWT = 2,
+  AUTH_CLASS_WORKLOAD_JWT = 2,
 
   /**
    * v1_device_attest: 工場端末・KIOSK
    * TPM/HSM device cert、長 TTL（<24h）、one_shot refresh、on_first_use step_up
    *
-   * @generated from enum value: V1_DEVICE_ATTEST = 3;
+   * @generated from enum value: AUTH_CLASS_DEVICE_ATTEST = 3;
    */
-  V1_DEVICE_ATTEST = 3,
+  AUTH_CLASS_DEVICE_ATTEST = 3,
 
   /**
    * v1_federated_exchange: 親会社/取引先 IdP からの RFC 8693 token exchange
    * audience-restricted 短命 JWT（<5m）、act/may_act claim
    *
-   * @generated from enum value: V1_FEDERATED_EXCHANGE = 4;
+   * @generated from enum value: AUTH_CLASS_FEDERATED_EXCHANGE = 4;
    */
-  V1_FEDERATED_EXCHANGE = 4,
+  AUTH_CLASS_FEDERATED_EXCHANGE = 4,
 
   /**
    * v1_emergency_step_up: break-glass アクセス
    * always step_up、TTL<10m、no refresh、purpose=emergency 強制
    *
-   * @generated from enum value: V1_EMERGENCY_STEP_UP = 5;
+   * @generated from enum value: AUTH_CLASS_EMERGENCY_STEP_UP = 5;
    */
-  V1_EMERGENCY_STEP_UP = 5,
+  AUTH_CLASS_EMERGENCY_STEP_UP = 5,
 }
 
 /**
@@ -232,30 +232,30 @@ export enum SubjectKind {
   /**
    * 業務担当者（human）
    *
-   * @generated from enum value: HUMAN = 1;
+   * @generated from enum value: SUBJECT_KIND_HUMAN = 1;
    */
-  HUMAN = 1,
+  SUBJECT_KIND_HUMAN = 1,
 
   /**
    * Workload（K8s Pod / SPIRE agent など）
    *
-   * @generated from enum value: WORKLOAD = 2;
+   * @generated from enum value: SUBJECT_KIND_WORKLOAD = 2;
    */
-  WORKLOAD = 2,
+  SUBJECT_KIND_WORKLOAD = 2,
 
   /**
    * 工場端末・KIOSK デバイス
    *
-   * @generated from enum value: DEVICE = 3;
+   * @generated from enum value: SUBJECT_KIND_DEVICE = 3;
    */
-  DEVICE = 3,
+  SUBJECT_KIND_DEVICE = 3,
 
   /**
    * 外部 IdP からの federated subject
    *
-   * @generated from enum value: EXTERNAL_SUBJECT = 4;
+   * @generated from enum value: SUBJECT_KIND_EXTERNAL_SUBJECT = 4;
    */
-  EXTERNAL_SUBJECT = 4,
+  SUBJECT_KIND_EXTERNAL_SUBJECT = 4,
 }
 
 /**
@@ -278,30 +278,30 @@ export enum TokenType {
   /**
    * DPoP 鍵束縛 JWT（RFC 9449）
    *
-   * @generated from enum value: DPOP_BOUND_JWT = 1;
+   * @generated from enum value: TOKEN_TYPE_DPOP_BOUND_JWT = 1;
    */
-  DPOP_BOUND_JWT = 1,
+  TOKEN_TYPE_DPOP_BOUND_JWT = 1,
 
   /**
    * 通常 JWT（短 TTL）
    *
-   * @generated from enum value: JWT_SHORT = 2;
+   * @generated from enum value: TOKEN_TYPE_JWT_SHORT = 2;
    */
-  JWT_SHORT = 2,
+  TOKEN_TYPE_JWT_SHORT = 2,
 
   /**
    * device attestation chain 付き JWT
    *
-   * @generated from enum value: JWT_ATTESTED = 3;
+   * @generated from enum value: TOKEN_TYPE_JWT_ATTESTED = 3;
    */
-  JWT_ATTESTED = 3,
+  TOKEN_TYPE_JWT_ATTESTED = 3,
 
   /**
    * RFC 8693 token exchange JWT（audience-restricted）
    *
-   * @generated from enum value: EXCHANGE_JWT = 4;
+   * @generated from enum value: TOKEN_TYPE_EXCHANGE_JWT = 4;
    */
-  EXCHANGE_JWT = 4,
+  TOKEN_TYPE_EXCHANGE_JWT = 4,
 }
 
 /**
@@ -324,30 +324,30 @@ export enum StepUpPolicy {
   /**
    * 一切の step_up 不要
    *
-   * @generated from enum value: NEVER = 1;
+   * @generated from enum value: STEP_UP_POLICY_NEVER = 1;
    */
-  NEVER = 1,
+  STEP_UP_POLICY_NEVER = 1,
 
   /**
    * 初回使用時のみ
    *
-   * @generated from enum value: ON_FIRST_USE = 2;
+   * @generated from enum value: STEP_UP_POLICY_ON_FIRST_USE = 2;
    */
-  ON_FIRST_USE = 2,
+  STEP_UP_POLICY_ON_FIRST_USE = 2,
 
   /**
    * 高リスク action 直前
    *
-   * @generated from enum value: ON_HIGH_RISK = 3;
+   * @generated from enum value: STEP_UP_POLICY_ON_HIGH_RISK = 3;
    */
-  ON_HIGH_RISK = 3,
+  STEP_UP_POLICY_ON_HIGH_RISK = 3,
 
   /**
    * 常に（break-glass 等）
    *
-   * @generated from enum value: ALWAYS = 4;
+   * @generated from enum value: STEP_UP_POLICY_ALWAYS = 4;
    */
-  ALWAYS = 4,
+  STEP_UP_POLICY_ALWAYS = 4,
 }
 
 /**

@@ -38,7 +38,7 @@ const SETUP_SQL: &str = r#"
         version BIGINT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS k1s0.outbox (
+    CREATE TABLE IF NOT EXISTS k1s0.outbox_message (
         id UUID PRIMARY KEY,
         aggregate_id UUID NOT NULL,
         tenant_id UUID NOT NULL,
@@ -61,7 +61,7 @@ const SETUP_SQL: &str = r#"
 // テスト用のスキーマをクリーンアップする SQL（テスト間の独立性を保つ）
 const CLEANUP_SQL: &str = r#"
     DROP TABLE IF EXISTS k1s0.audit_event CASCADE;
-    DROP TABLE IF EXISTS k1s0.outbox CASCADE;
+    DROP TABLE IF EXISTS k1s0.outbox_message CASCADE;
     DROP TABLE IF EXISTS k1s0.domain_event CASCADE;
     DROP SCHEMA IF EXISTS k1s0 CASCADE;
 "#;
@@ -199,15 +199,15 @@ async fn test_p1_atomic_triple_write() {
     .expect("Failed to query domain_event count");
     assert_eq!(domain_event_count.0, 1, "P1: domain_event must have 1 row");
 
-    // outbox が 1 行書込まれていることを確認する
+    // outbox_message が 1 行書込まれていることを確認する（migration SoT: k1s0.outbox_message）
     let outbox_count: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM k1s0.outbox WHERE aggregate_id = $1",
+        "SELECT COUNT(*) FROM k1s0.outbox_message WHERE aggregate_id = $1",
     )
     .bind(change.aggregate_id)
     .fetch_one(&pool)
     .await
-    .expect("Failed to query outbox count");
-    assert_eq!(outbox_count.0, 1, "P1: outbox must have 1 row");
+    .expect("Failed to query outbox_message count");
+    assert_eq!(outbox_count.0, 1, "P1: outbox_message must have 1 row");
 
     // audit_event が 1 行書込まれていることを確認する
     let audit_count: (i64,) = sqlx::query_as(

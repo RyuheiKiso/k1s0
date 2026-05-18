@@ -3,6 +3,11 @@
 // 5 quota_class × noisy_neighbor シナリオ: 高負荷テナントが他テナントの SLO を侵害しないことを検証する。
 // Litmus ChaosEngine が利用できない環境では QPS カウンタの独立性をシミュレーションで検証する。
 
+// noisy_neighbor: noisy neighbor シナリオの実装モジュール
+pub mod noisy_neighbor;
+// litmus_workflow_harness: Litmus ChaosExperiment を kubectl 経由でキックする harness モジュール
+pub mod litmus_workflow_harness;
+
 // ============================================================
 // quota_class 定義
 // ============================================================

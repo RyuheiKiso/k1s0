@@ -13,33 +13,44 @@ option java_package = "io.k1s0.tier1.oss_lifecycle.v1";
 
 // LifecycleClass は 08_OSSライフサイクル適合仕様.md §v1 lifecycle_class セット（6 class）を宣言する。
 enum LifecycleClass {
+  // ライフサイクルクラス未指定（デフォルト値）
   LIFECYCLE_CLASS_UNSPECIFIED = 0;
-  // 活発に開発・保守されているコア OSS
-  V1_ACTIVE_CORE = 1;
-  // 安定期に入り変化が少ないが保守中の OSS
-  V1_STABLE_MAINTENANCE = 2;
-  // LTS 版のみ保守している OSS
-  V1_LTS_ONLY = 3;
-  // EOL が宣言された OSS（移行計画必須）
-  V1_EOL_ANNOUNCED = 4;
-  // フォーク / community 移管済みの OSS
-  V1_FORKED_OR_TRANSFERRED = 5;
-  // 内製代替で置き換え済みの OSS
-  V1_REPLACED_INHOUSE = 6;
+  // L1+ プライマリ：最優先で採用・保守する中核 OSS（Primary pair の片方）
+  LIFECYCLE_CLASS_L1PLUS_PRIMARY = 1;
+  // L1+ ペアターゲット：Primary と対をなす L1+ 採用候補 OSS
+  LIFECYCLE_CLASS_L1PLUS_PAIR_TARGET = 2;
+  // L2* メンバー：L1+ に準ずる品質で採用・保守する OSS（LTS 維持対象）
+  LIFECYCLE_CLASS_L2STAR_MEMBER = 3;
+  // L3 ランタイム：実行環境依存で間接採用する OSS（移行計画対象外）
+  LIFECYCLE_CLASS_L3_RUNTIME = 4;
+  // 予約カテゴリ：フォーク / community 移管済みで将来分類が確定していない OSS
+  LIFECYCLE_CLASS_RESERVED_CATEGORY = 5;
+  // 内製権威：内製代替実装が正式に採用されており当該 OSS は廃止済み
+  LIFECYCLE_CLASS_INHOUSE_AUTHORITATIVE = 6;
 }
 
 // LicenseKind は OSS ライセンスの種別を宣言する（GPL 汚染リスクを識別するため）。
 enum LicenseKind {
+  // デフォルト（未指定）
   LICENSE_KIND_UNSPECIFIED = 0;
-  APACHE_2 = 1;
-  MIT = 2;
-  BSD_2 = 3;
-  BSD_3 = 4;
-  ISC = 5;
-  MPL_2 = 6;
-  LGPL_2_1 = 7;
-  AGPL_3 = 8;
-  PROPRIETARY = 9;
+  // Apache License 2.0
+  LICENSE_KIND_APACHE_2 = 1;
+  // MIT License
+  LICENSE_KIND_MIT = 2;
+  // BSD 2-Clause License
+  LICENSE_KIND_BSD_2 = 3;
+  // BSD 3-Clause License
+  LICENSE_KIND_BSD_3 = 4;
+  // ISC License
+  LICENSE_KIND_ISC = 5;
+  // Mozilla Public License 2.0
+  LICENSE_KIND_MPL_2 = 6;
+  // GNU Lesser General Public License v2.1
+  LICENSE_KIND_LGPL_2_1 = 7;
+  // GNU Affero General Public License v3.0
+  LICENSE_KIND_AGPL_3 = 8;
+  // Proprietary / Commercial License
+  LICENSE_KIND_PROPRIETARY = 9;
 }
 
 // OssEntry は 02_採用OSS一覧.md の 1 エントリに対応する機械可読 record を宣言する。

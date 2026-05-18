@@ -30,3 +30,5 @@ jsonwebtoken = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 # base64: OpenBao Transit API の input / signature フィールド用 Base64 エンコード
 base64 = { workspace = true }
+# thiserror: SpireError 等のエラー型 derive macro に使用する
+thiserror = { workspace = true }

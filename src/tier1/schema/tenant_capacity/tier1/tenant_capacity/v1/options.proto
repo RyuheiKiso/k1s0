@@ -15,52 +15,55 @@ option java_package = "io.k1s0.tier1.tenant_capacity.v1";
 // class 1 値が enforcement_layer / fairness_model / burst_window / exhaustion_response を
 // 一意に導出する。
 enum QuotaClass {
+  // デフォルト（未指定）
   QUOTA_CLASS_UNSPECIFIED = 0;
   // v1_per_tenant_qps: per-tenant API QPS
   // Envoy Local Rate Limit filter、burst 2x、reject_429
-  V1_PER_TENANT_QPS = 1;
+  QUOTA_CLASS_PER_TENANT_QPS = 1;
   // v1_per_tenant_concurrency: per-tenant 同時実行上限
   // Library token bucket、queue_with_timeout
-  V1_PER_TENANT_CONCURRENCY = 2;
+  QUOTA_CLASS_PER_TENANT_CONCURRENCY = 2;
   // v1_per_tenant_volume: per-tenant ストレージ byte / event count / row count
   // storage layer quota、overflow_to_cold
-  V1_PER_TENANT_VOLUME = 3;
+  QUOTA_CLASS_PER_TENANT_VOLUME = 3;
   // v1_per_tenant_compute: per-tenant CPU / GPU / memory
   // OSS native quota（Temporal / KEDA / pgvector）、shed_by_priority
-  V1_PER_TENANT_COMPUTE = 4;
+  QUOTA_CLASS_PER_TENANT_COMPUTE = 4;
   // v1_global_fair_queue: 全テナント横断公平 share
   // broker layer（Kafka partition rebalance）、partition_rebalance
-  V1_GLOBAL_FAIR_QUEUE = 5;
+  QUOTA_CLASS_GLOBAL_FAIR_QUEUE = 5;
 }
 
 // EnforcementLayer は quota を強制する物理 enforcement 層を宣言する。
 enum EnforcementLayer {
+  // デフォルト（未指定）
   ENFORCEMENT_LAYER_UNSPECIFIED = 0;
   // Envoy Gateway Local Rate Limit filter
-  ENVOY_LOCAL_RATE_LIMIT = 1;
+  ENFORCEMENT_LAYER_ENVOY_LOCAL_RATE_LIMIT = 1;
   // Library 内 token bucket（in-process）
-  LIBRARY_TOKEN_BUCKET = 2;
+  ENFORCEMENT_LAYER_LIBRARY_TOKEN_BUCKET = 2;
   // storage layer（Rook+Ceph / CloudNativePG / ClickHouse / Kafka）
-  STORAGE_LAYER_QUOTA = 3;
+  ENFORCEMENT_LAYER_STORAGE_LAYER_QUOTA = 3;
   // OSS native quota（Temporal / KEDA / pgvector）
-  OSS_NATIVE_QUOTA = 4;
+  ENFORCEMENT_LAYER_OSS_NATIVE_QUOTA = 4;
   // broker layer（Kafka partition rebalance / Istio destination rule）
-  BROKER_LAYER = 5;
+  ENFORCEMENT_LAYER_BROKER_LAYER = 5;
 }
 
 // ExhaustionResponse は quota 枯渇時の挙動を宣言する。
 enum ExhaustionResponse {
+  // デフォルト（未指定）
   EXHAUSTION_RESPONSE_UNSPECIFIED = 0;
   // 429 Too Many Requests + Retry-After
-  REJECT_429 = 1;
+  EXHAUSTION_RESPONSE_REJECT_429 = 1;
   // deadline まで queue して打ち切り
-  QUEUE_WITH_TIMEOUT = 2;
+  EXHAUSTION_RESPONSE_QUEUE_WITH_TIMEOUT = 2;
   // cold storage（S3/Ceph RGW）に overflow
-  OVERFLOW_TO_COLD = 3;
+  EXHAUSTION_RESPONSE_OVERFLOW_TO_COLD = 3;
   // priority に基づき低優先ワークロードを shed
-  SHED_BY_PRIORITY = 4;
+  EXHAUSTION_RESPONSE_SHED_BY_PRIORITY = 4;
   // Kafka partition を rebalance
-  PARTITION_REBALANCE = 5;
+  EXHAUSTION_RESPONSE_PARTITION_REBALANCE = 5;
 }
 
 // QuotaMethodOptions は quota 計測対象の API メソッドに付与する option を宣言する。
@@ -78,5 +81,6 @@ message QuotaMethodOptions {
 
 // quota_method は quota 計測対象の API に付与する method option。
 extend google.protobuf.MethodOptions {
+  // quota_method: このメソッドに付与する quota オプション
   QuotaMethodOptions quota_method = 50003;
 }

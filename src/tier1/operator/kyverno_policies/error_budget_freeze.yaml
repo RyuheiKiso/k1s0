@@ -1,0 +1,83 @@
+# error_budget_freeze.yaml — error-budget 枯渇時に Deployment 変更を admission deny する ClusterPolicy
+# 07_SLO適合仕様.md §error_budget_freeze に準拠する
+# SLO error budget が枯渇したテナント namespace への新機能 Deployment を Kyverno で admission deny する
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case）
+  name: k1s0-error-budget-freeze
+  # ポリシーの説明アノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "Error Budget Freeze"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "SLO Enforcement"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      error budget が枯渇したテナントの namespace への新規 Deployment / DaemonSet / StatefulSet を deny する。
+      07_SLO適合仕様.md §error_budget_freeze に準拠する。
+      namespace に label k1s0.io/error-budget-exhausted=true が付与されている場合に deny を発動する。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # Deployment / DaemonSet / StatefulSet の変更を検査するルール
+    - name: deny-deployment-when-error-budget-exhausted
+      # マッチ条件: Deployment / DaemonSet / StatefulSet の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind を列挙する
+              kinds:
+                - Deployment
+                - DaemonSet
+                - StatefulSet
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system 名前空間は除外する
+      exclude:
+        any:
+          - resources:
+              # kyverno の system namespace を除外する（自己 deny 防止）
+              namespaces:
+                - kyverno
+                - kube-system
+                - k1s0-system
+      # コンテキスト: namespace の label を参照する
+      context:
+        # 操作対象リソースの namespace オブジェクトを取得する
+        - name: targetNamespace
+          # Kubernetes API から namespace リソースを取得する
+          apiCall:
+            # namespace の API パス（request.object.metadata.namespace を変数で参照する）
+            urlPath: "/api/v1/namespaces/{{request.object.metadata.namespace}}"
+            # jmesPath: namespace オブジェクト全体を取得する
+            jmesPath: "@"
+      # 検証条件: error_budget_exhausted label が true の namespace への変更を deny する
+      validate:
+        # deny メッセージ: SLO 違反の原因と復旧方法をオペレーターに伝える
+        message: >
+          この namespace ({{request.object.metadata.namespace}}) は error budget が枯渇しています。
+          SLO が回復して k1s0.io/error-budget-exhausted label が除去されるまで
+          Deployment / DaemonSet / StatefulSet の変更は禁止されています
+          (07_SLO適合仕様.md §error_budget_freeze)。
+        # 検証条件: namespace の k1s0.io/error-budget-exhausted label が "true" でないことを確認する
+        deny:
+          conditions:
+            all:
+              # namespace の label k1s0.io/error-budget-exhausted が "true" の場合は deny する
+              - key: "{{ targetNamespace.metadata.labels.\"k1s0.io/error-budget-exhausted\" || '' }}"
+                # 演算子: 等しい
+                operator: Equals
+                # 値: "true" の場合に deny する
+                value: "true"

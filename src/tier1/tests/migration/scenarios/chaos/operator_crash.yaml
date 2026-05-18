@@ -1,0 +1,58 @@
+# chaos シナリオ: operator_crash — Kubernetes オペレーターのクラッシュ時の migration 挙動を検証する
+# spec 02 §chaos_test §operator_crash に対応する
+# migration を管理する Kubernetes operator が Cutover フェーズ中にクラッシュした場合に
+# migration 状態が不整合にならず、自動復旧またはロールバックが機能することを確認する
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosExperiment リソース種別を指定する
+kind: ChaosExperiment
+metadata:
+  # chaos 実験の名前（kebab-case）
+  name: migration-operator-crash
+  # 配置 namespace
+  namespace: k1s0-test
+  # ラベルでシナリオ種別を識別する
+  labels:
+    # k1s0 migration chaos テストのラベル
+    app: k1s0-migration-chaos
+    # シナリオ種別ラベル
+    scenario: operator-crash
+spec:
+  definition:
+    # 実験スコープ: Namespaced（pod レベルのオペレータークラッシュ）
+    scope: Namespaced
+    # 使用する chaos runner image
+    image: litmuschaos/go-runner:3.3.0
+    # 実験実行コマンドを指定する
+    command:
+      # bash でコマンドを実行する
+      - /bin/bash
+      # chaos ロジックのインラインスクリプト
+      - -c
+      # 実行する chaos の説明ログを出力する
+      - echo "operator crash chaos for migration Cutover/Rollback test"
+    # chaos パラメータを引数として渡す
+    args:
+      # chaos の種類: pod 強制削除（operator pod をクラッシュさせる）
+      - -action=pod-delete
+      # 対象 operator pod のラベル
+      - -target_label=app=k1s0-migration-operator
+      # pod 削除の強制フラグ（force=true で SIGKILL を使用する）
+      - -force=true
+      # chaos 継続時間: 60 秒（operator が再起動して状態を復元するまでの時間を含む）
+      - -total_chaos_duration=60
+      # pod 削除の間隔: 30 秒ごとに削除して復旧を繰り返す
+      - -chaos_interval=30
+    # 環境変数で chaos の対象を指定する
+    env:
+      # 対象 pod のラベルセレクター（migration operator pod）
+      - name: TARGET_POD_LABELS
+        # k1s0 migration operator pod を対象とする
+        value: "app=k1s0-migration-operator"
+      # chaos の対象 namespace
+      - name: APP_NAMESPACE
+        # テスト用 namespace を指定する
+        value: "k1s0-test"
+      # operator 再起動後の状態確認タイムアウト（秒）
+      - name: RECOVERY_TIMEOUT_SECONDS
+        # 120 秒以内に復旧することを期待する
+        value: "120"

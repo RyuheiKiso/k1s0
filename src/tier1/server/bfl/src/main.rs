@@ -9,6 +9,8 @@ mod auth_context;
 mod oidc;
 // openbao モジュール: OpenBao Transit API クライアント（sign / verify）
 mod openbao;
+// spire_workload モジュール: SPIRE Workload API 経由で X.509-SVID を取得する adapter
+mod spire_workload;
 
 // axum: HTTP サーバーとハンドラー
 use axum::{Json, Router, routing::{get, post}};

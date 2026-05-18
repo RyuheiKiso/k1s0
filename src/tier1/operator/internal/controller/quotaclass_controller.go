@@ -51,10 +51,18 @@ func (r *QuotaClassReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 
 	// ---- 2. quota enforcement ロジックを実行する ----
 
-	// ApiRequestsPerHour の値を検証する（0 以下は設定ミスとして警告する）
-	if quotaClass.Spec.ApiRequestsPerHour <= 0 {
+	// ClassID の値を検証する（空の場合は設定ミスとして警告する）
+	if quotaClass.Spec.ClassID == "" {
 		// 設定ミスを警告ログに記録する（reconcile は継続する）
-		logger.Info("QuotaClass ApiRequestsPerHour is not set or zero, quota enforcement skipped",
+		logger.Info("QuotaClass ClassID is not set, quota enforcement skipped",
+			"name", req.Name,
+		)
+	}
+
+	// RequestsPerMinute の値を検証する（0 以下は無制限設定として情報ログを記録する）
+	if quotaClass.Spec.RequestsPerMinute <= 0 {
+		// 無制限設定を情報ログに記録する（spec 09 §quota_class: 0 = 無制限）
+		logger.Info("QuotaClass RequestsPerMinute is zero (unlimited), no rate enforcement applied",
 			"name", req.Name,
 		)
 	}
@@ -63,14 +71,6 @@ func (r *QuotaClassReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 	if quotaClass.Spec.DbConnectionsMax <= 0 {
 		// 設定ミスを警告ログに記録する（reconcile は継続する）
 		logger.Info("QuotaClass DbConnectionsMax is not set or zero, quota enforcement skipped",
-			"name", req.Name,
-		)
-	}
-
-	// StorageGBMax の値を検証する（0 以下は設定ミスとして警告する）
-	if quotaClass.Spec.StorageGBMax <= 0 {
-		// 設定ミスを警告ログに記録する（reconcile は継続する）
-		logger.Info("QuotaClass StorageGBMax is not set or zero, quota enforcement skipped",
 			"name", req.Name,
 		)
 	}
@@ -97,9 +97,9 @@ func (r *QuotaClassReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 	// Reconcile 完了をログに記録する
 	logger.Info("QuotaClass reconciled successfully",
 		"name", req.Name,
-		"apiRequestsPerHour", quotaClass.Spec.ApiRequestsPerHour,
+		"classId", quotaClass.Spec.ClassID,
+		"requestsPerMinute", quotaClass.Spec.RequestsPerMinute,
 		"dbConnectionsMax", quotaClass.Spec.DbConnectionsMax,
-		"storageGBMax", quotaClass.Spec.StorageGBMax,
 	)
 
 	// 1 時間後に再 Reconcile をスケジュールする（quota 設定の定期チェック）

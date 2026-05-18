@@ -157,11 +157,12 @@ impl AtomicTripleWrite {
         .await
         .map_err(|e| AtomicWriteError::TransactionError(e.to_string()))?;
 
-        // P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+        // P1: k1s0.outbox_message テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
         // P2: この INSERT が失敗した場合は OutboxInsertFailed を返し、呼び出し元が rollback する
+        // TODO: sqlx::query! requires .sqlx/ — run cargo sqlx prepare after DB migration 0001-0007
         sqlx::query(
             r#"
-            INSERT INTO k1s0.outbox
+            INSERT INTO k1s0.outbox_message
                 (id, aggregate_id, tenant_id, event_kind, payload, created_at)
             VALUES
                 ($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3, $4)
@@ -267,8 +268,8 @@ BEGIN;
 INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
 VALUES ('{audit_id}', '{agg_id}', current_setting('app.tenant_id')::uuid, 'StateChange', '{payload}'::jsonb, {version}, '{now}');
 
--- P1: outbox (Debezium CDC 経由で Kafka に転送される)
-INSERT INTO k1s0.outbox (id, aggregate_id, tenant_id, event_kind, payload, created_at)
+-- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)
+INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)
 VALUES ('{outbox_id}', '{agg_id}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '{payload}'::jsonb, '{now}');
 
 -- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
@@ -377,7 +378,8 @@ mod tests {
         // BEGIN と COMMIT の間に 3 つの INSERT が含まれることを確認する
         assert!(sql.contains("BEGIN"));
         assert!(sql.contains("domain_event"));
-        assert!(sql.contains("outbox"));
+        // outbox_message テーブル名が SQL に含まれることを確認する（migration SoT: k1s0.outbox_message）
+        assert!(sql.contains("outbox_message"));
         assert!(sql.contains("audit_event"));
         assert!(sql.contains("COMMIT"));
         // GUC 注入が含まれることを確認する

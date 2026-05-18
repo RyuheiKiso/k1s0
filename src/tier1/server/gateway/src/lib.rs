@@ -14,6 +14,8 @@ pub mod capability_negotiation;
 pub mod adapters;
 // event_bus モジュール（セッションごとの broadcast channel 管理 — long_poll adapter が使用）
 pub mod event_bus;
+// scenario_runner モジュール（scenarios.yaml から Bidi シナリオを読み込んで実行する）
+pub mod scenario_runner;
 
 // axum: HTTP ルーター（use される識別子のみインポートする）
 use axum::{Json, Router, routing::get, extract::Query};
@@ -153,4 +155,6 @@ pub fn build_router() -> Router {
         .nest("/long-poll", adapters::long_poll::router(event_bus))
         // adapter 7: messaging_bridge — Kafka idempotent producer（/kafka/...）
         .nest("/kafka", adapters::messaging_bridge::router())
+        // adapter 8: webhook — HMAC-SHA256 signed webhook イベント受信（/webhook/...）
+        .nest("/webhook", adapters::webhook::router())
 }

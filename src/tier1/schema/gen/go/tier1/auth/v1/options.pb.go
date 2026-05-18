@@ -39,38 +39,38 @@ const (
 	AuthClass_AUTH_CLASS_UNSPECIFIED AuthClass = 0
 	// v1_human_session: 業務担当者 SPA セッション
 	// OIDC code flow + DPoP 鍵束縛（RFC 9449）、rotating refresh、on_high_risk step_up
-	AuthClass_V1_HUMAN_SESSION AuthClass = 1
+	AuthClass_AUTH_CLASS_HUMAN_SESSION AuthClass = 1
 	// v1_workload_jwt: K8s ServiceAccount projection / SPIFFE/SPIRE SVID
 	// 短 TTL JWT（<5m）、自動 renew は workload runtime 担当、step_up=never
-	AuthClass_V1_WORKLOAD_JWT AuthClass = 2
+	AuthClass_AUTH_CLASS_WORKLOAD_JWT AuthClass = 2
 	// v1_device_attest: 工場端末・KIOSK
 	// TPM/HSM device cert、長 TTL（<24h）、one_shot refresh、on_first_use step_up
-	AuthClass_V1_DEVICE_ATTEST AuthClass = 3
+	AuthClass_AUTH_CLASS_DEVICE_ATTEST AuthClass = 3
 	// v1_federated_exchange: 親会社/取引先 IdP からの RFC 8693 token exchange
 	// audience-restricted 短命 JWT（<5m）、act/may_act claim
-	AuthClass_V1_FEDERATED_EXCHANGE AuthClass = 4
+	AuthClass_AUTH_CLASS_FEDERATED_EXCHANGE AuthClass = 4
 	// v1_emergency_step_up: break-glass アクセス
 	// always step_up、TTL<10m、no refresh、purpose=emergency 強制
-	AuthClass_V1_EMERGENCY_STEP_UP AuthClass = 5
+	AuthClass_AUTH_CLASS_EMERGENCY_STEP_UP AuthClass = 5
 )
 
 // Enum value maps for AuthClass.
 var (
 	AuthClass_name = map[int32]string{
 		0: "AUTH_CLASS_UNSPECIFIED",
-		1: "V1_HUMAN_SESSION",
-		2: "V1_WORKLOAD_JWT",
-		3: "V1_DEVICE_ATTEST",
-		4: "V1_FEDERATED_EXCHANGE",
-		5: "V1_EMERGENCY_STEP_UP",
+		1: "AUTH_CLASS_HUMAN_SESSION",
+		2: "AUTH_CLASS_WORKLOAD_JWT",
+		3: "AUTH_CLASS_DEVICE_ATTEST",
+		4: "AUTH_CLASS_FEDERATED_EXCHANGE",
+		5: "AUTH_CLASS_EMERGENCY_STEP_UP",
 	}
 	AuthClass_value = map[string]int32{
-		"AUTH_CLASS_UNSPECIFIED": 0,
-		"V1_HUMAN_SESSION":       1,
-		"V1_WORKLOAD_JWT":        2,
-		"V1_DEVICE_ATTEST":       3,
-		"V1_FEDERATED_EXCHANGE":  4,
-		"V1_EMERGENCY_STEP_UP":   5,
+		"AUTH_CLASS_UNSPECIFIED":        0,
+		"AUTH_CLASS_HUMAN_SESSION":      1,
+		"AUTH_CLASS_WORKLOAD_JWT":       2,
+		"AUTH_CLASS_DEVICE_ATTEST":      3,
+		"AUTH_CLASS_FEDERATED_EXCHANGE": 4,
+		"AUTH_CLASS_EMERGENCY_STEP_UP":  5,
 	}
 )
 
@@ -107,30 +107,30 @@ type SubjectKind int32
 const (
 	SubjectKind_SUBJECT_KIND_UNSPECIFIED SubjectKind = 0
 	// 業務担当者（human）
-	SubjectKind_HUMAN SubjectKind = 1
+	SubjectKind_SUBJECT_KIND_HUMAN SubjectKind = 1
 	// Workload（K8s Pod / SPIRE agent など）
-	SubjectKind_WORKLOAD SubjectKind = 2
+	SubjectKind_SUBJECT_KIND_WORKLOAD SubjectKind = 2
 	// 工場端末・KIOSK デバイス
-	SubjectKind_DEVICE SubjectKind = 3
+	SubjectKind_SUBJECT_KIND_DEVICE SubjectKind = 3
 	// 外部 IdP からの federated subject
-	SubjectKind_EXTERNAL_SUBJECT SubjectKind = 4
+	SubjectKind_SUBJECT_KIND_EXTERNAL_SUBJECT SubjectKind = 4
 )
 
 // Enum value maps for SubjectKind.
 var (
 	SubjectKind_name = map[int32]string{
 		0: "SUBJECT_KIND_UNSPECIFIED",
-		1: "HUMAN",
-		2: "WORKLOAD",
-		3: "DEVICE",
-		4: "EXTERNAL_SUBJECT",
+		1: "SUBJECT_KIND_HUMAN",
+		2: "SUBJECT_KIND_WORKLOAD",
+		3: "SUBJECT_KIND_DEVICE",
+		4: "SUBJECT_KIND_EXTERNAL_SUBJECT",
 	}
 	SubjectKind_value = map[string]int32{
-		"SUBJECT_KIND_UNSPECIFIED": 0,
-		"HUMAN":                    1,
-		"WORKLOAD":                 2,
-		"DEVICE":                   3,
-		"EXTERNAL_SUBJECT":         4,
+		"SUBJECT_KIND_UNSPECIFIED":      0,
+		"SUBJECT_KIND_HUMAN":            1,
+		"SUBJECT_KIND_WORKLOAD":         2,
+		"SUBJECT_KIND_DEVICE":           3,
+		"SUBJECT_KIND_EXTERNAL_SUBJECT": 4,
 	}
 )
 
@@ -167,30 +167,30 @@ type TokenType int32
 const (
 	TokenType_TOKEN_TYPE_UNSPECIFIED TokenType = 0
 	// DPoP 鍵束縛 JWT（RFC 9449）
-	TokenType_DPOP_BOUND_JWT TokenType = 1
+	TokenType_TOKEN_TYPE_DPOP_BOUND_JWT TokenType = 1
 	// 通常 JWT（短 TTL）
-	TokenType_JWT_SHORT TokenType = 2
+	TokenType_TOKEN_TYPE_JWT_SHORT TokenType = 2
 	// device attestation chain 付き JWT
-	TokenType_JWT_ATTESTED TokenType = 3
+	TokenType_TOKEN_TYPE_JWT_ATTESTED TokenType = 3
 	// RFC 8693 token exchange JWT（audience-restricted）
-	TokenType_EXCHANGE_JWT TokenType = 4
+	TokenType_TOKEN_TYPE_EXCHANGE_JWT TokenType = 4
 )
 
 // Enum value maps for TokenType.
 var (
 	TokenType_name = map[int32]string{
 		0: "TOKEN_TYPE_UNSPECIFIED",
-		1: "DPOP_BOUND_JWT",
-		2: "JWT_SHORT",
-		3: "JWT_ATTESTED",
-		4: "EXCHANGE_JWT",
+		1: "TOKEN_TYPE_DPOP_BOUND_JWT",
+		2: "TOKEN_TYPE_JWT_SHORT",
+		3: "TOKEN_TYPE_JWT_ATTESTED",
+		4: "TOKEN_TYPE_EXCHANGE_JWT",
 	}
 	TokenType_value = map[string]int32{
-		"TOKEN_TYPE_UNSPECIFIED": 0,
-		"DPOP_BOUND_JWT":         1,
-		"JWT_SHORT":              2,
-		"JWT_ATTESTED":           3,
-		"EXCHANGE_JWT":           4,
+		"TOKEN_TYPE_UNSPECIFIED":    0,
+		"TOKEN_TYPE_DPOP_BOUND_JWT": 1,
+		"TOKEN_TYPE_JWT_SHORT":      2,
+		"TOKEN_TYPE_JWT_ATTESTED":   3,
+		"TOKEN_TYPE_EXCHANGE_JWT":   4,
 	}
 )
 
@@ -227,30 +227,30 @@ type StepUpPolicy int32
 const (
 	StepUpPolicy_STEP_UP_POLICY_UNSPECIFIED StepUpPolicy = 0
 	// 一切の step_up 不要
-	StepUpPolicy_NEVER StepUpPolicy = 1
+	StepUpPolicy_STEP_UP_POLICY_NEVER StepUpPolicy = 1
 	// 初回使用時のみ
-	StepUpPolicy_ON_FIRST_USE StepUpPolicy = 2
+	StepUpPolicy_STEP_UP_POLICY_ON_FIRST_USE StepUpPolicy = 2
 	// 高リスク action 直前
-	StepUpPolicy_ON_HIGH_RISK StepUpPolicy = 3
+	StepUpPolicy_STEP_UP_POLICY_ON_HIGH_RISK StepUpPolicy = 3
 	// 常に（break-glass 等）
-	StepUpPolicy_ALWAYS StepUpPolicy = 4
+	StepUpPolicy_STEP_UP_POLICY_ALWAYS StepUpPolicy = 4
 )
 
 // Enum value maps for StepUpPolicy.
 var (
 	StepUpPolicy_name = map[int32]string{
 		0: "STEP_UP_POLICY_UNSPECIFIED",
-		1: "NEVER",
-		2: "ON_FIRST_USE",
-		3: "ON_HIGH_RISK",
-		4: "ALWAYS",
+		1: "STEP_UP_POLICY_NEVER",
+		2: "STEP_UP_POLICY_ON_FIRST_USE",
+		3: "STEP_UP_POLICY_ON_HIGH_RISK",
+		4: "STEP_UP_POLICY_ALWAYS",
 	}
 	StepUpPolicy_value = map[string]int32{
-		"STEP_UP_POLICY_UNSPECIFIED": 0,
-		"NEVER":                      1,
-		"ON_FIRST_USE":               2,
-		"ON_HIGH_RISK":               3,
-		"ALWAYS":                     4,
+		"STEP_UP_POLICY_UNSPECIFIED":  0,
+		"STEP_UP_POLICY_NEVER":        1,
+		"STEP_UP_POLICY_ON_FIRST_USE": 2,
+		"STEP_UP_POLICY_ON_HIGH_RISK": 3,
+		"STEP_UP_POLICY_ALWAYS":       4,
 	}
 )
 

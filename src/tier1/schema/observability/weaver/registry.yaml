@@ -1,0 +1,87 @@
+# Weaver semantic convention registry pin — k1s0 tier1 observability
+# 03_観測適合仕様.md + 06_スキーマ進化適合仕様.md §Weaver codegen の入力 SoT
+# weaver registry generate がこのファイルを読んで Rust/Go/TS/C# の型を生成する
+
+schema_version: "1.0"
+# レジストリ名: k1s0 tier1 observability namespace
+name: k1s0.tier1.observability
+# レジストリ説明: k1s0 固有の OTel semantic convention セット
+description: "k1s0 tier1 observability semantic conventions (OTel Weaver 入力)"
+
+# pin する OTel semconv のバージョン（固定 pin: 変更時は schema_evolution レビュー必須）
+otel_semconv_version: "1.26.0"
+
+# k1s0 固有の attribute namespace 定義
+custom_namespaces:
+  # k1s0 namespace: プロジェクト固有の attribute 群を収容する
+  - namespace: k1s0
+    description: "k1s0 独自の attribute 群"
+    attributes:
+      # テナント識別子 attribute（全シグナルで必須）
+      - id: k1s0.tenant_id
+        type: string
+        brief: "テナント識別子 (UUID)"
+        examples: ["550e8400-e29b-41d4-a716-446655440000"]
+        # 全シグナルで必須のフィールド（欠落は CI fail）
+        requirement_level: required
+      # 操作主体識別子 attribute（全シグナルで必須）
+      - id: k1s0.actor_id
+        type: string
+        brief: "操作主体識別子 (UUID)"
+        examples: ["6ba7b810-9dad-11d1-80b4-00c04fd430c8"]
+        # 全シグナルで必須のフィールド（欠落は CI fail）
+        requirement_level: required
+      # signal class attribute（spec 03 §signal_class の 5 class 列挙型）
+      - id: k1s0.signal_class
+        type:
+          members:
+            # LOGS シグナルクラス
+            - id: logs
+              value: "LOGS"
+              brief: "ログシグナル"
+            # METRICS シグナルクラス
+            - id: metrics
+              value: "METRICS"
+              brief: "メトリクスシグナル"
+            # TRACES シグナルクラス
+            - id: traces
+              value: "TRACES"
+              brief: "トレースシグナル"
+            # PROFILES シグナルクラス
+            - id: profiles
+              value: "PROFILES"
+              brief: "プロファイルシグナル"
+            # AUDIT シグナルクラス
+            - id: audit
+              value: "AUDIT"
+              brief: "監査シグナル"
+        brief: "k1s0 signal class (spec 03)"
+        # 全シグナルで必須のフィールド
+        requirement_level: required
+      # 認証クラス attribute（spec 04 §auth_class から参照）
+      - id: k1s0.auth_class
+        type: string
+        brief: "認証クラス (spec 04)"
+        # 推奨フィールド（可能な限り付与する）
+        requirement_level: recommended
+      # SLO クラス attribute（spec 07 §slo_class から参照）
+      - id: k1s0.slo_class
+        type: string
+        brief: "SLO クラス (spec 07)"
+        # 推奨フィールド（可能な限り付与する）
+        requirement_level: recommended
+
+# 生成先言語設定（weaver registry generate の出力先）
+targets:
+  # Rust 生成先: tier1 server で使用する
+  - language: rust
+    output_path: "src/tier1/schema/observability/generated/rust/"
+  # Go 生成先: tier1 operator で使用する
+  - language: go
+    output_path: "src/tier1/schema/observability/generated/go/"
+  # TypeScript 生成先: tier3 SPA / SDK で使用する
+  - language: typescript
+    output_path: "src/tier1/schema/observability/generated/typescript/"
+  # C# 生成先: tier3 desktop / legacy で使用する
+  - language: csharp
+    output_path: "src/tier1/schema/observability/generated/csharp/"

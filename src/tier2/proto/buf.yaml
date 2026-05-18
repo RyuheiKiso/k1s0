@@ -1,0 +1,29 @@
+# buf.yaml — tier2 専用 proto module 設定
+# tier2 の proto ファイルを管理する Buf module 定義
+# docs/03_概要設計/03_tier2設計方針/README.md の proto 管理方針に準拠する
+
+# Buf の設定ファイルバージョン
+version: v1
+# モジュール名（Buf Schema Registry の slug）
+name: buf.build/k1s0-io/tier2
+# 依存モジュールのリスト
+deps:
+  # Google の Well-Known Types（Timestamp / Duration 等）
+  - buf.build/googleapis/googleapis
+  # tier1 の proto 定義を依存として追加する（Bidi / Auth / SLO 等の annotation を参照する）
+  - buf.build/k1s0-io/tier1
+# lint の設定
+lint:
+  # lint ルールセット（STANDARD = Buf 推奨ルール全体を適用する）
+  use:
+    - STANDARD
+  # 除外するルール
+  except:
+    # テナント分離 proto は業界 pack ごとにディレクトリが分かれるため
+    # PACKAGE_DIRECTORY_MATCH を除外する（固有の命名規則が許容される）
+    - PACKAGE_DIRECTORY_MATCH
+# breaking change 検出の設定
+breaking:
+  # 検出ルールセット（FILE = ファイルレベルの breaking change を検出する）
+  use:
+    - FILE

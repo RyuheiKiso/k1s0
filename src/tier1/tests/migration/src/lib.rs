@@ -1,11 +1,13 @@
 // tier1 migration pair テスト lib.rs
 // 02_移行Pair適合仕様に基づく 4 migration pair × 5 phase のインテグレーションテストを実装する。
-// テストは prepare / export / transform / import / verify の 5 フェーズをカバーする。
+// テストは schema_diff / state_replicate / dual_write_ramp / cutover / rollback の 5 フェーズをカバーする。
 // Testcontainers を使用してコンテナを起動するテストは #[ignore] で skip し、
 // コンテナ不要のモックテストのみ常時 pass させる。
 
 // scenarios モジュールをインポートする（各 migration pair の実装を含む）
 mod scenarios;
+// adapters モジュールをインポートする（MigrationAdapter trait + 4 pair 具象 adapter を含む）
+pub mod adapters;
 
 // 各 migration pair シナリオを公開する
 pub use scenarios::messaging_kafka;
@@ -17,19 +19,19 @@ pub use scenarios::workflow;
 // Phase 定義
 // ============================================================
 
-// 5 フェーズを表す列挙型を定義する
+// 5 フェーズを表す列挙型を定義する（docs 02_移行Pair適合仕様 §phase 名に準拠）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MigrationPhase {
-    // フェーズ 1: 環境・接続の準備
-    Prepare,
-    // フェーズ 2: ソースからのデータエクスポート
-    Export,
-    // フェーズ 3: スキーマ・データの変換処理
-    Transform,
-    // フェーズ 4: ターゲットへのデータインポート
-    Import,
-    // フェーズ 5: データ整合性の最終検証
-    Verify,
+    // フェーズ 1: スキーマ差分を計算して移行可能性を検証する
+    SchemaDiff,
+    // フェーズ 2: 移行元のデータを移行先にレプリケートする（ダウンタイムなし）
+    StateReplicate,
+    // フェーズ 3: 移行元・移行先の両方への書込割合を段階的に増やす
+    DualWriteRamp,
+    // フェーズ 4: トラフィックを移行先に切り替える
+    Cutover,
+    // フェーズ 5: 問題が発生した場合に移行元に戻す
+    Rollback,
 }
 
 // MigrationPhase の表示名を返す実装
@@ -38,16 +40,16 @@ impl std::fmt::Display for MigrationPhase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // フェーズごとの文字列に変換して出力する
         match self {
-            // prepare フェーズ
-            MigrationPhase::Prepare => write!(f, "prepare"),
-            // export フェーズ
-            MigrationPhase::Export => write!(f, "export"),
-            // transform フェーズ
-            MigrationPhase::Transform => write!(f, "transform"),
-            // import フェーズ
-            MigrationPhase::Import => write!(f, "import"),
-            // verify フェーズ
-            MigrationPhase::Verify => write!(f, "verify"),
+            // schema_diff フェーズ
+            MigrationPhase::SchemaDiff => write!(f, "schema_diff"),
+            // state_replicate フェーズ
+            MigrationPhase::StateReplicate => write!(f, "state_replicate"),
+            // dual_write_ramp フェーズ
+            MigrationPhase::DualWriteRamp => write!(f, "dual_write_ramp"),
+            // cutover フェーズ
+            MigrationPhase::Cutover => write!(f, "cutover"),
+            // rollback フェーズ
+            MigrationPhase::Rollback => write!(f, "rollback"),
         }
     }
 }
@@ -139,190 +141,190 @@ mod tests {
 
     // ---- relational_pg ペアの 5 フェーズテスト ----
 
-    // relational_pg / prepare フェーズのモックテスト
+    // relational_pg / schema_diff フェーズのモックテスト
     #[test]
-    fn test_relational_pg_prepare_mock() {
-        // prepare フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Prepare);
+    fn test_relational_pg_schema_diff_mock() {
+        // schema_diff フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::SchemaDiff);
         // pass していることを検証する
-        assert!(result.passed, "relational_pg prepare should pass: {}", result.message);
+        assert!(result.passed, "relational_pg schema_diff should pass: {}", result.message);
     }
 
-    // relational_pg / export フェーズのモックテスト
+    // relational_pg / state_replicate フェーズのモックテスト
     #[test]
-    fn test_relational_pg_export_mock() {
-        // export フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Export);
+    fn test_relational_pg_state_replicate_mock() {
+        // state_replicate フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::StateReplicate);
         // pass していることを検証する
-        assert!(result.passed, "relational_pg export should pass: {}", result.message);
+        assert!(result.passed, "relational_pg state_replicate should pass: {}", result.message);
     }
 
-    // relational_pg / transform フェーズのモックテスト
+    // relational_pg / dual_write_ramp フェーズのモックテスト
     #[test]
-    fn test_relational_pg_transform_mock() {
-        // transform フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Transform);
+    fn test_relational_pg_dual_write_ramp_mock() {
+        // dual_write_ramp フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::DualWriteRamp);
         // pass していることを検証する
-        assert!(result.passed, "relational_pg transform should pass: {}", result.message);
+        assert!(result.passed, "relational_pg dual_write_ramp should pass: {}", result.message);
     }
 
-    // relational_pg / import フェーズのモックテスト
+    // relational_pg / cutover フェーズのモックテスト
     #[test]
-    fn test_relational_pg_import_mock() {
-        // import フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Import);
+    fn test_relational_pg_cutover_mock() {
+        // cutover フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Cutover);
         // pass していることを検証する
-        assert!(result.passed, "relational_pg import should pass: {}", result.message);
+        assert!(result.passed, "relational_pg cutover should pass: {}", result.message);
     }
 
-    // relational_pg / verify フェーズのモックテスト
+    // relational_pg / rollback フェーズのモックテスト
     #[test]
-    fn test_relational_pg_verify_mock() {
-        // verify フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Verify);
+    fn test_relational_pg_rollback_mock() {
+        // rollback フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RelationalPg, MigrationPhase::Rollback);
         // pass していることを検証する
-        assert!(result.passed, "relational_pg verify should pass: {}", result.message);
+        assert!(result.passed, "relational_pg rollback should pass: {}", result.message);
     }
 
     // ---- messaging_kafka ペアの 5 フェーズテスト ----
 
-    // messaging_kafka / prepare フェーズのモックテスト
+    // messaging_kafka / schema_diff フェーズのモックテスト
     #[test]
-    fn test_messaging_kafka_prepare_mock() {
-        // prepare フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Prepare);
+    fn test_messaging_kafka_schema_diff_mock() {
+        // schema_diff フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::SchemaDiff);
         // pass していることを検証する
-        assert!(result.passed, "messaging_kafka prepare should pass: {}", result.message);
+        assert!(result.passed, "messaging_kafka schema_diff should pass: {}", result.message);
     }
 
-    // messaging_kafka / export フェーズのモックテスト
+    // messaging_kafka / state_replicate フェーズのモックテスト
     #[test]
-    fn test_messaging_kafka_export_mock() {
-        // export フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Export);
+    fn test_messaging_kafka_state_replicate_mock() {
+        // state_replicate フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::StateReplicate);
         // pass していることを検証する
-        assert!(result.passed, "messaging_kafka export should pass: {}", result.message);
+        assert!(result.passed, "messaging_kafka state_replicate should pass: {}", result.message);
     }
 
-    // messaging_kafka / transform フェーズのモックテスト
+    // messaging_kafka / dual_write_ramp フェーズのモックテスト
     #[test]
-    fn test_messaging_kafka_transform_mock() {
-        // transform フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Transform);
+    fn test_messaging_kafka_dual_write_ramp_mock() {
+        // dual_write_ramp フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::DualWriteRamp);
         // pass していることを検証する
-        assert!(result.passed, "messaging_kafka transform should pass: {}", result.message);
+        assert!(result.passed, "messaging_kafka dual_write_ramp should pass: {}", result.message);
     }
 
-    // messaging_kafka / import フェーズのモックテスト
+    // messaging_kafka / cutover フェーズのモックテスト
     #[test]
-    fn test_messaging_kafka_import_mock() {
-        // import フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Import);
+    fn test_messaging_kafka_cutover_mock() {
+        // cutover フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Cutover);
         // pass していることを検証する
-        assert!(result.passed, "messaging_kafka import should pass: {}", result.message);
+        assert!(result.passed, "messaging_kafka cutover should pass: {}", result.message);
     }
 
-    // messaging_kafka / verify フェーズのモックテスト
+    // messaging_kafka / rollback フェーズのモックテスト
     #[test]
-    fn test_messaging_kafka_verify_mock() {
-        // verify フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Verify);
+    fn test_messaging_kafka_rollback_mock() {
+        // rollback フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::MessagingKafka, MigrationPhase::Rollback);
         // pass していることを検証する
-        assert!(result.passed, "messaging_kafka verify should pass: {}", result.message);
+        assert!(result.passed, "messaging_kafka rollback should pass: {}", result.message);
     }
 
     // ---- workflow_engine ペアの 5 フェーズテスト ----
 
-    // workflow_engine / prepare フェーズのモックテスト
+    // workflow_engine / schema_diff フェーズのモックテスト
     #[test]
-    fn test_workflow_engine_prepare_mock() {
-        // prepare フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Prepare);
+    fn test_workflow_engine_schema_diff_mock() {
+        // schema_diff フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::SchemaDiff);
         // pass していることを検証する
-        assert!(result.passed, "workflow_engine prepare should pass: {}", result.message);
+        assert!(result.passed, "workflow_engine schema_diff should pass: {}", result.message);
     }
 
-    // workflow_engine / export フェーズのモックテスト
+    // workflow_engine / state_replicate フェーズのモックテスト
     #[test]
-    fn test_workflow_engine_export_mock() {
-        // export フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Export);
+    fn test_workflow_engine_state_replicate_mock() {
+        // state_replicate フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::StateReplicate);
         // pass していることを検証する
-        assert!(result.passed, "workflow_engine export should pass: {}", result.message);
+        assert!(result.passed, "workflow_engine state_replicate should pass: {}", result.message);
     }
 
-    // workflow_engine / transform フェーズのモックテスト
+    // workflow_engine / dual_write_ramp フェーズのモックテスト
     #[test]
-    fn test_workflow_engine_transform_mock() {
-        // transform フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Transform);
+    fn test_workflow_engine_dual_write_ramp_mock() {
+        // dual_write_ramp フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::DualWriteRamp);
         // pass していることを検証する
-        assert!(result.passed, "workflow_engine transform should pass: {}", result.message);
+        assert!(result.passed, "workflow_engine dual_write_ramp should pass: {}", result.message);
     }
 
-    // workflow_engine / import フェーズのモックテスト
+    // workflow_engine / cutover フェーズのモックテスト
     #[test]
-    fn test_workflow_engine_import_mock() {
-        // import フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Import);
+    fn test_workflow_engine_cutover_mock() {
+        // cutover フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Cutover);
         // pass していることを検証する
-        assert!(result.passed, "workflow_engine import should pass: {}", result.message);
+        assert!(result.passed, "workflow_engine cutover should pass: {}", result.message);
     }
 
-    // workflow_engine / verify フェーズのモックテスト
+    // workflow_engine / rollback フェーズのモックテスト
     #[test]
-    fn test_workflow_engine_verify_mock() {
-        // verify フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Verify);
+    fn test_workflow_engine_rollback_mock() {
+        // rollback フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::WorkflowEngine, MigrationPhase::Rollback);
         // pass していることを検証する
-        assert!(result.passed, "workflow_engine verify should pass: {}", result.message);
+        assert!(result.passed, "workflow_engine rollback should pass: {}", result.message);
     }
 
     // ---- rule_engine ペアの 5 フェーズテスト ----
 
-    // rule_engine / prepare フェーズのモックテスト
+    // rule_engine / schema_diff フェーズのモックテスト
     #[test]
-    fn test_rule_engine_prepare_mock() {
-        // prepare フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Prepare);
+    fn test_rule_engine_schema_diff_mock() {
+        // schema_diff フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::SchemaDiff);
         // pass していることを検証する
-        assert!(result.passed, "rule_engine prepare should pass: {}", result.message);
+        assert!(result.passed, "rule_engine schema_diff should pass: {}", result.message);
     }
 
-    // rule_engine / export フェーズのモックテスト
+    // rule_engine / state_replicate フェーズのモックテスト
     #[test]
-    fn test_rule_engine_export_mock() {
-        // export フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Export);
+    fn test_rule_engine_state_replicate_mock() {
+        // state_replicate フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::StateReplicate);
         // pass していることを検証する
-        assert!(result.passed, "rule_engine export should pass: {}", result.message);
+        assert!(result.passed, "rule_engine state_replicate should pass: {}", result.message);
     }
 
-    // rule_engine / transform フェーズのモックテスト
+    // rule_engine / dual_write_ramp フェーズのモックテスト
     #[test]
-    fn test_rule_engine_transform_mock() {
-        // transform フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Transform);
+    fn test_rule_engine_dual_write_ramp_mock() {
+        // dual_write_ramp フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::DualWriteRamp);
         // pass していることを検証する
-        assert!(result.passed, "rule_engine transform should pass: {}", result.message);
+        assert!(result.passed, "rule_engine dual_write_ramp should pass: {}", result.message);
     }
 
-    // rule_engine / import フェーズのモックテスト
+    // rule_engine / cutover フェーズのモックテスト
     #[test]
-    fn test_rule_engine_import_mock() {
-        // import フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Import);
+    fn test_rule_engine_cutover_mock() {
+        // cutover フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Cutover);
         // pass していることを検証する
-        assert!(result.passed, "rule_engine import should pass: {}", result.message);
+        assert!(result.passed, "rule_engine cutover should pass: {}", result.message);
     }
 
-    // rule_engine / verify フェーズのモックテスト
+    // rule_engine / rollback フェーズのモックテスト
     #[test]
-    fn test_rule_engine_verify_mock() {
-        // verify フェーズのモック結果を取得する
-        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Verify);
+    fn test_rule_engine_rollback_mock() {
+        // rollback フェーズのモック結果を取得する
+        let result = run_mock_phase(MigrationPair::RuleEngine, MigrationPhase::Rollback);
         // pass していることを検証する
-        assert!(result.passed, "rule_engine verify should pass: {}", result.message);
+        assert!(result.passed, "rule_engine rollback should pass: {}", result.message);
     }
 
     // ---- 全 pair × 全 phase の組み合わせ網羅テスト ----
@@ -337,13 +339,13 @@ mod tests {
             MigrationPair::WorkflowEngine,
             MigrationPair::RuleEngine,
         ];
-        // テスト対象の全フェーズを列挙する
+        // テスト対象の全フェーズを列挙する（docs 指定の phase 名を使用する）
         let phases = vec![
-            MigrationPhase::Prepare,
-            MigrationPhase::Export,
-            MigrationPhase::Transform,
-            MigrationPhase::Import,
-            MigrationPhase::Verify,
+            MigrationPhase::SchemaDiff,
+            MigrationPhase::StateReplicate,
+            MigrationPhase::DualWriteRamp,
+            MigrationPhase::Cutover,
+            MigrationPhase::Rollback,
         ];
         // 全組み合わせをイテレートしてテストを実行する
         for pair in &pairs {

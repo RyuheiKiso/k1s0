@@ -22,58 +22,61 @@ enum AuthClass {
   AUTH_CLASS_UNSPECIFIED = 0;
   // v1_human_session: 業務担当者 SPA セッション
   // OIDC code flow + DPoP 鍵束縛（RFC 9449）、rotating refresh、on_high_risk step_up
-  V1_HUMAN_SESSION = 1;
+  AUTH_CLASS_HUMAN_SESSION = 1;
   // v1_workload_jwt: K8s ServiceAccount projection / SPIFFE/SPIRE SVID
   // 短 TTL JWT（<5m）、自動 renew は workload runtime 担当、step_up=never
-  V1_WORKLOAD_JWT = 2;
+  AUTH_CLASS_WORKLOAD_JWT = 2;
   // v1_device_attest: 工場端末・KIOSK
   // TPM/HSM device cert、長 TTL（<24h）、one_shot refresh、on_first_use step_up
-  V1_DEVICE_ATTEST = 3;
+  AUTH_CLASS_DEVICE_ATTEST = 3;
   // v1_federated_exchange: 親会社/取引先 IdP からの RFC 8693 token exchange
   // audience-restricted 短命 JWT（<5m）、act/may_act claim
-  V1_FEDERATED_EXCHANGE = 4;
+  AUTH_CLASS_FEDERATED_EXCHANGE = 4;
   // v1_emergency_step_up: break-glass アクセス
   // always step_up、TTL<10m、no refresh、purpose=emergency 強制
-  V1_EMERGENCY_STEP_UP = 5;
+  AUTH_CLASS_EMERGENCY_STEP_UP = 5;
 }
 
 // SubjectKind は subject の本質的な種別を宣言する。
 enum SubjectKind {
+  // デフォルト（未指定）
   SUBJECT_KIND_UNSPECIFIED = 0;
   // 業務担当者（human）
-  HUMAN = 1;
+  SUBJECT_KIND_HUMAN = 1;
   // Workload（K8s Pod / SPIRE agent など）
-  WORKLOAD = 2;
+  SUBJECT_KIND_WORKLOAD = 2;
   // 工場端末・KIOSK デバイス
-  DEVICE = 3;
+  SUBJECT_KIND_DEVICE = 3;
   // 外部 IdP からの federated subject
-  EXTERNAL_SUBJECT = 4;
+  SUBJECT_KIND_EXTERNAL_SUBJECT = 4;
 }
 
 // TokenType は wire 上のトークン種別を宣言する。
 enum TokenType {
+  // デフォルト（未指定）
   TOKEN_TYPE_UNSPECIFIED = 0;
   // DPoP 鍵束縛 JWT（RFC 9449）
-  DPOP_BOUND_JWT = 1;
+  TOKEN_TYPE_DPOP_BOUND_JWT = 1;
   // 通常 JWT（短 TTL）
-  JWT_SHORT = 2;
+  TOKEN_TYPE_JWT_SHORT = 2;
   // device attestation chain 付き JWT
-  JWT_ATTESTED = 3;
+  TOKEN_TYPE_JWT_ATTESTED = 3;
   // RFC 8693 token exchange JWT（audience-restricted）
-  EXCHANGE_JWT = 4;
+  TOKEN_TYPE_EXCHANGE_JWT = 4;
 }
 
 // StepUpPolicy は step_up の発動条件を宣言する。
 enum StepUpPolicy {
+  // デフォルト（未指定）
   STEP_UP_POLICY_UNSPECIFIED = 0;
   // 一切の step_up 不要
-  NEVER = 1;
+  STEP_UP_POLICY_NEVER = 1;
   // 初回使用時のみ
-  ON_FIRST_USE = 2;
+  STEP_UP_POLICY_ON_FIRST_USE = 2;
   // 高リスク action 直前
-  ON_HIGH_RISK = 3;
+  STEP_UP_POLICY_ON_HIGH_RISK = 3;
   // 常に（break-glass 等）
-  ALWAYS = 4;
+  STEP_UP_POLICY_ALWAYS = 4;
 }
 
 // AuthContext は tier1 Library が transaction 開始時に PostgreSQL GUC に SET LOCAL する
@@ -118,6 +121,8 @@ message AuthMethodOptions {
 }
 
 // auth_method は認証が必要な RPC に付与する method option。
+// (tier1.auth.v1.auth_method).required_auth_class = AUTH_CLASS_HUMAN_SESSION 形式で使用する。
 extend google.protobuf.MethodOptions {
+  // auth_method: このメソッドに付与する認証オプション
   AuthMethodOptions auth_method = 50001;
 }

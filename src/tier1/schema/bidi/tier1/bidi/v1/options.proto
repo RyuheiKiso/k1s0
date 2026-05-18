@@ -22,53 +22,57 @@ enum ConformanceClass {
   // デフォルト（未指定）— Buf lint が fail にする
   CONFORMANCE_CLASS_UNSPECIFIED = 0;
   // v1_interactive: 双方向対話、SESSION_ORDERED、half_close=SUPPORTED、resumable=REQUIRED、lag≤200ms
-  V1_INTERACTIVE = 1;
+  CONFORMANCE_CLASS_INTERACTIVE = 1;
   // v1_alert: サーバー主導警報、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤200ms、server→client
-  V1_ALERT = 2;
+  CONFORMANCE_CLASS_ALERT = 2;
   // v1_event_feed: Domain Event 配信、SESSION_ORDERED、half_close=UNUSED、resumable=REQUIRED、lag≤5000ms、server→client
-  V1_EVENT_FEED = 3;
+  CONFORMANCE_CLASS_EVENT_FEED = 3;
   // v1_live_snapshot: 最新値表示、UNORDERED、half_close=UNUSED、resumable=NONE、lag≤500ms、server→client
-  V1_LIVE_SNAPSHOT = 4;
+  CONFORMANCE_CLASS_LIVE_SNAPSHOT = 4;
   // v1_bulk_upload: 大量データ投入、UNORDERED、half_close=SUPPORTED、resumable=NONE、client→server
-  V1_BULK_UPLOAD = 5;
+  CONFORMANCE_CLASS_BULK_UPLOAD = 5;
 }
 
 // Ordering は bidi stream のメッセージ順序保証を宣言する。
 enum Ordering {
+  // デフォルト（未指定）
   ORDERING_UNSPECIFIED = 0;
   // セッション内での順序保証あり（送信順で届く）
-  SESSION_ORDERED = 1;
+  ORDERING_SESSION_ORDERED = 1;
   // 順序保証なし（latest-wins または at-least-once）
-  UNORDERED = 2;
+  ORDERING_UNORDERED = 2;
 }
 
 // HalfClose はクライアント側からの終端通知サポートを宣言する。
 enum HalfClose {
+  // デフォルト（未指定）
   HALF_CLOSE_UNSPECIFIED = 0;
   // クライアントから終端を通知できる
-  SUPPORTED = 1;
+  HALF_CLOSE_SUPPORTED = 1;
   // 終端通知は使用しない
-  UNUSED = 2;
+  HALF_CLOSE_UNUSED = 2;
 }
 
 // Resumable は切断後の再接続 semantics を宣言する。
 enum Resumable {
+  // デフォルト（未指定）
   RESUMABLE_UNSPECIFIED = 0;
   // resume_token 経由で状態継続が必須
-  REQUIRED = 1;
+  RESUMABLE_REQUIRED = 1;
   // resume なし（再接続時は最初から）
-  NONE = 2;
+  RESUMABLE_NONE = 2;
 }
 
 // Direction は通信の方向性を宣言する。
 enum Direction {
+  // デフォルト（未指定）
   DIRECTION_UNSPECIFIED = 0;
   // クライアント ↔ サーバー 双方向
-  BIDIRECTIONAL = 1;
+  DIRECTION_BIDIRECTIONAL = 1;
   // サーバー → クライアント 一方向
-  SERVER_TO_CLIENT = 2;
+  DIRECTION_SERVER_TO_CLIENT = 2;
   // クライアント → サーバー 一方向
-  CLIENT_TO_SERVER = 3;
+  DIRECTION_CLIENT_TO_SERVER = 3;
 }
 
 // BidiMethodOptions は bidi RPC メソッドに付与する option セットを宣言する。
@@ -89,7 +93,8 @@ message BidiMethodOptions {
 }
 
 // bidi_method は bidi RPC に付与する method option。
-// syntax: option (tier1.bidi.v1.bidi_method).conformance_class = V1_INTERACTIVE;
+// syntax: option (tier1.bidi.v1.bidi_method).conformance_class = CONFORMANCE_CLASS_INTERACTIVE;
 extend google.protobuf.MethodOptions {
+  // bidi_method: bidi RPC に付与するオプション
   BidiMethodOptions bidi_method = 50000;
 }

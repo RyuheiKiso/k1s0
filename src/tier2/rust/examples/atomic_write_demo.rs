@@ -151,11 +151,12 @@ async fn main() {
         Ok(sql) => {
             // SQL が生成されたことを確認する
             println!("  P1: triple write SQL 生成成功 ({} chars)", sql.len());
-            // BEGIN / domain_event / outbox / audit_event / COMMIT が含まれることを確認する
-            println!("    - BEGIN:        {}", sql.contains("BEGIN"));
-            println!("    - domain_event: {}", sql.contains("domain_event"));
-            println!("    - outbox:       {}", sql.contains("outbox"));
-            println!("    - audit_event:  {}", sql.contains("audit_event"));
+            // BEGIN / domain_event / outbox_message / audit_event / COMMIT が含まれることを確認する
+            println!("    - BEGIN:         {}", sql.contains("BEGIN"));
+            println!("    - domain_event:  {}", sql.contains("domain_event"));
+            // outbox_message テーブル名を確認する（migration SoT: k1s0.outbox_message）
+            println!("    - outbox_message:{}", sql.contains("outbox_message"));
+            println!("    - audit_event:   {}", sql.contains("audit_event"));
             println!("    - COMMIT:       {}", sql.contains("COMMIT"));
             println!("    - app.tenant_id GUC 注入: {}", sql.contains("app.tenant_id"));
         }
@@ -193,7 +194,7 @@ async fn main() {
                             version BIGINT NOT NULL,
                             created_at TIMESTAMPTZ NOT NULL
                         );
-                        CREATE TABLE IF NOT EXISTS k1s0.outbox (
+                        CREATE TABLE IF NOT EXISTS k1s0.outbox_message (
                             id UUID PRIMARY KEY,
                             aggregate_id UUID NOT NULL,
                             tenant_id UUID NOT NULL,

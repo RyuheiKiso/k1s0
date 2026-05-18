@@ -1,0 +1,52 @@
+# chaos シナリオ: clock_skew — クロックスキュー時の migration HLC 整合性を検証する
+# spec 02 §chaos_test §clock_skew に対応する
+# HLC（Hybrid Logical Clock）使用の migration において、ノード間のクロックスキューが
+# causality 順序を破壊しないことを確認する（wall-clock TTL 禁止規則の chaos 検証）
+apiVersion: litmuschaos.io/v1alpha1
+# ChaosExperiment リソース種別を指定する
+kind: ChaosExperiment
+metadata:
+  # chaos 実験の名前（kebab-case）
+  name: migration-clock-skew
+  # 配置 namespace
+  namespace: k1s0-test
+  # ラベルでシナリオ種別を識別する
+  labels:
+    # k1s0 migration chaos テストのラベル
+    app: k1s0-migration-chaos
+    # シナリオ種別ラベル
+    scenario: clock-skew
+spec:
+  definition:
+    # 実験スコープ: Namespaced（pod レベルのクロック操作）
+    scope: Namespaced
+    # 使用する chaos runner image
+    image: litmuschaos/go-runner:3.3.0
+    # 実験実行コマンドを指定する
+    command:
+      # bash でコマンドを実行する
+      - /bin/bash
+      # chaos ロジックのインラインスクリプト
+      - -c
+      # 実行する chaos の説明ログを出力する
+      - echo "clock skew chaos for migration HLC consistency test"
+    # chaos パラメータを引数として渡す
+    args:
+      # chaos の種類: クロック操作（時刻スキュー注入）
+      - -action=node-time-chaos
+      # クロックスキュー量: +5 秒（HLC が吸収できる範囲を超えるスキューを注入する）
+      - -clock_offset_seconds=5
+      # chaos 継続時間: 120 秒（StateReplicate フェーズ全体をカバーする）
+      - -total_chaos_duration=120
+      # 対象ノードのセレクター
+      - -target_node_label=role=migration-source
+    # 環境変数で chaos の対象ノードを指定する
+    env:
+      # 対象ノードのラベルセレクター（migration ソースノード）
+      - name: TARGET_NODE_LABELS
+        # migration 元 DB が動作するノードを対象とする
+        value: "role=migration-source"
+      # chaos の対象 namespace
+      - name: APP_NAMESPACE
+        # テスト用 namespace を指定する
+        value: "k1s0-test"

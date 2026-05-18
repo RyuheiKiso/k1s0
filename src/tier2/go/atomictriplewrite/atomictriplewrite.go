@@ -180,8 +180,8 @@ BEGIN;
 INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
 VALUES ('%s', '%s', current_setting('app.tenant_id')::uuid, 'StateChange', '%s'::jsonb, %d, '%s');
 
--- P1: outbox (Debezium CDC 経由で Kafka に転送される)
-INSERT INTO k1s0.outbox (id, aggregate_id, tenant_id, event_kind, payload, created_at)
+-- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)
+INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)
 VALUES ('%s', '%s', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '%s'::jsonb, '%s');
 
 -- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
@@ -265,10 +265,10 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *Sta
 		return nil, fmt.Errorf("%w: domain_event insert failed: %v", ErrTransactionFailed, err)
 	}
 
-	// P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+	// P1: k1s0.outbox_message テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
 	// P2: この INSERT が失敗した場合は ErrOutboxInsertFailed を返し、呼び出し元が Rollback する
 	const outboxSQL = `
-		INSERT INTO k1s0.outbox
+		INSERT INTO k1s0.outbox_message
 			(id, aggregate_id, tenant_id, event_kind, payload, created_at)
 		VALUES
 			($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3::jsonb, $4)
