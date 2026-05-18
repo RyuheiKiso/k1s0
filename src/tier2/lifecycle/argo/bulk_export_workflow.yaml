@@ -1,0 +1,148 @@
+# tier2 データライフサイクル: 一括データエクスポートワークフロー（設計方針 20）
+# テナントのデータを一括でエクスポートする（GDPR 準拠のデータポータビリティ対応）
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  # ワークフロー名プレフィックス（実行時に UUID サフィックスが付与される）
+  generateName: tier2-bulk-export-
+  # 実行 Namespace
+  namespace: k1s0-tier2
+  # ワークフローラベル
+  labels:
+    # ワークフロー種別ラベル
+    workflow.type: bulk-export
+    # 対象軸ラベル
+    app.kubernetes.io/component: tier2
+spec:
+  # ワークフローのエントリポイント
+  entrypoint: bulk-export-steps
+  # ワークフロー全体のタイムアウト（8 時間以内に完了しなければ失敗とする）
+  activeDeadlineSeconds: 28800
+  # ワークフロー引数
+  arguments:
+    parameters:
+      # エクスポート対象テナント識別子
+      - name: tenant_id
+        description: "エクスポート対象テナントの UUID"
+      # エクスポート対象データ範囲（HLC タイムスタンプ範囲で指定する）
+      - name: hlc_range_start
+        description: "エクスポート開始 HLC タイムスタンプ（wall clock TTL 禁止規約により HLC を使用する）"
+      # エクスポート終了範囲
+      - name: hlc_range_end
+        description: "エクスポート終了 HLC タイムスタンプ"
+  templates:
+    # 一括エクスポートステップ定義
+    - name: bulk-export-steps
+      steps:
+        # ステップ 1: エクスポートジョブの初期化（エクスポート ID の払い出し）
+        - - name: init-export-job
+            template: init-export-job-tpl
+            arguments:
+              parameters:
+                - name: tenant_id
+                  value: "{{workflow.parameters.tenant_id}}"
+        # ステップ 2: データの並列エクスポート（テーブルごとに並列実行する）
+        - - name: export-relational-data
+            template: export-relational-data-tpl
+            arguments:
+              parameters:
+                - name: tenant_id
+                  value: "{{workflow.parameters.tenant_id}}"
+                - name: hlc_range_start
+                  value: "{{workflow.parameters.hlc_range_start}}"
+                - name: hlc_range_end
+                  value: "{{workflow.parameters.hlc_range_end}}"
+          # 添付ファイルのエクスポートを並列実行する
+          - name: export-attachments
+            template: export-attachments-tpl
+            arguments:
+              parameters:
+                - name: tenant_id
+                  value: "{{workflow.parameters.tenant_id}}"
+        # ステップ 3: エクスポートパッケージの梱包と署名
+        - - name: package-and-sign
+            template: package-and-sign-tpl
+            arguments:
+              parameters:
+                - name: tenant_id
+                  value: "{{workflow.parameters.tenant_id}}"
+
+    # エクスポートジョブ初期化テンプレート
+    - name: init-export-job-tpl
+      inputs:
+        parameters:
+          # テナント識別子パラメータ
+          - name: tenant_id
+      container:
+        # エクスポートワーカーイメージ
+        image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+        # ジョブ初期化コマンド（エクスポート ID を払い出して監査ログに記録する）
+        command: ["/app/lifecycle-worker", "init-export", "--tenant-id", "{{inputs.parameters.tenant_id}}"]
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+
+    # リレーショナルデータエクスポートテンプレート
+    - name: export-relational-data-tpl
+      inputs:
+        parameters:
+          # テナント識別子パラメータ
+          - name: tenant_id
+          # HLC 範囲開始パラメータ
+          - name: hlc_range_start
+          # HLC 範囲終了パラメータ
+          - name: hlc_range_end
+      container:
+        # エクスポートワーカーイメージ
+        image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+        # リレーショナルデータエクスポートコマンド（CSV / Parquet 形式で出力する）
+        command: ["/app/lifecycle-worker", "export-relational", "--tenant-id", "{{inputs.parameters.tenant_id}}", "--hlc-start", "{{inputs.parameters.hlc_range_start}}", "--hlc-end", "{{inputs.parameters.hlc_range_end}}"]
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+
+    # 添付ファイルエクスポートテンプレート
+    - name: export-attachments-tpl
+      inputs:
+        parameters:
+          # テナント識別子パラメータ
+          - name: tenant_id
+      container:
+        # エクスポートワーカーイメージ
+        image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+        # 添付ファイルエクスポートコマンド（オブジェクトストレージから取得して暗号化解除する）
+        command: ["/app/lifecycle-worker", "export-attachments", "--tenant-id", "{{inputs.parameters.tenant_id}}"]
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+
+    # パッケージング・署名テンプレート
+    - name: package-and-sign-tpl
+      inputs:
+        parameters:
+          # テナント識別子パラメータ
+          - name: tenant_id
+      container:
+        # エクスポートワーカーイメージ
+        image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+        # パッケージング・署名コマンド（cosign で署名した ZIP を生成する）
+        command: ["/app/lifecycle-worker", "package-and-sign", "--tenant-id", "{{inputs.parameters.tenant_id}}"]
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

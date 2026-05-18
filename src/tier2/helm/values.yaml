@@ -1,0 +1,50 @@
+# tier2 Helm チャートデフォルト値（設計方針 22 / 配布形態）
+# これらの値は helm install / helm upgrade の --set または -f で上書き可能
+
+# レプリカ数（可用性のために最低 2 に設定する）
+replicaCount: 2
+
+# OCI イメージ設定
+image:
+  # イメージリポジトリ（Harbor レジストリを使用する）
+  repository: harbor.k1s0.internal/k1s0/tier2
+  # イメージプルポリシー（IfNotPresent: 存在しない場合のみプルする）
+  pullPolicy: IfNotPresent
+  # イメージタグ（空文字の場合は Chart.yaml の appVersion を使用する）
+  tag: ""
+
+# Pod のリソース制限と要求値
+resources:
+  # リソース制限（これを超えると OOM Kill される）
+  limits:
+    # CPU 制限（500m = 0.5 コア）
+    cpu: "500m"
+    # メモリ制限（512Mi）
+    memory: "512Mi"
+  # リソース要求値（スケジューリング時に確保する）
+  requests:
+    # CPU 要求値
+    cpu: "100m"
+    # メモリ要求値
+    memory: "128Mi"
+
+# Service 設定
+service:
+  # Service の種別（ClusterIP: クラスター内部からのみアクセス可能）
+  type: ClusterIP
+  # Service のポート番号
+  port: 8080
+
+# Ingress 設定
+ingress:
+  # Ingress 有効化フラグ（デフォルト: 無効 / 本番では Istio VirtualService を使用する）
+  enabled: false
+
+# Pod のセキュリティコンテキスト（production / development 区別禁止規約準拠）
+podSecurityContext:
+  # 非 root ユーザーで実行する
+  runAsNonRoot: true
+  # 実行ユーザー ID（1000 番台の一般ユーザー）
+  runAsUser: 1000
+  # ファイルシステムグループ ID
+  fsGroup: 1000
