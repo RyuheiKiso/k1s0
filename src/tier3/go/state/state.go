@@ -1,7 +1,101 @@
 // k1s0 tier3 4 layer client state reducer（Go 等価強度実装）
 // TypeScript primary と同等の抽象を Go で実装する
 // 適合仕様 11_クライアント状態適合仕様.md の v1 layer セットに準拠する
+// Phase E: FieldDiff disjoint/intersect 分岐 + chainIdempotencyKey を追加する
 package state
+
+import (
+	// fmt パッケージ（文字列フォーマット）
+	"fmt"
+	// math/rand パッケージ（ランダム文字列生成）
+	"math/rand"
+	// strings パッケージ（文字列操作）
+	"strings"
+	// time パッケージ（タイムスタンプ生成）
+	"time"
+)
+
+// FieldDiff は field-level diff を表す構造体（TypeScript FieldDiff と等価）
+// ClientFields: client が変更したフィールド名のスライス
+// ServerFields: server が変更したフィールド名のスライス
+type FieldDiff struct {
+	// client が変更したフィールド名のスライス
+	ClientFields []string
+	// server が変更したフィールド名のスライス
+	ServerFields []string
+}
+
+// IsDisjoint は client / server の変更フィールドが disjoint かどうかを返す
+// disjoint = client と server が同じフィールドを変更していない（rebase_clean）
+func (fd *FieldDiff) IsDisjoint() bool {
+	// clientFields を map に変換して O(1) 検索を可能にする
+	clientSet := make(map[string]struct{}, len(fd.ClientFields))
+	for _, f := range fd.ClientFields {
+		// client フィールドを map に追加する
+		clientSet[f] = struct{}{}
+	}
+	// serverFields に client との交差があるか確認する
+	for _, f := range fd.ServerFields {
+		// server フィールドが client フィールドに存在する場合は disjoint でない
+		if _, ok := clientSet[f]; ok {
+			return false
+		}
+	}
+	// 交差がなければ disjoint（rebase_clean）
+	return true
+}
+
+// Intersect は client / server の変更フィールドの交差（共通部分）を返す
+// 交差が空でない場合は rebase_dirty → 3way merge UI が必要
+func (fd *FieldDiff) Intersect() []string {
+	// clientFields を map に変換して O(1) 検索を可能にする
+	clientSet := make(map[string]struct{}, len(fd.ClientFields))
+	for _, f := range fd.ClientFields {
+		// client フィールドを map に追加する
+		clientSet[f] = struct{}{}
+	}
+	// 交差フィールドを収集する
+	var intersection []string
+	for _, f := range fd.ServerFields {
+		// server フィールドが client フィールドに存在する場合は交差として追加する
+		if _, ok := clientSet[f]; ok {
+			intersection = append(intersection, f)
+		}
+	}
+	// 交差フィールドのスライスを返す（空スライスは nil になる可能性があるが問題ない）
+	return intersection
+}
+
+// chainIdempotencyKey は base key から chain された新しい idempotency key を生成する
+// TypeScript の chainIdempotencyKey（outbox.ts）と等価の実装
+// base: 元の idempotency key（chain 親）
+// next: 追加の識別子（aggregate ID + method のハッシュ等）
+func chainIdempotencyKey(base, next string) string {
+	// ランダムサフィックスを生成する（time.Now() は wall clock だが key 生成は許容する）
+	// HLC は TTL 計算に禁止されているが、key の一意性のための使用は許可される
+	timestamp := fmt.Sprintf("%x", time.Now().UnixMilli())
+	// ランダム部分を生成する（8 文字の hex string）
+	randBytes := make([]byte, 4)
+	// crypto/rand は import が重くなるため math/rand を使用する（key 一意性のみが目的）
+	for i := range randBytes {
+		// ランダムバイトを設定する
+		randBytes[i] = byte(rand.Intn(256)) //nolint:gosec // key 一意性のみが目的
+	}
+	// ランダム部分を hex string に変換する
+	randHex := fmt.Sprintf("%x", randBytes)
+	// next の先頭 8 文字を prefix に使用する（長すぎる場合は切り詰める）
+	nextPrefix := next
+	if len(nextPrefix) > 8 {
+		nextPrefix = nextPrefix[:8]
+	}
+	// base の先頭 12 文字を prefix に使用する（長すぎる場合は切り詰める）
+	basePrefix := base
+	if len(basePrefix) > 12 {
+		basePrefix = basePrefix[:12]
+	}
+	// chain された key を生成する（base_prefix + next_prefix + timestamp + random）
+	return strings.Join([]string{basePrefix, nextPrefix, timestamp, randHex}, "_")
+}
 
 // LayerID は layer を識別する型
 type LayerID string
@@ -75,6 +169,9 @@ type ConflictEvent struct {
 	ErrorCode string
 	// business_conflict_received: subtype
 	Subtype BusinessConflictSubtype
+	// business_conflict_received: field-level diff（stale_write / lost_update 判定に使用）
+	// nil の場合は safe 側（dirty）にフォールバックする
+	FieldDiff *FieldDiff
 }
 
 // ReducerActionType は reducer action の種別型
@@ -172,8 +269,8 @@ func Reduce(state ClientState, event ConflictEvent) ReducerResult {
 		// pending_queue_resume: PQ を in-order で送信する
 		return reducePendingQueueResume(state)
 	case EventBusinessConflictReceived:
-		// business_conflict_received: subtype に応じて決定論的に dispatch する
-		return reduceBusinessConflict(state, event.Subtype)
+		// business_conflict_received: subtype に応じて決定論的に dispatch する（FieldDiff があれば disjoint/intersect 分岐）
+		return reduceBusinessConflictWithFieldDiff(state, event.Subtype, event.FieldDiff)
 	default:
 		// 未知の event は panic する
 		panic("unknown conflict event type: " + string(event.Type))
@@ -241,6 +338,48 @@ func reducePendingQueueResume(state ClientState) ReducerResult {
 		NextState: state,
 		Actions:   []ReducerAction{{Type: ActionSendQueueInOrder}},
 	}
+}
+
+// reduceBusinessConflictWithFieldDiff は field diff 付きの business conflict を処理する
+// TypeScript subtypes.ts の resolveSubtypeActions と等価の FieldDiff disjoint/intersect 分岐を実装する
+func reduceBusinessConflictWithFieldDiff(state ClientState, subtype BusinessConflictSubtype, fieldDiff *FieldDiff) ReducerResult {
+	// FieldDiff がない場合は通常の reduceBusinessConflict にフォールバックする
+	if fieldDiff == nil {
+		return reduceBusinessConflict(state, subtype)
+	}
+	// stale_write の場合は FieldDiff disjoint/intersect で分岐する
+	if subtype == StaleWrite {
+		// FieldDiff.IsDisjoint() が true の場合は rebase_clean → auto resend
+		if fieldDiff.IsDisjoint() {
+			// OL の idempotency key を取得する（chain 元として使用する）
+			baseKey := state.OptimisticLocalKey
+			if baseKey == "" {
+				// OL がない場合は safe 側（dirty）に倒す
+				baseKey = "unknown"
+			}
+			// chain された新しい idempotency key を生成する
+			newKey := chainIdempotencyKey(baseKey, "rebase")
+			// rebase_clean: PQ の key を更新して auto resend する
+			nextState := state
+			nextState.OptimisticLocalKey = ""
+			return ReducerResult{
+				NextState: nextState,
+				Actions: []ReducerAction{
+					{Type: ActionRollbackOptimistic},
+					{Type: ActionSendQueueInOrder, Detail: newKey},
+				},
+			}
+		}
+		// disjoint でない（intersect あり）: rebase_dirty → 3way merge UI + hold
+		nextState := state
+		nextState.QueueHeld = true
+		return ReducerResult{
+			NextState: nextState,
+			Actions:   []ReducerAction{{Type: ActionPresent3WayMergeUi}, {Type: ActionHoldQueue}},
+		}
+	}
+	// stale_write 以外は通常の reduceBusinessConflict にフォールバックする
+	return reduceBusinessConflict(state, subtype)
 }
 
 // reduceBusinessConflict は business_conflict_received event を処理する

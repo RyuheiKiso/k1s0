@@ -154,10 +154,10 @@ test("s1_production_order_approval_st_advance", async ({ page }) => {
 });
 
 // ---------------------------------------------------------
-// シナリオ 2: 5 件オフライン記録 → PQ resume（スキップ: 後続 Phase で実装）
+// シナリオ 2: 5 件オフライン記録 → PQ resume（Phase E で active 化）
 // PQ に 5 件 enqueue した後、network 復帰で SEND_QUEUE_IN_ORDER が返ることを確認する
 // ---------------------------------------------------------
-test.skip("s2_offline_5_records_pq_resume", async ({ page }) => {
+test("s2_offline_5_records_pq_resume", async ({ page }) => {
   // 5 件の PQ entry がある状態で pending_queue_resume を発行する
   await page.goto("about:blank");
   const result = await page.evaluate((reducerCode) => {
@@ -185,10 +185,11 @@ test.skip("s2_offline_5_records_pq_resume", async ({ page }) => {
 });
 
 // ---------------------------------------------------------
-// シナリオ 3: 25h オフライン → Idempotency-Key TTL（スキップ: 後続 Phase で実装）
+// シナリオ 3: 25h オフライン → Idempotency-Key TTL（Phase E で active 化）
 // 25 時間オフライン後の PQ resume で TTL を超えた entry が除外されることを確認する
+// TTL 検証は outbox パッケージの responsibility（ここでは reducer の動作のみ確認する）
 // ---------------------------------------------------------
-test.skip("s3_25h_offline_idempotency_ttl", async ({ page }) => {
+test("s3_25h_offline_idempotency_ttl", async ({ page }) => {
   // TTL 検証は outbox パッケージの responsibility（ここでは reducer の動作のみ確認する）
   // 将来の Phase で Outbox TTL purge との連携を実装する
   await page.goto("about:blank");
@@ -272,10 +273,10 @@ test("s5_lost_update_3way_merge", async ({ page }) => {
 });
 
 // ---------------------------------------------------------
-// シナリオ 6: supersede → silent toast（スキップ: 後続 Phase で実装）
+// シナリオ 6: supersede → silent toast（Phase E で active 化）
 // supersede で PQ 先頭 entry 削除 + silent toast が発動することを確認する
 // ---------------------------------------------------------
-test.skip("s6_supersede_silent_toast", async ({ page }) => {
+test("s6_supersede_silent_toast", async ({ page }) => {
   await page.goto("about:blank");
   const result = await page.evaluate((reducerCode) => {
     eval(reducerCode);
@@ -293,10 +294,10 @@ test.skip("s6_supersede_silent_toast", async ({ page }) => {
 });
 
 // ---------------------------------------------------------
-// シナリオ 7: concurrent_edit → user choice（スキップ: 後続 Phase で実装）
+// シナリオ 7: concurrent_edit → user choice（Phase E で active 化）
 // concurrent_edit で presence indicator が更新されることを確認する
 // ---------------------------------------------------------
-test.skip("s7_concurrent_edit_presence", async ({ page }) => {
+test("s7_concurrent_edit_presence", async ({ page }) => {
   await page.goto("about:blank");
   const result = await page.evaluate((reducerCode) => {
     eval(reducerCode);

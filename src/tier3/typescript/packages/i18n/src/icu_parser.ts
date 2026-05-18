@@ -50,9 +50,9 @@ function parsePluralRules(rulesStr: string): PluralRules {
     // exec でイテレーションして全ルールを抽出する
     while ((match = rulePattern.exec(rulesStr)) !== null) {
         // キーワードとテンプレートを抽出する
-        const keyword = match[1];
+        const keyword = match[1] ?? "";
         // テンプレート文字列（前後の空白を除去する）
-        const template = match[2].trim();
+        const template = (match[2] ?? "").trim();
         // ルールマップに追加する
         rules[keyword] = template;
     }

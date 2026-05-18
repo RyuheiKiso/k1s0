@@ -56,3 +56,25 @@ export { BffClient, BffNetworkError, defaultBffClient } from "./bff_client.js";
 
 // DPoP proof 生成を公開する（RFC 9449 準拠）
 export { generateDpopKey, createDpopProof } from "./dpop.js";
+
+// step-up 認証フローハンドラを公開する（v1_emergency_step_up）
+export {
+  StepUpHandler,
+  defaultStepUpHandler,
+} from "./step_up.js";
+// step-up 型を公開する
+export type { StepUpResult, StepUpChallenge } from "./step_up.js";
+
+// OIDC token lifecycle silent renew ループを公開する
+export { startSilentRenew, DEFAULT_SILENT_RENEW_CONFIG } from "./silent_renew.js";
+// silent renew 型を公開する
+export type { SilentRenewConfig, SilentRenewHandle } from "./silent_renew.js";
+
+// logout ブロードキャスト（BroadcastChannel による全タブ logout 通知）を公開する
+export {
+  broadcastLogout,
+  listenLogoutBroadcast,
+  performGlobalLogout,
+} from "./logout_broadcast.js";
+// logout broadcast 型を公開する
+export type { LogoutBroadcastHandle } from "./logout_broadcast.js";

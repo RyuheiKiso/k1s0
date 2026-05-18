@@ -2,6 +2,8 @@
 // Tauri v2 の IPC bridge を提供する（window.invoke() 経由のコマンド定義）
 // sidecar exe の実装は src/_crosscutting/07_tauri_companion_sidecar/sidecar/ が primary
 // ここは Tauri framework が要求する frontend glue（window.invoke() 経由の IPC 層）
+// Phase E: layer 名を 11_クライアント状態適合仕様.md の spec 正値に統一する
+// server_truth / optimistic_local / pending_queue / draft（4 層）
 
 // serde の Value 型（JSON 値の動的表現に使用する）
 use serde_json::Value;
@@ -44,18 +46,18 @@ impl<T> IpcResponse<T> {
 }
 
 // state_read コマンド: 指定レイヤのクライアント状態を読み取る
-// layer: 読み取るレイヤ名（"server" / "bff" / "local" / "optimistic" のいずれか）
+// layer: 読み取るレイヤ名（spec 正値: "server_truth" / "optimistic_local" / "pending_queue" / "draft"）
 // 戻り値: JSON 形式のレイヤ状態、失敗時はエラー文字列
 #[tauri::command]
 async fn state_read(layer: String) -> Result<Value, String> {
     // レイヤ名の検証（11_クライアント状態適合仕様で定義した 4 レイヤのみ受付する）
     match layer.as_str() {
-        // サーバー確定レイヤ（BFF から同期済みの確定状態）
-        "server" => {
-            // サーバーレイヤの状態を読み取る（sidecar 経由で BFF に問い合わせる）
+        // server_truth レイヤ: tier2 atomic 三表書込確定値のキャッシュ（BFF から同期済みの確定状態）
+        "server_truth" => {
+            // server_truth レイヤの状態を読み取る（sidecar 経由で BFF に問い合わせる）
             let state = serde_json::json!({
-                // レイヤ識別子
-                "layer": "server",
+                // レイヤ識別子（spec 正値）
+                "layer": "server_truth",
                 // 現在の状態（実際の実装は sidecar から取得する）
                 "status": "synced",
                 // HLC タイムスタンプ（wall clock 禁止、HLC を使用する）
@@ -64,53 +66,55 @@ async fn state_read(layer: String) -> Result<Value, String> {
             // 読み取り成功を返す
             Ok(state)
         }
-        // BFF キャッシュレイヤ（BFF のメモリキャッシュ状態）
-        "bff" => {
-            // BFF キャッシュレイヤの状態を読み取る
+        // optimistic_local レイヤ: mutation in-flight overlay（UI の即時反映用一時状態）
+        "optimistic_local" => {
+            // optimistic_local レイヤの状態を読み取る（in-memory のみ）
             let state = serde_json::json!({
-                // レイヤ識別子
-                "layer": "bff",
-                // キャッシュ状態
-                "status": "cached",
+                // レイヤ識別子（spec 正値）
+                "layer": "optimistic_local",
+                // 楽観的更新の状態（未確定）
+                "status": "in_flight",
                 // HLC タイムスタンプ
                 "hlc_timestamp": "0000000000000000-0000-0000"
             });
             // 読み取り成功を返す
             Ok(state)
         }
-        // ローカル確定レイヤ（IndexedDB に永続化された状態）
-        "local" => {
-            // ローカルレイヤの状態を読み取る（IndexedDB から取得する）
+        // pending_queue レイヤ: offline 永続化 mutation 経路（IndexedDB に永続化された mutation キュー）
+        "pending_queue" => {
+            // pending_queue レイヤの状態を読み取る（IndexedDB から取得する）
             let state = serde_json::json!({
-                // レイヤ識別子
-                "layer": "local",
+                // レイヤ識別子（spec 正値）
+                "layer": "pending_queue",
                 // ローカル状態
                 "status": "persisted",
+                // キュー内 entry 数（実際の実装は sidecar から取得する）
+                "queue_length": 0,
                 // HLC タイムスタンプ
                 "hlc_timestamp": "0000000000000000-0000-0000"
             });
             // 読み取り成功を返す
             Ok(state)
         }
-        // 楽観的更新レイヤ（UI の即時反映用一時状態）
-        "optimistic" => {
-            // 楽観的更新レイヤの状態を読み取る
+        // draft レイヤ: 編集中フォームの dirty state（UI のみ、永続化しない）
+        "draft" => {
+            // draft レイヤの状態を読み取る（in-memory のみ）
             let state = serde_json::json!({
-                // レイヤ識別子
-                "layer": "optimistic",
-                // 楽観的更新の状態（未確定）
-                "status": "pending",
+                // レイヤ識別子（spec 正値）
+                "layer": "draft",
+                // draft 状態（編集中）
+                "status": "dirty",
                 // HLC タイムスタンプ
                 "hlc_timestamp": "0000000000000000-0000-0000"
             });
             // 読み取り成功を返す
             Ok(state)
         }
-        // 不明なレイヤ名はエラーを返す
+        // 不明なレイヤ名はエラーを返す（spec 外のレイヤ名はすべて拒否する）
         unknown => {
-            // 不明レイヤ名のエラーメッセージを生成する
+            // 不明レイヤ名のエラーメッセージを生成する（spec 正値を案内する）
             Err(format!(
-                "未知のレイヤです: '{}'. 有効なレイヤ: server / bff / local / optimistic",
+                "未知のレイヤです: '{}'. 有効なレイヤ（spec 正値）: server_truth / optimistic_local / pending_queue / draft",
                 unknown
             ))
         }
@@ -118,20 +122,20 @@ async fn state_read(layer: String) -> Result<Value, String> {
 }
 
 // state_write コマンド: 指定レイヤにクライアント状態を書き込む
-// layer: 書き込み先レイヤ名
+// layer: 書き込み先レイヤ名（spec 正値: optimistic_local / pending_queue / draft）
 // entry: 書き込む JSON エントリ（tier2 生成 stub の型を使用する）
 // 戻り値: 書き込み成功時は Ok(()), 失敗時はエラー文字列
 #[tauri::command]
 async fn state_write(layer: String, entry: Value) -> Result<(), String> {
-    // レイヤ名の検証（4 レイヤのみ受付する）
+    // レイヤ名の検証（spec 正値のみ受付する）
     match layer.as_str() {
-        // サーバーレイヤへの書き込み（read-only のため禁止する）
-        "server" => {
-            // サーバーレイヤは read-only のため書き込みを拒否する
-            Err("server レイヤは read-only です。BFF への同期は state_sync を使用してください。".to_string())
+        // server_truth レイヤへの書き込みは禁止する（read-only レイヤ）
+        "server_truth" => {
+            // server_truth レイヤは read-only のため書き込みを拒否する
+            Err("server_truth レイヤは read-only です。BFF への同期は state_sync を使用してください。".to_string())
         }
-        // BFF キャッシュレイヤへの書き込み
-        "bff" | "local" | "optimistic" => {
+        // optimistic_local / pending_queue / draft への書き込みを許可する
+        "optimistic_local" | "pending_queue" | "draft" => {
             // エントリが有効な JSON オブジェクトであることを確認する
             if !entry.is_object() {
                 // JSON オブジェクト以外は拒否する（型安全強制）
@@ -149,11 +153,11 @@ async fn state_write(layer: String, entry: Value) -> Result<(), String> {
             // 書き込み成功を返す（実際の実装は sidecar 経由で永続化する）
             Ok(())
         }
-        // 不明なレイヤ名はエラーを返す
+        // 不明なレイヤ名はエラーを返す（spec 外のレイヤ名はすべて拒否する）
         unknown => {
             // 不明レイヤ名のエラーメッセージを生成する
             Err(format!(
-                "未知のレイヤです: '{}'. 有効なレイヤ: bff / local / optimistic",
+                "未知のレイヤです: '{}'. 有効な書き込みレイヤ（spec 正値）: optimistic_local / pending_queue / draft",
                 unknown
             ))
         }
@@ -188,9 +192,9 @@ pub fn run() {
         // invoke_handler に全コマンドを登録する
         // generate_handler! マクロが各 #[tauri::command] 関数を IPC ハンドラとして登録する
         .invoke_handler(tauri::generate_handler![
-            // 状態読み取りコマンド（4 レイヤ対応）
+            // 状態読み取りコマンド（4 レイヤ: server_truth / optimistic_local / pending_queue / draft）
             state_read,
-            // 状態書き込みコマンド（3 レイヤ、server は read-only）
+            // 状態書き込みコマンド（3 レイヤ: optimistic_local / pending_queue / draft、server_truth は read-only）
             state_write,
             // BFF 同期コマンド（sidecar port 9999 ping）
             state_sync

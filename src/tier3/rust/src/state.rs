@@ -1,8 +1,61 @@
 // k1s0 tier3 4 layer client state reducer（Rust 等価強度実装）
 // TypeScript primary と同等の抽象を Rust で実装する
 // 適合仕様 11_クライアント状態適合仕様.md の v1 layer セットに準拠する
+// Phase E: FieldDiff disjoint/intersect 分岐 + chain_idempotency_key を追加する
 
 use serde::{Deserialize, Serialize};
+// UUID 生成（idempotency key のランダム部分）
+use uuid::Uuid;
+
+// FieldDiff は field-level diff を表す構造体（TypeScript FieldDiff と等価）
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FieldDiff {
+    // client が変更したフィールド名のリスト
+    pub client_fields: Vec<String>,
+    // server が変更したフィールド名のリスト
+    pub server_fields: Vec<String>,
+}
+
+impl FieldDiff {
+    // is_disjoint: client と server の変更フィールドが disjoint かどうかを返す
+    // true = rebase_clean（auto resend 可能）
+    // false = rebase_dirty（3way merge UI 必要）
+    pub fn is_disjoint(&self) -> bool {
+        // client_fields を HashSet に変換して O(1) 検索を可能にする
+        let client_set: std::collections::HashSet<&str> =
+            self.client_fields.iter().map(|s| s.as_str()).collect();
+        // server_fields に client との交差があるか確認する
+        !self.server_fields.iter().any(|f| client_set.contains(f.as_str()))
+    }
+
+    // intersect: client と server の変更フィールドの交差（共通部分）を返す
+    pub fn intersect(&self) -> Vec<String> {
+        // client_fields を HashSet に変換する
+        let client_set: std::collections::HashSet<&str> =
+            self.client_fields.iter().map(|s| s.as_str()).collect();
+        // 交差フィールドを収集して返す
+        self.server_fields
+            .iter()
+            .filter(|f| client_set.contains(f.as_str()))
+            .cloned()
+            .collect()
+    }
+}
+
+// chain_idempotency_key: base key から chain された新しい idempotency key を生成する
+// TypeScript の chainIdempotencyKey（outbox.ts）と等価の実装
+// base: 元の idempotency key（chain 親）
+// next: 追加の識別子（aggregate ID + method のハッシュ等）
+pub fn chain_idempotency_key(base: &str, next: &str) -> String {
+    // UUID v4 でランダムサフィックスを生成する
+    let random_suffix = Uuid::new_v4().to_string().replace('-', "");
+    // base の先頭 12 文字を prefix に使用する（長すぎる場合は切り詰める）
+    let base_prefix = &base[..base.len().min(12)];
+    // next の先頭 8 文字を prefix に使用する
+    let next_prefix = &next[..next.len().min(8)];
+    // chain された key を生成する（base_prefix + next_prefix + uuid_suffix）
+    format!("{}_{}_{}", base_prefix, next_prefix, &random_suffix[..16])
+}
 
 // layer を識別する enum
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,6 +89,8 @@ pub enum ConflictEvent {
     BusinessConflictReceived {
         subtype: BusinessConflictSubtype,
         aggregate_id: String,
+        // field-level diff（stale_write / lost_update 判定に使用、None は safe 側にフォールバック）
+        field_diff: Option<FieldDiff>,
     },
 }
 
@@ -208,17 +263,33 @@ pub fn reduce(state: &ClientState, event: &ConflictEvent) -> ReducerResult {
                 actions: vec![ReducerAction::SendQueueInOrder],
             }
         }
-        ConflictEvent::BusinessConflictReceived { subtype, aggregate_id: _ } => {
-            // business_conflict_received: subtype に応じて決定論的に dispatch する
+        ConflictEvent::BusinessConflictReceived { subtype, aggregate_id: _, field_diff } => {
+            // business_conflict_received: subtype に応じて決定論的に dispatch する（FieldDiff 分岐含む）
             let mut actions = vec![];
             let mut next_state = state.clone();
             match subtype {
                 BusinessConflictSubtype::StaleWrite => {
-                    // stale_write: rebase → auto resend（clean）または 3way merge UI（dirty）
-                    // ここでは safe 側（dirty）に倒して 3way merge UI を表示する
-                    next_state.queue_held = true;
-                    actions.push(ReducerAction::Present3WayMergeUi);
-                    actions.push(ReducerAction::HoldQueue);
+                    // stale_write: FieldDiff.is_disjoint() で rebase_clean/dirty を判定する
+                    let is_clean = field_diff.as_ref().map(|fd| fd.is_disjoint()).unwrap_or(false);
+                    if is_clean {
+                        // rebase_clean: OL rollback + chain した新 key で auto resend する
+                        let base_key = next_state.optimistic_local_key.clone().unwrap_or_default();
+                        let new_key = chain_idempotency_key(&base_key, "rebase");
+                        // OL を rollback する
+                        next_state.optimistic_local_key = None;
+                        // rollback + auto resend actions を追加する
+                        actions.push(ReducerAction::RollbackOptimistic);
+                        actions.push(ReducerAction::SendQueueInOrder);
+                        // chain した新 key の detail を dispatch する
+                        actions.push(ReducerAction::NotifySilentToast {
+                            message: format!("rebase_clean: auto resend with key={}", new_key),
+                        });
+                    } else {
+                        // rebase_dirty: safe 側に倒して 3way merge UI を表示する
+                        next_state.queue_held = true;
+                        actions.push(ReducerAction::Present3WayMergeUi);
+                        actions.push(ReducerAction::HoldQueue);
+                    }
                 }
                 BusinessConflictSubtype::LostUpdate => {
                     // lost_update: 3way merge UI + queue hold
@@ -325,6 +396,8 @@ mod tests {
         let event = ConflictEvent::BusinessConflictReceived {
             subtype: BusinessConflictSubtype::Supersede,
             aggregate_id: "agg-001".to_string(),
+            // field_diff なしのテスト（safe 側フォールバック）
+            field_diff: None,
         };
         let result = reduce(&state, &event);
         // PQ が空になることを確認する
@@ -403,6 +476,8 @@ mod tests {
         let event = ConflictEvent::BusinessConflictReceived {
             subtype: BusinessConflictSubtype::LostUpdate,
             aggregate_id: "agg-lu-001".to_string(),
+            // field_diff なしのテスト（safe 側フォールバック）
+            field_diff: None,
         };
         let result = reduce(&state, &event);
         // QueueHeld が true になることを確認する
@@ -436,6 +511,79 @@ mod tests {
     }
 
     #[test]
+    // Phase E: stale_write で FieldDiff.is_disjoint() が true の場合 rebase_clean になることを確認する
+    fn test_phase_e_stale_write_rebase_clean_with_disjoint_field_diff() {
+        // OL が存在する state で stale_write conflict を受け取る（disjoint field diff）
+        let mut state = ClientState::new();
+        state.optimistic_local_key = Some("idem-sw-clean".to_string());
+        state.pending_queue_keys.push("idem-sw-clean".to_string());
+        // client は qty を変更、server は price を変更（disjoint）
+        let event = ConflictEvent::BusinessConflictReceived {
+            subtype: BusinessConflictSubtype::StaleWrite,
+            aggregate_id: "agg-sw-001".to_string(),
+            // disjoint field diff を設定する（client=qty / server=price）
+            field_diff: Some(FieldDiff {
+                client_fields: vec!["qty".to_string()],
+                server_fields: vec!["price".to_string()],
+            }),
+        };
+        let result = reduce(&state, &event);
+        // rebase_clean: QueueHeld が false のままであることを確認する
+        assert!(!result.next_state.queue_held, "rebase_clean: QueueHeld が false のままであること");
+        // RollbackOptimistic action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::RollbackOptimistic)),
+            "RollbackOptimistic が含まれること"
+        );
+        // SendQueueInOrder action が含まれることを確認する（auto resend）
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::SendQueueInOrder)),
+            "SendQueueInOrder が含まれること（auto resend）"
+        );
+    }
+
+    #[test]
+    // Phase E: FieldDiff.is_disjoint() が false の場合 rebase_dirty になることを確認する
+    fn test_phase_e_stale_write_rebase_dirty_with_intersecting_field_diff() {
+        // OL が存在する state で stale_write conflict を受け取る（intersecting field diff）
+        let state = ClientState::new();
+        // client と server が両方 qty を変更（intersecting）
+        let event = ConflictEvent::BusinessConflictReceived {
+            subtype: BusinessConflictSubtype::StaleWrite,
+            aggregate_id: "agg-sw-002".to_string(),
+            // intersecting field diff を設定する（client=qty,price / server=qty）
+            field_diff: Some(FieldDiff {
+                client_fields: vec!["qty".to_string(), "price".to_string()],
+                server_fields: vec!["qty".to_string()],
+            }),
+        };
+        let result = reduce(&state, &event);
+        // rebase_dirty: QueueHeld が true になることを確認する
+        assert!(result.next_state.queue_held, "rebase_dirty: QueueHeld が true になること");
+        // Present3WayMergeUi action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::Present3WayMergeUi)),
+            "Present3WayMergeUi が含まれること"
+        );
+    }
+
+    #[test]
+    // Phase E: chain_idempotency_key が base と next を含む新しい key を生成することを確認する
+    fn test_phase_e_chain_idempotency_key() {
+        // chain_idempotency_key で新しい key が生成されることを確認する
+        let base = "idem-base-001";
+        let next = "rebase";
+        // chain された key を生成する
+        let chained = chain_idempotency_key(base, next);
+        // chained key が空でないことを確認する
+        assert!(!chained.is_empty(), "chain された key が空でないこと");
+        // chained key が base の先頭 12 文字を含むことを確認する
+        assert!(chained.starts_with(&base[..base.len().min(12)]), "chained key が base prefix を含むこと");
+        // chained key が base と異なることを確認する（新しい key が生成された）
+        assert_ne!(chained, base, "chained key が base と異なること");
+    }
+
+    #[test]
     // Phase O: concurrent_edit で UpdatePresence action が返ることを確認する
     fn test_phase_o_concurrent_edit_updates_presence() {
         // 初期 state で concurrent_edit を受け取る
@@ -444,6 +592,8 @@ mod tests {
         let event = ConflictEvent::BusinessConflictReceived {
             subtype: BusinessConflictSubtype::ConcurrentEdit,
             aggregate_id: "agg-ce-001".to_string(),
+            // field_diff なしのテスト（safe 側フォールバック）
+            field_diff: None,
         };
         let result = reduce(&state, &event);
         // UpdatePresence action が含まれることを確認する
