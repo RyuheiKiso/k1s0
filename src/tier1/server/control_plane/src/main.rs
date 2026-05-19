@@ -9,6 +9,8 @@ mod crd_watcher;
 mod flagd_publisher;
 // cosign_verify モジュール: コンテナイメージの cosign 署名を検証する admission webhook 前段
 mod cosign_verify;
+// apicurio_client モジュール: Apicurio Schema Registry GitOps 連携クライアント
+mod apicurio_client;
 
 // axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};

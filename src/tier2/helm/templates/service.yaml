@@ -1,0 +1,30 @@
+# service.yaml — k1s0-tier2 Helm チャート: Service テンプレート
+# k1s0-tier2 Pod への内部クラスターアクセスを提供する Kubernetes Service リソースの定義
+# values.yaml の service セクションから設定値を取得する
+apiVersion: v1
+# Kubernetes Service リソース種別
+kind: Service
+metadata:
+  # Service 名（Helm release 名を含むフルネームを使用する）
+  name: {{ include "k1s0-tier2.fullname" . }}
+  # デプロイ先 Namespace（helm install の --namespace で指定する）
+  namespace: {{ .Release.Namespace }}
+  # Service ラベル（Helm が管理するラベルセット）
+  labels:
+    {{- include "k1s0-tier2.labels" . | nindent 4 }}
+spec:
+  # Service の種別（values.yaml の service.type から取得する / デフォルト: ClusterIP）
+  type: {{ .Values.service.type }}
+  # Pod セレクタ（Service が転送対象とする Pod を識別する）
+  selector:
+    {{- include "k1s0-tier2.selectorLabels" . | nindent 4 }}
+  # Service が公開するポート定義
+  ports:
+    # HTTP API ポート定義
+    - name: http
+      # Service が公開するポート番号（values.yaml の service.port から取得する）
+      port: {{ .Values.service.port }}
+      # Pod 側のターゲットポート（コンテナの http という名前付きポートに転送する）
+      targetPort: http
+      # TCP プロトコルを使用する
+      protocol: TCP

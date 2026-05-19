@@ -48,3 +48,41 @@ podSecurityContext:
   runAsUser: 1000
   # ファイルシステムグループ ID
   fsGroup: 1000
+
+# ServiceAccount 設定
+serviceAccount:
+  # ServiceAccount を自動作成するか（true の場合は serviceaccount.yaml で作成する）
+  create: true
+  # ServiceAccount 名（空の場合はフルネームを使用する）
+  name: ""
+  # ServiceAccount アノテーション（IRSA / Workload Identity などの設定に使用する）
+  annotations: {}
+
+# Ingress 詳細設定（ingress.enabled: true の場合に使用する）
+ingress:
+  # Ingress 有効化フラグ（デフォルト: 無効 / 本番では Istio VirtualService を使用する）
+  enabled: false
+  # IngressClass 名（nginx / traefik / istio から選択する）
+  className: "nginx"
+  # Ingress アノテーション（nginx ssl-redirect などを設定する）
+  annotations:
+    # TLS リダイレクトを有効にする
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  # ホスト別ルーティングルール
+  hosts:
+    # デフォルトホスト設定
+    - host: k1s0-tier2.example.com
+      # パス別バックエンド設定
+      paths:
+        # ルートパスへのルーティング
+        - path: /
+          # Prefix マッチタイプを使用する
+          pathType: Prefix
+  # TLS 設定（hosts と secretName を対で設定する）
+  tls:
+    # TLS エントリ
+    - hosts:
+        # TLS 対象ホスト名
+        - k1s0-tier2.example.com
+      # TLS 証明書 Secret 名
+      secretName: k1s0-tier2-tls

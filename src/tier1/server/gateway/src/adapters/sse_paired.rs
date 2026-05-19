@@ -2,8 +2,9 @@
 // EventSource SSE adapter（v1_alert / v1_event_feed / v1_live_snapshot のみサポート）。
 // client→server bulk（v1_bulk_upload）は一方向 wire の都合上、構造的にサポートできない。
 // axum SSE + Last-Event-ID による resume_token 実装。
+// EventBus（broadcast channel）から受信したイベントを SSE で配信する実 streaming 実装。
 
-// axum から SSE・ルーティング・抽出・レスポンス型を import する
+// axum から SSE・ルーティング・抽出・レスポンス型・State を import する
 use axum::{
     // Router: axum のルーティング構造体
     Router,
@@ -11,17 +12,23 @@ use axum::{
     routing::get,
     // extract::Query: クエリパラメータを抽出する Extractor
     extract::Query,
+    // extract::State: axum State 依存性注入（EventBus を handler に注入する）
+    extract::State,
     // response::sse: SSE 型（Event / KeepAlive / Sse）を提供するモジュール
     response::sse::{Event, KeepAlive, Sse},
     // http::HeaderMap: HTTP リクエストヘッダーを受け取る型
     http::HeaderMap,
 };
-// futures_util::stream: Stream 関連ユーティリティ（Stream トレイトを含む）
-use futures_util::stream::{self, Stream};
+// async_stream::stream! マクロで非同期 Stream を生成するために import する
+use async_stream::stream;
 // serde::Deserialize: クエリパラメータ型を QueryString からデシリアライズするために使用する
 use serde::Deserialize;
 // std::convert::Infallible: SSE Stream の Item エラー型に使用する（stream が失敗しないことを示す）
 use std::convert::Infallible;
+// std::sync::Arc: EventBus の shared state 共有に使用する
+use std::sync::Arc;
+// crate::event_bus::EventBus: セッションごとの broadcast channel 管理
+use crate::event_bus::EventBus;
 // AdapterManifest: adapter の capability 自己宣言型
 use super::AdapterManifest;
 
@@ -65,54 +72,20 @@ impl SsePairedAdapter {
         // MANIFEST.supports スライスに conformance_class が含まれるか確認する
         MANIFEST.supports.contains(&conformance_class)
     }
-
-    // sse_stream は SSE イベントストリームを返す axum handler helper。
-    // conformance_class に応じて ordering / lag / resumable を適用する。
-    pub fn sse_stream(
-        // conformance_class: Bidi class を示す文字列（lag target の選択に使用する）
-        conformance_class: &str,
-        // session_id: BidiSession の識別子（SSE id フィールドに設定する）
-        session_id: String,
-        // last_event_id: resume 時の前回最終 event ID（None の場合は新規セッション扱い）
-        last_event_id: Option<String>,
-    ) -> impl Stream<Item = Result<Event, Infallible>> {
-        // last_event_id があれば resume_token から継続する（resumable=REQUIRED の保証）
-        let resume_from = last_event_id.unwrap_or_default();
-        // conformance_class に応じた lag target を取得する
-        // v1_alert: lag≤200ms、v1_event_feed: lag≤5000ms、v1_live_snapshot: lag≤500ms
-        let _lag_target_ms = match conformance_class {
-            // v1_alert は最も厳格な lag≤200ms を target とする
-            "v1_alert" => 200u64,
-            // v1_event_feed は lag≤5000ms を target とする（SESSION_ORDERED 保証）
-            "v1_event_feed" => 5000u64,
-            // v1_live_snapshot は lag≤500ms を target とする（UNORDERED / latest-wins）
-            "v1_live_snapshot" => 500u64,
-            // MANIFEST.supports に含まれない class は到達しない
-            _ => 0u64,
-        };
-        // SSE ping イベントを一定間隔で送信する（heartbeat + resume_token 維持）
-        stream::once(async move {
-            // 最初のイベントとして session 開始を通知する
-            Ok(Event::default()
-                // SSE id フィールドに session_id を設定する（Last-Event-ID の基底値として使用する）
-                .id(&session_id)
-                // event 名を "session_started" に設定する
-                .event("session_started")
-                // セッション開始データを JSON 文字列で data フィールドに設定する
-                .data(format!("{{\"session_id\":\"{session_id}\",\"resume_from\":\"{resume_from}\"}}")))
-        })
-    }
 }
 
 // handle_sse は GET /sse の handler。
 // server → client 一方向 SSE streaming エンドポイント。
 // Last-Event-Id ヘッダーで resume_token を受け取り、resumable=REQUIRED を保証する。
+// EventBus から broadcast Receiver を取得し、DomainEvent を SSE Event に変換して配信する。
 pub async fn handle_sse(
+    // State(event_bus): axum State 依存性注入で EventBus を受け取る
+    State(event_bus): State<Arc<EventBus>>,
     // headers: HTTP リクエストヘッダーを受け取る（Last-Event-Id 取得に使用する）
     headers: HeaderMap,
     // params: クエリパラメータを SseQuery 型として受け取る
     Query(params): Query<SseQuery>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+) -> Sse<impl futures_util::Stream<Item = Result<Event, Infallible>>> {
     // Last-Event-Id ヘッダーから resume_token を取得する（resumable=REQUIRED の保証）
     // NOTE: 標準ヘッダー名は "Last-Event-ID" だが HTTP/1.1 では大文字小文字を区別しない
     let last_event_id = headers
@@ -132,6 +105,9 @@ pub async fn handle_sse(
         .clone()
         .unwrap_or_else(|| "v1_event_feed".to_string());
 
+    // resume_from: last_event_id がある場合はその値、なければ空文字を使う
+    let resume_from = last_event_id.clone().unwrap_or_default();
+
     // tracing で SSE stream の開始をログに記録する
     tracing::info!(
         // session_id フィールドを構造化ログに含める
@@ -143,15 +119,101 @@ pub async fn handle_sse(
         "sse_paired SSE stream opened"
     );
 
-    // SsePairedAdapter::sse_stream を呼び出して SSE stream を取得する
-    let event_stream = SsePairedAdapter::sse_stream(
-        // conformance_class を文字列スライスとして渡す
-        &conformance_class,
-        // session_id を渡す
-        session_id,
-        // last_event_id（resume_token）を渡す
-        last_event_id,
-    );
+    // EventBus から session_id に対応する broadcast Receiver を取得する
+    let mut rx = event_bus.subscribe(&session_id);
+
+    // session_id を clone してクロージャ内で所有権を移動する
+    let session_id_for_stream = session_id.clone();
+    // conformance_class を clone してクロージャ内で所有権を移動する
+    let conformance_class_for_stream = conformance_class.clone();
+
+    // async_stream::stream! マクロで非同期 Stream を生成する
+    let event_stream = stream! {
+        // session_started イベントを最初に送信してクライアントに接続確立を通知する
+        let started_data = serde_json::json!({
+            // session_id: セッション識別子をクライアントに通知する
+            "session_id": session_id_for_stream,
+            // conformance_class: 確立した Bidi class をクライアントに通知する
+            "conformance_class": conformance_class_for_stream,
+            // resume_from: resume_token（last_event_id）をエコーバックする
+            "resume_from": resume_from,
+        });
+        // session_started イベントを yield する（接続確立を通知する）
+        yield Ok(
+            // event 名を "session_started" に設定する
+            Event::default()
+                .event("session_started")
+                // session_id を SSE id フィールドに設定する（Last-Event-ID の基底値として使用する）
+                .id(session_id_for_stream.as_str())
+                // セッション開始データを JSON 文字列で data フィールドに設定する
+                .data(started_data.to_string())
+        );
+
+        // broadcast Receiver からイベントを受信し続ける無限ループ
+        loop {
+            // recv(): broadcast channel からイベントを非同期受信する
+            match rx.recv().await {
+                // 正常受信: DomainEvent を SSE Event に変換して yield する
+                Ok(domain_event) => {
+                    // DomainEvent を JSON 文字列にシリアライズする
+                    let data = serde_json::json!({
+                        // event_type: ドメインイベント種別をクライアントに通知する
+                        "event_type": domain_event.event_type,
+                        // payload: ドメインイベントのペイロードをクライアントに配信する
+                        "payload": domain_event.payload,
+                        // sequence: SESSION_ORDERED の担保のためにシーケンス番号を送信する
+                        "sequence": domain_event.sequence,
+                        // session_id: イベントの宛先セッション識別子をクライアントに通知する
+                        "session_id": domain_event.session_id,
+                    });
+                    // SSE id にシーケンス番号を設定して Last-Event-ID resume を支援する
+                    let event_id = domain_event.sequence.to_string();
+                    // DomainEvent を SSE Event に変換して yield する
+                    yield Ok(
+                        // event 名を event_type に設定する
+                        Event::default()
+                            .event("data")
+                            // SSE id フィールドにシーケンス番号を設定する
+                            .id(event_id.as_str())
+                            // ドメインイベントデータを JSON 文字列で data フィールドに設定する
+                            .data(data.to_string())
+                    );
+                }
+                // Lagged: バッファ溢れで一部イベントがスキップされた（broadcast channel が遅延した）
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(skip_count)) => {
+                    // lagged イベントをクライアントに通知してクライアント側でリカバリを促す
+                    let lag_data = serde_json::json!({
+                        // type: lagged であることを示す
+                        "type": "server_truth_advance",
+                        // skipped: スキップされたイベント数をクライアントに通知する
+                        "skipped": skip_count,
+                    });
+                    // server_truth_advance イベントを yield する（クライアントにラグを通知する）
+                    yield Ok(
+                        // event 名を "server_truth_advance" に設定する
+                        Event::default()
+                            .event("server_truth_advance")
+                            // ラグ通知データを JSON 文字列で data フィールドに設定する
+                            .data(lag_data.to_string())
+                    );
+                    // Lagged 後は受信を継続する（チャンネルは有効なため）
+                }
+                // Closed: broadcast channel が閉じられた（送信側がドロップした）
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    // complete イベントをクライアントに送信してストリームの終端を通知する
+                    yield Ok(
+                        // event 名を "complete" に設定する
+                        Event::default()
+                            .event("complete")
+                            // ストリーム終了データを JSON 文字列で data フィールドに設定する
+                            .data("{\"reason\":\"channel_closed\"}")
+                    );
+                    // ループを終了してストリームを閉じる
+                    break;
+                }
+            }
+        }
+    };
 
     // Sse::new で stream を wrap し、KeepAlive で接続を維持する
     Sse::new(event_stream)
@@ -160,10 +222,12 @@ pub async fn handle_sse(
 }
 
 // router は sse_paired adapter の axum Router を構築して返す。
-// /sse に GET（SSE）ハンドラーを登録する。
-pub fn router() -> Router {
+// EventBus を State として注入し、/sse に GET（SSE）ハンドラーを登録する。
+pub fn router(event_bus: Arc<EventBus>) -> Router {
     // Router::new() で空のルーターを作成し、route を追加する
     Router::new()
         // GET /sse: server → client SSE streaming エンドポイント
         .route("/sse", get(handle_sse))
+        // EventBus を axum State として注入する（handler が Arc<EventBus> を受け取れるようにする）
+        .with_state(event_bus)
 }

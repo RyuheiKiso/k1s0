@@ -21,6 +21,8 @@ import (
 
 	// tier1 operator API 型定義のインポート
 	tier1v1 "github.com/k1s0/tier1-operator/api/v1"
+	// tier1 operator internal controller パッケージのインポート: 4 reconciler の登録に使用する
+	tiercontroller "github.com/k1s0/tier1-operator/internal/controller"
 	// Kubernetes apps/v1 API: Deployment 型に使用する
 	appsv1 "k8s.io/api/apps/v1"
 	// Kubernetes core/v1 API: Service / Container / Port 型に使用する
@@ -471,6 +473,46 @@ func main() {
 		},
 		&tier1v1.Tier1ServiceList{},
 	)
+	// KeyClass CRD をスキームに登録する（05_鍵管理適合仕様.md §key_class 5 class 対応）
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "KeyClass"},
+		&tier1v1.KeyClass{},
+	)
+	// KeyClassList をスキームに登録する
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "KeyClassList"},
+		&tier1v1.KeyClassList{},
+	)
+	// SLOClass CRD をスキームに登録する（07_SLO適合仕様.md §slo_class 6 class 対応）
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "SLOClass"},
+		&tier1v1.SLOClass{},
+	)
+	// SLOClassList をスキームに登録する
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "SLOClassList"},
+		&tier1v1.SLOClassList{},
+	)
+	// QuotaClass CRD をスキームに登録する（09_テナント容量適合仕様.md §quota_class 5 class 対応）
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "QuotaClass"},
+		&tier1v1.QuotaClass{},
+	)
+	// QuotaClassList をスキームに登録する
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "QuotaClassList"},
+		&tier1v1.QuotaClassList{},
+	)
+	// OSSInventory CRD をスキームに登録する（08_OSSライフサイクル適合仕様.md §lifecycle_signal 対応）
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "OSSInventory"},
+		&tier1v1.OSSInventory{},
+	)
+	// OSSInventoryList をスキームに登録する
+	scheme.AddKnownTypeWithName(
+		schema.GroupVersionKind{Group: "k1s0.io", Version: "v1", Kind: "OSSInventoryList"},
+		&tier1v1.OSSInventoryList{},
+	)
 
 	// コントローラマネージャーを構築する
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -501,6 +543,46 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		// コントローラ登録失敗時は終了する
 		setupLog.Error(err, "unable to create controller", "controller", "Tier1Service")
+		os.Exit(1)
+	}
+
+	// KeyClassReconciler をマネージャーに登録する（05_鍵管理適合仕様.md §rotation_cadence enforcement）
+	if err = (&tiercontroller.KeyClassReconciler{
+		// Kubernetes クライアントを設定する
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr); err != nil {
+		// コントローラ登録失敗時は終了する
+		setupLog.Error(err, "unable to create controller", "controller", "KeyClass")
+		os.Exit(1)
+	}
+
+	// SLOClassReconciler をマネージャーに登録する（07_SLO適合仕様.md §slo_class enforcement）
+	if err = (&tiercontroller.SLOClassReconciler{
+		// Kubernetes クライアントを設定する
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr); err != nil {
+		// コントローラ登録失敗時は終了する
+		setupLog.Error(err, "unable to create controller", "controller", "SLOClass")
+		os.Exit(1)
+	}
+
+	// QuotaClassReconciler をマネージャーに登録する（09_テナント容量適合仕様.md §quota enforcement）
+	if err = (&tiercontroller.QuotaClassReconciler{
+		// Kubernetes クライアントを設定する
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr); err != nil {
+		// コントローラ登録失敗時は終了する
+		setupLog.Error(err, "unable to create controller", "controller", "QuotaClass")
+		os.Exit(1)
+	}
+
+	// LifecycleSignalReconciler をマネージャーに登録する（08_OSSライフサイクル適合仕様.md §lifecycle_signal enforcement）
+	if err = (&tiercontroller.LifecycleSignalReconciler{
+		// Kubernetes クライアントを設定する
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr); err != nil {
+		// コントローラ登録失敗時は終了する
+		setupLog.Error(err, "unable to create controller", "controller", "LifecycleSignal")
 		os.Exit(1)
 	}
 

@@ -16,13 +16,17 @@ pub mod adapters;
 pub mod event_bus;
 // scenario_runner モジュール（scenarios.yaml から Bidi シナリオを読み込んで実行する）
 pub mod scenario_runner;
+// ua_aware モジュール（User-Agent に基づいて最適 Bidi transport adapter を選択する）
+pub mod ua_aware;
 
 // axum: HTTP ルーター（use される識別子のみインポートする）
-use axum::{Json, Router, routing::get, extract::Query};
+use axum::{Json, Router, routing::get, extract::Query, http::StatusCode, response::IntoResponse};
+// base64::Engine: STANDARD.encode を使うために trait を scope に入れる必要がある
+use base64::Engine as _;
 // serde: JSON シリアライズ
 use serde::{Deserialize, Serialize};
 // tracing: 構造化ロギング
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 // 標準ライブラリ
 use std::env;
 
@@ -108,26 +112,79 @@ async fn negotiate_handler(Query(params): Query<NegotiateQuery>) -> Json<Negotia
     Json(result)
 }
 
+// KeyHandleDemoResponse は /kek/demo エンドポイントのレスポンス型
+#[derive(Serialize)]
+struct KeyHandleDemoResponse {
+    // handle: KeyHandle（key_bytes は #[serde(skip)] により JSON 出力に含まれない）
+    handle: KeyHandle,
+    // sign_verified: OpenBao Transit sign が成功したことを示すフラグ
+    sign_verified: bool,
+    // demo_payload_b64: 署名対象として使用した fixed payload の Base64 表現
+    demo_payload_b64: String,
+}
+
 // KeyHandle デモエンドポイント（spec 05 鍵管理: 生 key bytes を返さない API 型保証）
+// OpenBao Transit 経由で実際の sign を実行し、key bytes が公開 API に含まれないことを実証する。
 #[instrument]
-async fn key_handle_demo_handler() -> Json<KeyHandle> {
-    // 5 key_class のうち v1_data_dek クラスの stub KeyHandle を生成する
-    let handle = KeyHandle::create_stub(
-        KeyClass::V1DataDek,
-        uuid::Uuid::new_v4().to_string(),
-    );
-    // KeyHandle を JSON で返す（key_bytes は Serialize から除外されている）
-    info!(
-        key_class = %handle.key_class_str(),
-        is_valid = handle.is_valid,
-        "KeyHandle demo: raw bytes not in response"
-    );
-    Json(handle)
+async fn key_handle_demo_handler() -> impl IntoResponse {
+    // デモ署名対象ペイロード: 固定バイト列（"k1s0-kek-demo-proof" の UTF-8 バイト）
+    let demo_payload = b"k1s0-kek-demo-proof";
+    // handle_id: このデモリクエスト固有の UUID v4 を生成する
+    let handle_id = uuid::Uuid::new_v4().to_string();
+    // handle: OpenBao Transit の v1_data_dek キーへの参照として KeyHandle を構築する
+    let handle = KeyHandle::from_remote_handle(KeyClass::V1DataDek, handle_id.clone());
+    // client: 環境変数（OPENBAO_ADDR / OPENBAO_TOKEN / OPENBAO_TRANSIT_MOUNT）から構築する
+    let client = key_handle::OpenBaoTransitClient::from_env();
+    // OpenBao Transit に sign を要求して実際の署名バイト列を取得する
+    match client.sign(&handle, demo_payload).await {
+        Ok(signature) => {
+            // 署名成功: signature が空でないことを確認する（OpenBao の空返却はエラー）
+            let sign_verified = !signature.is_empty();
+            // ログに署名成功を記録する（bytes 値は出力しない）
+            info!(
+                handle_id = %handle_id,
+                key_class = %handle.key_class_str(),
+                is_valid = handle.is_valid,
+                signature_len = signature.len(),
+                "KeyHandle demo: OpenBao sign succeeded, raw bytes not in response",
+            );
+            // レスポンスを構築して返す（key_bytes は KeyHandle の #[serde(skip)] により除外される）
+            (
+                StatusCode::OK,
+                Json(KeyHandleDemoResponse {
+                    // handle を JSON に含める（key_bytes は除外される）
+                    handle,
+                    // 署名成功フラグを設定する
+                    sign_verified,
+                    // デモ payload を Base64 エンコードして返す
+                    demo_payload_b64: base64::engine::general_purpose::STANDARD.encode(demo_payload),
+                }),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            // OpenBao 接続失敗: 503 Service Unavailable を返す（OpenBao 未起動 or token 無効）
+            warn!(
+                handle_id = %handle_id,
+                error = %e,
+                "KeyHandle demo: OpenBao sign failed (check OPENBAO_ADDR / OPENBAO_TOKEN)",
+            );
+            // 503 と エラーメッセージを返す
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "error": "OpenBao Transit unavailable",
+                    "detail": e.to_string(),
+                })),
+            )
+                .into_response()
+        }
+    }
 }
 
 // build_router は gateway の axum Router を構築して返す。
 // pub: integration test（tests/ 配下）と main.rs の両方から参照する。
-// EventBus を作成して long_poll adapter に注入する。
+// EventBus を作成して全 adapter に注入する（broadcast channel による event routing）。
 pub fn build_router() -> Router {
     // EventBus を生成する（gateway 全体で 1 インスタンス共有）
     let event_bus = EventBus::new();
@@ -143,18 +200,18 @@ pub fn build_router() -> Router {
         .route("/kek/demo", get(key_handle_demo_handler))
         // adapter 1: grpc_native — gRPC over HTTP/2（/grpc/...）
         .nest("/grpc", adapters::grpc_native::router())
-        // adapter 2: connect_bidi — Connect-RPC bidi（/connect/...）
-        .nest("/connect", adapters::connect_bidi::router())
-        // adapter 3: web_transport — WebTransport H/3 check + fallback（/webtransport/...）
-        .nest("/webtransport", adapters::web_transport::router())
-        // adapter 4: paired_post_sse — POST↔SSE pair（/post-sse/...）
-        .nest("/post-sse", adapters::paired_post_sse::router())
-        // adapter 5: sse_paired — EventSource SSE（/sse-stream/...）
-        .nest("/sse-stream", adapters::sse_paired::router())
+        // adapter 2: connect_bidi — Connect-RPC bidi（/connect/...）EventBus を注入する
+        .nest("/connect", adapters::connect_bidi::router(event_bus.clone()))
+        // adapter 3: web_transport — WebTransport H/3 check + fallback（/webtransport/...）EventBus を注入する
+        .nest("/webtransport", adapters::web_transport::router(event_bus.clone()))
+        // adapter 4: paired_post_sse — POST↔SSE pair（/post-sse/...）EventBus を注入する
+        .nest("/post-sse", adapters::paired_post_sse::router(event_bus.clone()))
+        // adapter 5: sse_paired — EventSource SSE（/sse-stream/...）EventBus を注入する
+        .nest("/sse-stream", adapters::sse_paired::router(event_bus.clone()))
         // adapter 6: long_poll — fetch long-poll（EventBus を注入して broadcast channel を配線する）
-        .nest("/long-poll", adapters::long_poll::router(event_bus))
+        .nest("/long-poll", adapters::long_poll::router(event_bus.clone()))
         // adapter 7: messaging_bridge — Kafka idempotent producer（/kafka/...）
         .nest("/kafka", adapters::messaging_bridge::router())
-        // adapter 8: webhook — HMAC-SHA256 signed webhook イベント受信（/webhook/...）
-        .nest("/webhook", adapters::webhook::router())
+        // adapter 8: webhook — HMAC-SHA256 signed webhook イベント受信（/webhook/...）EventBus を注入する
+        .nest("/webhook", adapters::webhook::router(event_bus))
 }

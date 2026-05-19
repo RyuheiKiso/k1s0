@@ -127,7 +127,8 @@ impl AuditRelay {
 
     // PostgreSQL audit_local から未送信イベントを取得する
     // relayed = false のレコードを chain_sequence 昇順で batch_size 件取得する
-    // TODO: requires .sqlx/ for compile-time check — using sqlx::query for runtime binding
+    // compile-time 型チェック: sqlx::query_as! マクロを使用する（CI で cargo sqlx prepare --check を実行する）
+    // SQLX_OFFLINE=true でビルドする場合は .sqlx/ ディレクトリのメタデータを参照する
     async fn fetch_pending_events(&self) -> Result<Vec<PendingAuditEvent>, RelayError> {
         // PostgreSQL 接続プールを生成する（シングルコネクションのライフタイムを制御する）
         let pool = sqlx::postgres::PgPoolOptions::new()
@@ -138,59 +139,34 @@ impl AuditRelay {
             .await
             // 接続失敗を RelayError::PostgresConnection に変換する
             .map_err(|e| RelayError::PostgresConnection(e.to_string()))?;
-        // audit_local から relayed_at が NULL のレコードを chain_sequence 昇順で取得する
-        let rows = sqlx::query(
+        // バッチサイズを i64 にキャストする（sqlx::query_as! の型パラメータに合わせる）
+        let limit = self.config.batch_size as i64;
+        // audit_event から relayed = false のレコードを chain_sequence 昇順で取得する
+        // audit_local view は payload を除外するため、audit_event 本体から直接取得する
+        // sqlx::query_as! は compile-time に戻り値型と SQL カラムの対応を検証する
+        let events = sqlx::query_as!(
+            PendingAuditEvent,
             r#"
             SELECT id, tenant_id, actor_id, purpose, table_class, payload,
                    created_at, prev_digest, chain_sequence, relayed
-            FROM k1s0.audit_local
+            FROM k1s0.audit_event
             WHERE relayed = false
             ORDER BY chain_sequence ASC NULLS LAST
             LIMIT $1
             "#,
+            // バッチサイズを i64 としてバインドする（PostgreSQL LIMIT は bigint を受け取る）
+            limit
         )
-        // バッチサイズを i64 にキャストしてバインドする
-        .bind(self.config.batch_size as i64)
         // 接続プールを使ってクエリを実行する
         .fetch_all(&pool)
         .await
         // クエリエラーを RelayError::Query に変換する
         .map_err(|e| RelayError::Query(e.to_string()))?;
-        // 取得したロウを PendingAuditEvent 構造体にマッピングする
-        let events: Vec<PendingAuditEvent> = rows
-            .into_iter()
-            .map(|row| {
-                // sqlx::Row トレイトを使って各カラムを取得する
-                use sqlx::Row;
-                PendingAuditEvent {
-                    // id カラムを UUID として取得する
-                    id: row.get("id"),
-                    // tenant_id カラムを UUID として取得する
-                    tenant_id: row.get("tenant_id"),
-                    // actor_id カラムを String として取得する
-                    actor_id: row.get("actor_id"),
-                    // purpose カラムを String として取得する
-                    purpose: row.get("purpose"),
-                    // table_class カラムを String として取得する
-                    table_class: row.get("table_class"),
-                    // payload カラムを serde_json::Value として取得する
-                    payload: row.get("payload"),
-                    // created_at カラムを DateTime<Utc> として取得する
-                    created_at: row.get("created_at"),
-                    // prev_digest カラムを Option<String> として取得する
-                    prev_digest: row.get("prev_digest"),
-                    // chain_sequence カラムを Option<i64> として取得する
-                    chain_sequence: row.get("chain_sequence"),
-                    // relayed カラムを bool として取得する
-                    relayed: row.get("relayed"),
-                }
-            })
-            .collect();
         // 取得件数をデバッグログに出力する
         tracing::debug!(
             batch_size = self.config.batch_size,
             fetched = events.len(),
-            "audit_local から未送信イベントを取得した"
+            "audit_event から未送信イベントを取得した"
         );
         // 取得したイベントリストを返す
         Ok(events)
@@ -300,18 +276,20 @@ impl AuditRelay {
             .await
             // 接続失敗を RelayError::PostgresConnection に変換する
             .map_err(|e| RelayError::PostgresConnection(e.to_string()))?;
-        // audit_local の relayed_at を現在時刻で更新して送信済みにマークする
-        // TODO: requires .sqlx/ for compile-time check — using sqlx::query for runtime binding
-        sqlx::query(
+        // audit_event の relayed = true に更新して送信済みにマークする
+        // compile-time 型チェック: sqlx::query! マクロを使用する（CI で cargo sqlx prepare --check を実行する）
+        // audit_local view は UPDATE 対象にできないため audit_event 本体を直接 UPDATE する（migration 0007 参照）
+        // relayed_at カラムは migration 0007 に存在しないため relayed フラグのみ更新する
+        // UUID 配列は sqlx では &[Uuid] として渡す（PostgreSQL ANY($1) 構文に対応する）
+        sqlx::query!(
             r#"
-            UPDATE k1s0.audit_local
-            SET relayed = true,
-                relayed_at = NOW()
+            UPDATE k1s0.audit_event
+            SET relayed = true
             WHERE id = ANY($1)
             "#,
+            // ids を UUID スライスとしてバインドする（PostgreSQL uuid[] 型に対応する）
+            &ids as &[Uuid]
         )
-        // UUID の配列をバインドする（PostgreSQL の ANY($1) に対応する）
-        .bind(&ids)
         // 接続プールを使ってクエリを実行する
         .execute(&pool)
         .await

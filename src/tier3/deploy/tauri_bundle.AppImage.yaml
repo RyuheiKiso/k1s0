@@ -1,0 +1,59 @@
+# tauri_bundle.AppImage.yaml — Tauri Linux AppImage バンドル設定
+# Linux 向けの AppImage 形式でアプリケーションをパッケージングする
+# AppImage は依存関係を自己内包するため、ディストリビューションを問わず動作する
+apiVersion: k1s0.io/v1 # k1s0 カスタムリソースの API バージョン
+kind: TauriBundleConfig # Tauri バンドル設定リソースとして宣言する
+metadata:
+  name: k1s0-companion-appimage # バンドル設定の識別名
+  labels:
+    # プラットフォーム識別ラベル（CI が Linux ジョブを選択するために使用する）
+    k1s0.io/platform: linux
+    # バンドル形式ラベル
+    k1s0.io/bundle-format: appimage
+spec:
+  # --- アプリケーション基本情報 ---
+  appName: "k1s0-companion" # AppImage のファイル名に使用されるアプリ名（スペース禁止）
+  appVersion: "1.0.0" # バンドルバージョン（AppImage ファイル名に埋め込まれる）
+  # AppImage の説明文（ランチャーメタデータに使用される）
+  description: "k1s0 Companion Application for tier3 desktop"
+
+  # --- AppImage 固有設定 ---
+  appimage:
+    # AppImage の対象アーキテクチャ（x86_64 が標準）
+    arch: x86_64
+    # desktop ファイルのカテゴリ（XDG メニュー統合に使用する）
+    categories:
+      - Utility # XDG カテゴリ: ユーティリティ
+      - Development # XDG カテゴリ: 開発ツール
+
+  # --- アイコン設定 ---
+  icons:
+    # SVG アイコン（スケーラブル形式、AppDir に配置される）
+    - "icons/icon.svg"
+    # 32x32 PNG アイコン（低解像度ディスプレイ用）
+    - "icons/32x32.png"
+    # 128x128 PNG アイコン（標準解像度用）
+    - "icons/128x128.png"
+    # 256x256 PNG アイコン（高解像度用）
+    - "icons/256x256@2x.png"
+
+  # --- Linux デスクトップ統合設定 ---
+  linuxDesktopIntegration:
+    # .desktop ファイルの Name フィールド（アプリケーションメニューの表示名）
+    name: "k1s0 Companion"
+    # .desktop ファイルの Comment フィールド（ツールチップ説明文）
+    comment: "tier3 state management companion for k1s0"
+    # MIME タイプ関連付け（k1s0 固有のファイル形式を関連付ける）
+    mimeType: "x-scheme-handler/k1s0"
+
+  # --- システム依存ライブラリ設定 ---
+  systemDependencies:
+    # AppImage に同梱する shared library の一覧（動的リンク対象）
+    # webkit2gtk-4.1 はタスク T3-10 の postCreateCommand でインストールされる
+    bundledLibraries:
+      - "libwebkit2gtk-4.1.so.0" # WebKit2GTK ランタイム（Tauri WebView 用）
+      - "libayatana-appindicator3.so.1" # システムトレイ表示用ライブラリ
+      - "librsvg-2.so.2" # SVG レンダリング用ライブラリ
+
+  # --- ビルド成果物の配置 ---
+  outputDir: "target/release/bundle/appimage" # AppImage ファイルの出力先ディレクトリ

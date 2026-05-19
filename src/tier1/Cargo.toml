@@ -50,3 +50,6 @@ base64 = "0.22"
 sha2 = "0.10"
 # serde_yaml: YAML パース（migration test_matrix.yaml の読み込みに使用する）
 serde_yaml = "0.9"
+# k1s0-hlc: Hybrid Logical Clock（wall-clock TTL 禁止規律の物理機構）
+# tier1 bfl WebAuthn challenge expiry / tier2 cache TTL / tier2 temporal deadline に使用する
+k1s0-hlc = { path = "../../client/hlc_lib/rust" }

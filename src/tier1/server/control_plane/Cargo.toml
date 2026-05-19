@@ -32,3 +32,5 @@ futures-util = { workspace = true }
 tokio-stream = { workspace = true }
 # schemars: kube::CustomResource derive が要求する JSON Schema 生成ライブラリ
 schemars = "0.8"
+# reqwest: 非同期 HTTP クライアント（Apicurio Schema Registry REST API 呼び出しに使用する）
+reqwest = { workspace = true }

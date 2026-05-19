@@ -1,17 +1,145 @@
 # external_proto_mapping.yaml — External Proto field mapping 宣言
 # 16_外部システム統合: mapping は宣言的 YAML 管理、CI で双方向整合検査
+# 対象 4 系統: 親会社 ERP / 取引先 EDI（X12） / 検査機器 Modbus / SCADA OPC-UA
 version: "1.0.0"
 mappings:
+  # ---- 1. 親会社 ERP（SAP/Oracle 系）発注伝票 ----
   - source_system: "erp_legacy"
+    # SAP ERP の PurchaseOrderV2 メッセージを mapping する
     source_message: "PurchaseOrderV2"
+    # tier2 購買 proto の PurchaseOrder に変換する
     target_proto: "manufacturing.procurement.v1.PurchaseOrder"
+    # フィールドマッピング定義
     field_mappings:
+      # 発注番号: ERP の order_no（10 桁 0 埋め）→ order_id
       - source: "order_no"
         target: "order_id"
+        # 左 0 埋め 10 桁の変換
         transform: "string_pad_left_zeros_10"
+      # 顧客コード: identity 変換
       - source: "cust_cd"
         target: "customer_code"
+        # そのままコピーする
         transform: "identity"
+      # 納期: YYYYMMDD → RFC3339 日時に変換する
       - source: "deliv_dt"
         target: "delivery_date"
+        # 日付フォーマット変換
         transform: "date_format_yyyymmdd_to_rfc3339"
+      # 品目コード: ERP の item_cd → product_code
+      - source: "item_cd"
+        target: "product_code"
+        # そのままコピーする
+        transform: "identity"
+      # 数量: ERP の qty_order（文字列）→ quantity（int64）
+      - source: "qty_order"
+        target: "quantity"
+        # 文字列から整数に変換する
+        transform: "string_to_int64"
+      # 単価: ERP の unit_price（文字列）→ unit_price_jpy（int64、円単位）
+      - source: "unit_price"
+        target: "unit_price_jpy"
+        # 文字列から整数に変換する（円単位で格納する）
+        transform: "decimal_string_to_jpy_int64"
+
+  # ---- 2. 取引先 EDI（ANSI X12 850 Purchase Order）----
+  - source_system: "edi_x12"
+    # X12 850 発注トランザクションを mapping する
+    source_message: "X12_850_PurchaseOrder"
+    # tier2 購買 proto の PurchaseOrder に変換する
+    target_proto: "manufacturing.procurement.v1.PurchaseOrder"
+    # フィールドマッピング定義
+    field_mappings:
+      # BEG03 発注番号 → order_id
+      - source: "BEG03_OrderNumber"
+        target: "order_id"
+        # そのままコピーする
+        transform: "identity"
+      # BEG05 発注日 → ordered_at（YYYYMMDD → RFC3339）
+      - source: "BEG05_OrderDate"
+        target: "ordered_at"
+        # YYYYMMDD から RFC3339 に変換する
+        transform: "date_format_yyyymmdd_to_rfc3339"
+      # PO1 セグメントの品目数量 → quantity
+      - source: "PO1_01_OrderedQuantity"
+        target: "quantity"
+        # 文字列数値から int64 に変換する
+        transform: "string_to_int64"
+      # PO1 03 単価 → unit_price_jpy
+      - source: "PO1_03_UnitPrice"
+        target: "unit_price_jpy"
+        # 単価文字列から円単位整数に変換する
+        transform: "decimal_string_to_jpy_int64"
+      # N1 セグメントの取引先コード → customer_code
+      - source: "N1_02_Name"
+        target: "customer_code"
+        # そのままコピーする
+        transform: "identity"
+
+  # ---- 3. 検査機器（Modbus TCP / シリアル）計測データ ----
+  - source_system: "inspection_machine_modbus"
+    # Modbus holding register 読み取り結果を mapping する
+    source_message: "ModbusHoldingRegisterFrame"
+    # tier2 品質検査 proto の InspectionResult に変換する
+    target_proto: "manufacturing.quality.v1.InspectionResult"
+    # フィールドマッピング定義
+    field_mappings:
+      # register 0-1（2 word, float32 big-endian）→ measured_value
+      - source: "register_0"
+        target: "measured_value"
+        # 2 word の big-endian float32 に変換する
+        transform: "modbus_2word_float32_be"
+      # register 2 → machine_id（unit16 → string）
+      - source: "register_2"
+        target: "machine_id"
+        # uint16 を機器 ID 文字列に変換する
+        transform: "uint16_to_machine_id_string"
+      # register 3 → inspection_type（uint16 → enum string）
+      - source: "register_3"
+        target: "inspection_type"
+        # uint16 からカテゴリ文字列に変換する（0=dimensional, 1=surface, 2=weight）
+        transform: "uint16_to_inspection_type_enum"
+      # register 4-5（2 word, uint32 big-endian）→ measured_at（Unix timestamp）
+      - source: "register_4"
+        target: "measured_at"
+        # uint32 Unix timestamp から RFC3339 に変換する
+        transform: "modbus_2word_uint32_be_to_rfc3339"
+      # register 6（uint16）→ pass_fail（0=pass, 1=fail）
+      - source: "register_6"
+        target: "pass_fail"
+        # 0/1 を bool に変換する（0=true=pass）
+        transform: "uint16_to_bool_pass_fail"
+
+  # ---- 4. SCADA（OPC-UA）プロセスデータ ----
+  - source_system: "scada_opcua"
+    # OPC-UA DataChange notification を mapping する
+    source_message: "OpcUaDataChangeNotification"
+    # tier2 生産進捗 proto の ProductionProgress に変換する
+    target_proto: "manufacturing.production.v1.ProductionProgress"
+    # フィールドマッピング定義
+    field_mappings:
+      # NodeId → machine_id
+      - source: "NodeId"
+        target: "machine_id"
+        # OPC-UA NodeId 文字列をそのままコピーする
+        transform: "identity"
+      # Value.Value（Variant）→ production_count（整数型 Variant を int64 に変換する）
+      - source: "Value_Value"
+        target: "production_count"
+        # OPC-UA Variant から int64 に変換する
+        transform: "opcua_variant_to_int64"
+      # Value.SourceTimestamp → produced_at（RFC3339）
+      - source: "Value_SourceTimestamp"
+        target: "produced_at"
+        # OPC-UA DateTime（.NET DateTimeOffset） から RFC3339 に変換する
+        transform: "opcua_datetime_to_rfc3339"
+      # StatusCode → status_ok（0=Good → true）
+      - source: "StatusCode"
+        target: "status_ok"
+        # OPC-UA StatusCode 0（Good）を bool に変換する
+        transform: "opcua_statuscode_to_bool_good"
+      # WorkorderId（String Variant）→ work_order_id
+      - source: "WorkorderId"
+        target: "work_order_id"
+        # そのままコピーする
+        transform: "identity"

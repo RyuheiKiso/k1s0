@@ -16,8 +16,14 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 // tracing: 構造化ロギング
 use tracing::{debug, info, warn};
-// 標準ライブラリ
+// 標準ライブラリ: HashMap + Arc + Mutex + Duration + Instant
 use std::collections::HashMap;
+// Arc: JwkCache の共有参照カウントに使用する（Clone が必要な場合も Arc で共有する）
+use std::sync::Arc;
+// Duration / Instant: JWKS キャッシュの TTL 計算に使用する（単調増加クロック: wall-clock ではない）
+use std::time::{Duration, Instant};
+// tokio::sync::Mutex: 非同期コードから safe に cache を mutate するために使用する
+use tokio::sync::Mutex;
 
 // OidcClaims は Keycloak が発行する JWT の主要 claim を宣言する。
 // spec 04 §AuthContext スキーマ と一致させる。
@@ -91,7 +97,7 @@ pub struct DpopProofClaims {
 }
 
 // JwkKey は JWKS (JSON Web Key Set) の 1 つの鍵を宣言する。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct JwkKey {
     // kty: 鍵の種類（"RSA" / "EC"）
     pub kty: String,
@@ -115,18 +121,36 @@ pub struct JwkKey {
 }
 
 // JwkSet は JWKS (JSON Web Key Set) の全体を宣言する。
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct JwkSet {
     // keys: 鍵の配列（複数の kid が含まれる場合がある）
     pub keys: Vec<JwkKey>,
 }
 
-// JwkCache は JWKS を in-memory にキャッシュする構造体。
-// production では moka / mini-moka で TTL キャッシュを実装する。
-// 現実装では毎回フェッチする（TTL キャッシュは TODO）。
+// DpopHeader は DPoP proof JWT のヘッダー部分を宣言する（jku binding チェックに使用する）
+#[derive(Debug, Deserialize)]
+struct DpopHeader {
+    // alg: DPoP proof の署名アルゴリズム（ES256 推奨）
+    #[allow(dead_code)]
+    alg: Option<String>,
+    // jku: JWK Set URL（存在する場合は IdP の known JWKS URL と一致することを検証する）
+    jku: Option<String>,
+    // typ: JWT type（"dpop+jwt" であることを期待する）
+    #[allow(dead_code)]
+    typ: Option<String>,
+}
+
+// JWKS キャッシュの TTL: 300 秒（単調増加クロックで計測する。wall-clock ではない）
+const JWKS_CACHE_TTL: Duration = Duration::from_secs(300);
+
+// JwkCache は JWKS を in-memory に TTL キャッシュする構造体。
+// 単調増加クロック（Instant）を使用して TTL を計測する（wall-clock 禁止規約に準拠する）。
 pub struct JwkCache {
     // client: reqwest HTTP クライアント（JWKS フェッチに使用する）
     client: Client,
+    // cache: JWKS の TTL キャッシュ（JWKS URL → (JwkSet, fetch_instant)）
+    // Arc<Mutex<...>> で非同期タスク間の安全な共有を実現する
+    cache: Arc<Mutex<HashMap<String, (JwkSet, Instant)>>>,
 }
 
 impl JwkCache {
@@ -134,12 +158,35 @@ impl JwkCache {
     pub fn new() -> Self {
         // reqwest Client を TLS なし設定で構築する（envoy が TLS を終端する）
         Self {
+            // reqwest Client を生成する
             client: Client::new(),
+            // TTL キャッシュを空 HashMap で初期化する
+            cache: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     // fetch は指定した JWKS endpoint から JwkSet を取得する。
+    // キャッシュが TTL 内の場合はキャッシュから返す（HTTP フェッチを省略する）。
     pub async fn fetch(&self, jwks_url: &str) -> Result<JwkSet> {
+        // ---- 1. キャッシュを確認する ----
+        {
+            // キャッシュ mutex を取得する
+            let cache = self.cache.lock().await;
+            // キャッシュエントリを取得する
+            if let Some((jwks, fetched_at)) = cache.get(jwks_url) {
+                // TTL 内の場合（単調増加クロックで経過時間を計算する）はキャッシュから返す
+                if fetched_at.elapsed() < JWKS_CACHE_TTL {
+                    // キャッシュヒットをログに記録する
+                    debug!(url = %jwks_url, "JWKS cache hit");
+                    // クローンして返す（Arc<Mutex> のロックを早期に解放するため）
+                    return Ok(jwks.clone());
+                }
+                // TTL 切れをログに記録する（次のフェッチで更新される）
+                debug!(url = %jwks_url, "JWKS cache expired");
+            }
+        }
+        // ---- 2. キャッシュミス / TTL 切れの場合は HTTP フェッチする ----
+
         // JWKS endpoint に GET リクエストを送信する
         let response = self
             .client
@@ -156,8 +203,18 @@ impl JwkCache {
             .json()
             .await
             .with_context(|| format!("JWKS JSON parse failed: {jwks_url}"))?;
-        // キャッシュ完了をログに記録する
-        debug!(url = %jwks_url, keys = jwks.keys.len(), "JWKS fetched");
+        // フェッチ完了をログに記録する
+        debug!(url = %jwks_url, keys = jwks.keys.len(), "JWKS fetched and cached");
+
+        // ---- 3. キャッシュに保存する ----
+
+        {
+            // キャッシュ mutex を取得する
+            let mut cache = self.cache.lock().await;
+            // 現在の単調増加クロック値をフェッチ時刻として記録する
+            cache.insert(jwks_url.to_string(), (jwks.clone(), Instant::now()));
+        }
+        // JwkSet を返す
         Ok(jwks)
     }
 
@@ -359,18 +416,42 @@ impl OidcVerifier {
         expected_htm: &str,
         expected_htu: &str,
     ) -> Result<DpopProofClaims> {
-        // DPoP proof は署名検証なしで htm / htu を検証する
-        // NOTE: 完全な実装では DPoP proof の JWK に self-signed key を使うため、
-        //       proof の JWK header から公開鍵を取得して署名を検証する必要がある。
-        //       現実装では payload のみを検証する（jku binding は TODO）。
-        // JWT の payload 部分を base64url デコードする
+        // DPoP proof の header と payload を検証する
+        // JWT の 3 部分（header.payload.signature）を分割する
         let parts: Vec<&str> = dpop_token.splitn(3, '.').collect();
+        // 3 部分が揃っていない場合はエラーを返す
         if parts.len() != 3 {
             bail!("invalid DPoP proof format: expected 3 parts");
         }
-        // payload を URL-safe base64 デコードする（jsonwebtoken の base64 ユーティリティを使用）
-        use jsonwebtoken::jwk::JwkSet as _; // base64 は内部実装のため使えない
-        // base64url デコードを手実装する（DPoP proof は signature 不要な payload のみ）
+
+        // ---- jku binding チェック ----
+        // RFC 9449 §4.2: DPoP header に jku が存在する場合、
+        // それは IdP の known JWKS URL と完全一致しなければならない。
+        // jku が攻撃者制御の URL であると key confusion attack が成立するため強制する。
+
+        // header を base64url デコードする
+        let header_str = decode_base64url_utf8(parts[0])?;
+        // header JSON をパースする
+        let dpop_header: DpopHeader = serde_json::from_str(&header_str)
+            .with_context(|| "DPoP header JSON parse failed")?;
+        // jku フィールドが存在する場合は IdP JWKS URL と照合する
+        if let Some(ref jku) = dpop_header.jku {
+            // IdP の known JWKS URL を Keycloak issuer から構築する
+            // 仕様: {issuer}/protocol/openid-connect/certs が Keycloak の JWKS URL
+            let expected_jwks_url = format!("{}/protocol/openid-connect/certs", self.keycloak_issuer);
+            // jku が expected JWKS URL と一致しない場合はエラーを返す（key confusion 防止）
+            if jku != &expected_jwks_url {
+                bail!(
+                    "DPoP header jku mismatch: expected {}, got {} — key confusion attack を拒否する",
+                    expected_jwks_url,
+                    jku
+                );
+            }
+            // jku 一致をログに記録する
+            debug!(jku = %jku, "DPoP jku binding verified");
+        }
+
+        // payload を URL-safe base64 デコードする
         let payload_str = decode_base64url_utf8(parts[1])?;
         // JSON デシリアライズして DpoP claims を取得する
         let claims: DpopProofClaims = serde_json::from_str(&payload_str)

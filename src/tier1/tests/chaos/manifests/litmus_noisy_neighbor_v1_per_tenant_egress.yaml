@@ -1,0 +1,83 @@
+# Litmus ChaosEngine: tier1 noisy neighbor egress 帯域枯渇テスト
+# 09_テナント容量適合仕様に基づくテナント間 Egress quota 独立性を検証する
+# このマニフェストを apply すると pod-network-bandwidth chaos experiment が実行される
+# 使用方法: kubectl apply -f litmus_noisy_neighbor_v1_per_tenant_egress.yaml
+
+# Litmus ChaosEngine API バージョン
+apiVersion: litmuschaos.io/v1alpha1
+# リソース種別: ChaosEngine
+kind: ChaosEngine
+# メタデータ設定
+metadata:
+  # ChaosEngine リソース名: egress noisy neighbor テスト
+  name: tier1-noisy-neighbor-egress-test
+  # 対象 namespace: tier1 テスト用 namespace
+  namespace: tier1-test
+  # ラベル: テスト種別と quota_class を明示する
+  labels:
+    # テスト種別: noisy neighbor テスト
+    test-type: noisy-neighbor
+    # 適合仕様参照: 09_テナント容量適合仕様
+    spec-ref: "09_tenant_capacity"
+    # quota class: egress quota の分離テスト（v1_global_fair_queue の egress 分離を検証する）
+    k1s0.io/quota-class: v1_per_tenant_egress
+# ChaosEngine の仕様設定
+spec:
+  # 対象アプリケーション情報
+  appinfo:
+    # 対象 namespace
+    appns: tier1-test
+    # 対象アプリのラベルセレクター
+    applabel: "app=tier1-gateway"
+    # 対象 API グループ
+    appkind: deployment
+  # Chaos 実験用サービスアカウント
+  chaosServiceAccount: litmus-admin
+  # 実験後のターゲット Pod の処理方法（delete: chaos 後に Pod を削除する）
+  jobCleanUpPolicy: delete
+  # モニタリング設定: Prometheus メトリクスを有効化する
+  monitoring: true
+  # 実行する Chaos 実験リスト
+  experiments:
+    # pod-network-bandwidth: 対象 Pod のネットワーク帯域を制限して egress 枯渇を再現する実験
+    - name: pod-network-bandwidth
+      # 実験の仕様設定
+      spec:
+        # 実験のコンポーネント設定
+        components:
+          # 環境変数設定
+          env:
+            # TOTAL_CHAOS_DURATION: chaos 実験の継続時間（秒）
+            - name: TOTAL_CHAOS_DURATION
+              # 60 秒間帯域制限を与えて egress quota 枯渇シナリオを再現する
+              value: "60"
+            # NETWORK_BANDWIDTH: ネットワーク帯域制限（kbps）
+            - name: NETWORK_BANDWIDTH
+              # 1000 kbps に制限して egress quota の上限を検証する
+              value: "1000"
+            # NETWORK_INTERFACE: 帯域制限を適用するネットワークインターフェース
+            - name: NETWORK_INTERFACE
+              # eth0 インターフェースを対象とする（standard pod network）
+              value: "eth0"
+            # TARGET_CONTAINER: chaos を当てるコンテナ名
+            - name: TARGET_CONTAINER
+              # tier1-gateway コンテナを対象とする
+              value: "tier1-gateway"
+            # CHAOS_NAMESPACE: chaos を当てる namespace
+            - name: CHAOS_NAMESPACE
+              # tier1-test namespace を対象とする
+              value: "tier1-test"
+            # QUOTA_CLASS: 対象 quota_class を明示する（harness 側での選択キーに使用する）
+            - name: QUOTA_CLASS
+              # egress quota class を指定する（broker_layer fair queue 経由の egress を検証する）
+              value: "v1_per_tenant_egress"
+            # JITTER: ネットワーク遅延ジッター（ms）
+            - name: JITTER
+              # 10ms のジッターを加えて実ネットワーク状況を模擬する
+              value: "10"
+        # 実験のステータス確認設定
+        status:
+          # ChaosResult: chaos 実験の結果を確認する
+          - name: ChaosResult
+            # 期待する結果: v1_per_tenant_egress 分離テストが pass すること
+            value: v1_per_tenant_egress_isolation_pass

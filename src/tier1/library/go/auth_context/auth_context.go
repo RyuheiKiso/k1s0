@@ -8,6 +8,10 @@
 package auth_context
 
 import (
+	// encoding/base64: JWT header の Base64URL デコードに使用する
+	"encoding/base64"
+	// encoding/json: JWT header の JSON unmarshal に使用する
+	"encoding/json"
 	// errors: エラー生成に使用する
 	"errors"
 	// fmt: SQL 文字列フォーマットに使用する
@@ -105,11 +109,29 @@ func ValidateJWTFormat(token string) (validFormat bool, algorithm string) {
 			return false, ""
 		}
 	}
-	// header パートから algorithm を取得する（簡略実装: "EdDSA" を仮定する）
-	// 実際の実装では base64url デコードして alg フィールドを取り出す
-	// parity_vectors.yaml §auth_context_validate_jwt_format §expected_output_schema に準拠する
-	algorithm = "EdDSA"
-	// 3 パート構造で全パートが非空 → 形式正常
+	// header パートを Base64URL デコードして alg フィールドを取り出す
+	// RFC 7515 §2: JWT header は Base64URL エンコードされた JSON オブジェクト
+	decoded, err := base64.RawURLEncoding.DecodeString(parts[0])
+	// Base64URL デコードに失敗した場合は形式不正として false を返す
+	if err != nil {
+		return false, ""
+	}
+	// JSON 形式の JWT header を unmarshal して alg フィールドを取得する
+	var header struct {
+		// Alg: JWT header の "alg" フィールド（署名アルゴリズム名）
+		Alg string `json:"alg"`
+	}
+	// JSON unmarshal に失敗した場合は形式不正として false を返す
+	if err := json.Unmarshal(decoded, &header); err != nil {
+		return false, ""
+	}
+	// alg フィールドが空の場合は形式不正（RFC 7515 §4.1.1: "alg" は必須）
+	if header.Alg == "" {
+		return false, ""
+	}
+	// header.Alg を algorithm として返す（実際のアルゴリズム名）
+	algorithm = header.Alg
+	// 3 パート構造 + Base64URL header + alg 非空 → 形式正常
 	return true, algorithm
 }
 

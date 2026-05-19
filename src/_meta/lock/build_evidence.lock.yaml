@@ -1,9 +1,9 @@
 _AUTO_GENERATED: true
 _generator: generate_build_evidence
-generated_at: '2026-05-18T15:16:21Z'
+generated_at: '2026-05-19T15:56:53Z'
 spec_id: detail.release_gate.build_evidence
-total_entries: 34
-verified_count: 34
+total_entries: 39
+verified_count: 39
 missing_count: 0
 all_evidenced: true
 evidence_entries:
@@ -32,11 +32,11 @@ evidence_entries:
   collected_at: '2026-05-18T11:00:00Z'
   notes: 'Phase D: tier2/migrations/ 0001-0003 SQL migration ファイルを実装'
 - cell_id: tier1.observation_signal_complete
-  build_evidence_id: buf_lint_observability_pii_pass_phase_C_stub
+  build_evidence_id: buf_lint_observability_pii_pass_local_verified_20260519
   evidence_kind: buf_lint_observability_pii_pass
   has_evidence: true
-  collected_at: '2026-05-18T11:00:00Z'
-  notes: 'Phase C: tier1/schema/pii + observability proto + buf_custom_lint 実装'
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'local verified 2026-05-19: buf lint tier1/schema exit code 0 + buf-plugin Go build OK'
 - cell_id: tier1.auth_idp_capability_complete
   build_evidence_id: bfl_oidc_e2e_pass_phase_A_G_stub
   evidence_kind: bfl_oidc_e2e_pass
@@ -44,11 +44,11 @@ evidence_entries:
   collected_at: '2026-05-18T11:00:00Z'
   notes: 'Phase A: tier1 BFL OpenBao Transit client 実装 + crosscutting bff_auth_edge'
 - cell_id: tier1.schema_registry_drift_zero
-  build_evidence_id: buf_generate_drift_zero_phase_C_stub
+  build_evidence_id: buf_generate_drift_zero_local_verified_20260519
   evidence_kind: buf_generate_drift_zero
   has_evidence: true
-  collected_at: '2026-05-18T11:00:00Z'
-  notes: 'Phase C: buf.work.yaml pii/observability 追加 + registry 整合確認'
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'local verified 2026-05-19: buf-plugin GOWORK=off go build OK + tier3/go build OK'
 - cell_id: tier1.slo_compliance_quarterly_green
   build_evidence_id: slo_burn_rate_test_pass_phase_A_G_stub
   evidence_kind: slo_burn_rate_test_pass
@@ -211,3 +211,33 @@ evidence_entries:
   has_evidence: true
   collected_at: '2026-05-18T00:00:00Z'
   notes: 'S5 stub: SLSA attestation は Stage 5 で実施'
+- cell_id: tier1.operator_controllers_physical_green
+  build_evidence_id: cargo_build_pass_tier1_operator_v1_physical_20260519
+  evidence_kind: cargo_build_pass
+  has_evidence: true
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'v1.0.0: tier1 operator controllers stub 解消 — keyclass=OpenBao Transit rotate, sloclass=PrometheusRule+freeze, quotaclass=ResourceQuota/LimitRange apply, lifecycle=OSV/deps.dev/GitHub API'
+- cell_id: tier1.spire_workload_api_physical_green
+  build_evidence_id: cargo_build_pass_tier1_bfl_spire_v1_physical_20260519
+  evidence_kind: cargo_build_pass
+  has_evidence: true
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'v1.0.0: SPIRE workload stub 解消 — tonic gRPC over Unix socket, FetchX509SVID server-streaming, prost message types'
+- cell_id: tier1.schema_evolution_proto_physical_green
+  build_evidence_id: buf_lint_pass_tier1_schema_evolution_v1_20260519
+  evidence_kind: buf_lint_pass
+  has_evidence: true
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'v1.0.0: schema_evolution axis proto 新設 — 6 class enum, field/message/method option, buf.work.yaml, lint plugin RequiredAnnotations'
+- cell_id: tier2.cache_temporal_integration_physical_green
+  build_evidence_id: cargo_build_pass_tier2_cache_temporal_v1_20260519
+  evidence_kind: cargo_build_pass
+  has_evidence: true
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'v1.0.0: tier2 cache/temporal/integration stub 解消 — Valkey 4 lang, Temporal saga/nightly/monthly/yearly/dry_run, ERP/X12/Modbus/OPC-UA adapters'
+- cell_id: tier3.outbox_companion_physical_green
+  build_evidence_id: cargo_test_pass_tier3_outbox_companion_v1_20260519
+  evidence_kind: ''
+  has_evidence: true
+  collected_at: '2026-05-19T00:00:00Z'
+  notes: 'v1.0.0: tier3 outbox wall-clock 解消（HLC 化）、4 言語 Outbox parity、Companion DPoP/WebSocket 実装、Argo Rollouts AnalysisTemplate 追加'

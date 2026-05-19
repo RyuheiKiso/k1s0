@@ -108,8 +108,8 @@ async fn test_p3_cross_tenant_isolation() {
     // テナント B の tenant_id を生成する（cross-tenant を模擬する）
     let tenant_b = Uuid::new_v4();
 
-    // AtomicTripleWrite を生成する（テナント A のコンテキストで実行する）
-    let writer = AtomicTripleWrite::new(ctx_a);
+    // AtomicTripleWrite を生成する（テナント A のコンテキストで実行する / pool を渡す）
+    let writer = AtomicTripleWrite::new(ctx_a, pool.clone());
     // テナント B の StateChange を生成する（P3 違反を意図的に作る）
     let cross_tenant_change = StateChange {
         aggregate_id: Uuid::new_v4(),
@@ -169,8 +169,8 @@ async fn test_p1_atomic_triple_write() {
         "integration-test-actor".to_string(),
         SessionPurpose::BusinessOp,
     );
-    // AtomicTripleWrite を生成する
-    let writer = AtomicTripleWrite::new(ctx);
+    // AtomicTripleWrite を生成する（TenantContext と pool を渡す）
+    let writer = AtomicTripleWrite::new(ctx, pool.clone());
     // テスト用の StateChange を生成する
     let change = StateChange {
         aggregate_id: Uuid::new_v4(),
@@ -260,8 +260,8 @@ async fn test_p4_pii_audit_required() {
         "support-engineer-001".to_string(),
         SessionPurpose::Support,
     );
-    // AtomicTripleWrite を生成する
-    let writer = AtomicTripleWrite::new(ctx);
+    // AtomicTripleWrite を生成する（TenantContext と pool を渡す）
+    let writer = AtomicTripleWrite::new(ctx, pool.clone());
     // P4: PiiSegregated テーブルクラスの StateChange を生成する
     let pii_change = StateChange {
         aggregate_id: Uuid::new_v4(),

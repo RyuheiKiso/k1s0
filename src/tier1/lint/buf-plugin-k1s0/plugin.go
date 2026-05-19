@@ -28,6 +28,8 @@ var RequiredAnnotations = []string{
 	"tier1.quota.quota_class",
 	// tier1.observability.signal_class: 観測シグナルクラス（必須）
 	"tier1.observability.signal_class",
+	// tier1.schema_evolution.schema_class: スキーマ進化クラス（必須）— 06_スキーマ進化適合仕様.md §v1 schema_class セット
+	"tier1.schema_evolution.v1.method_schema",
 }
 
 // AnnotationViolation は annotation 欠落違反を表す構造体

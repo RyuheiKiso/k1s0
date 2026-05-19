@@ -29,3 +29,79 @@ spec:
             spec:
               # LCP の P95 を計算するクエリ
               query: 'histogram_quantile(0.95, rate(tier3_web_vitals_lcp_ms_bucket[5m]))'
+    # --- 追加パネル: tier3_layer_state ---
+    # PQ / OL / ST の件数推移を時系列で表示する lineage パネル
+    - kind: TimeSeriesChart
+      spec:
+        display:
+          # 4 layer state の件数推移を表示する（PQ = PendingQueue, OL = OptimisticLocal, ST = ServerTruth）
+          name: "Tier3 Layer State Counts (PQ/OL/ST)"
+        queries:
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # pending_queue に積まれた mutation の件数を集計するクエリ
+              query: 'sum(tier3_layer_state_pending_queue_count) by (tenant_id)'
+            # PQ 件数の凡例
+            seriesNameFormat: "PQ count ({{tenant_id}})"
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # optimistic_local に存在する mutation の件数を集計するクエリ
+              query: 'sum(tier3_layer_state_optimistic_local_count) by (tenant_id)'
+            # OL 件数の凡例
+            seriesNameFormat: "OL count ({{tenant_id}})"
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # server_truth の aggregate バージョンを集計するクエリ
+              query: 'max(tier3_layer_state_server_truth_version) by (tenant_id)'
+            # ST バージョンの凡例
+            seriesNameFormat: "ST version ({{tenant_id}})"
+
+    # --- 追加パネル: purge_audit ---
+    # purge イベントを理由別に集計して表示するカウントパネル
+    - kind: TimeSeriesChart
+      spec:
+        display:
+          # purge イベントの発生件数を reason 別に表示する
+          name: "Purge Events by Reason"
+        queries:
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # purge イベントを reason ラベルで集計するクエリ
+              # reason: logout / refresh_token_expiry / tenant_switch / actor_switch / device_bound_key_rotate
+              query: 'sum(increase(tier3_purge_events_total[5m])) by (reason)'
+            # reason 別の凡例フォーマット
+            seriesNameFormat: "purge ({{reason}})"
+
+    # --- 追加パネル: web_vitals_inp ---
+    # Web Vitals INP（Interaction to Next Paint）を表示するパネル
+    # INP は Core Web Vitals の一つ（インタラクション応答速度の指標）
+    - kind: TimeSeriesChart
+      spec:
+        display:
+          # Browser RUM から収集した INP の P75 を表示する
+          name: "Web Vitals INP P75 (ms)"
+        queries:
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # INP の P75 を計算するクエリ（tier3.web_vitals.inp_ms ヒストグラムを使用する）
+              # INP の Good 閾値は 200ms、Needs Improvement は 500ms
+              query: 'histogram_quantile(0.75, rate(tier3_web_vitals_inp_ms_bucket[5m]))'
+            # INP P75 の凡例
+            seriesNameFormat: "INP P75"
+
+    # --- 追加パネル: web_vitals_cls ---
+    # Web Vitals CLS（Cumulative Layout Shift）を表示するパネル
+    # CLS は Core Web Vitals の一つ（視覚的安定性の指標）
+    - kind: TimeSeriesChart
+      spec:
+        display:
+          # Browser RUM から収集した CLS の P75 を表示する
+          name: "Web Vitals CLS P75"
+        queries:
+          - kind: PrometheusTimeSeriesQuery
+            spec:
+              # CLS の P75 を計算するクエリ（tier3.web_vitals.cls ゲージを使用する）
+              # CLS の Good 閾値は 0.1、Needs Improvement は 0.25
+              query: 'histogram_quantile(0.75, rate(tier3_web_vitals_cls_bucket[5m]))'
+            # CLS P75 の凡例
+            seriesNameFormat: "CLS P75"

@@ -108,14 +108,19 @@ pub struct OpenBaoKeyHandle {
 
 // OpenBaoKeyHandle のコンストラクタ群（生 key bytes を受け取っても公開 API に漏れない）
 impl OpenBaoKeyHandle {
-    // create_stub は OpenBao Transit 呼出なしに stub の KeyHandle を生成する。
-    // テスト・ドライラン用途（production では OpenBao 経由の呼出を使う）。
-    pub fn create_stub(key_class: KeyClass, handle_id: String) -> Self {
-        // _material は None: 生 key bytes を持たない stub
+    // from_remote_handle は OpenBao Transit が管理する鍵への参照として KeyHandle を構築する。
+    // 生 key bytes は OpenBao 内に閉じる（spec §5 層 defense-in-depth 層 A）。
+    // handle_id: OpenBao Transit key name。sign/verify/wrap/unwrap のルーティングに使用する。
+    pub fn from_remote_handle(key_class: KeyClass, handle_id: String) -> Self {
+        // _material は None: bytes は OpenBao 内に閉じるため Library は保持しない
         Self {
+            // OpenBao Transit key name を handle_id として設定する
             handle_id,
+            // 鍵の用途クラスを設定する
             key_class,
+            // 構築直後は OpenBao 側で有効と見なす（revoke/rotate で false になる）
             is_valid: true,
+            // 生 key bytes を保持しない（spec 規律に従う）
             _material: None,
         }
     }

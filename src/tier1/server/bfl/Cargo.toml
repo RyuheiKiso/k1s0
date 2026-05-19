@@ -32,3 +32,15 @@ reqwest = { version = "0.12", default-features = false, features = ["json"] }
 base64 = { workspace = true }
 # thiserror: SpireError 等のエラー型 derive macro に使用する
 thiserror = { workspace = true }
+# tonic: gRPC フレームワーク（SPIRE Workload API gRPC クライアントに使用する）
+tonic = { workspace = true }
+# prost: protobuf ランタイム（SPIRE Workload API proto 型に使用する）
+prost = { workspace = true }
+# prost-types: protobuf well-known types（google.protobuf.* に使用する）
+prost-types = { workspace = true }
+# tower: gRPC channel service（UnixStream connector のために使用する）
+tower = { workspace = true }
+# hyper-util: TokioIo ラッパー（tokio::net::UnixStream を hyper が受け入れる IO にラップする）
+hyper-util = { version = "0.1", features = ["tokio"] }
+# http: URI 型（tonic Endpoint の connect_with_connector で使用する）
+http = "1"

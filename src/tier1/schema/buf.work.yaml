@@ -8,3 +8,4 @@ directories:
   - tier2
   - pii
   - observability
+  - schema_evolution

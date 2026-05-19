@@ -3,6 +3,7 @@
 // v1_bulk_upload は半二重 emulation では担えないため not_applicable。
 // 12_UA_aware_adapter.md の K1s0UaAwareAdapter と連携して UA 判定を行う。
 // 13_dotnet8_connect_inhouse.md の .NET Framework 対応に使用する。
+// POST /bidi/up → EventBus.publish → broadcast channel → GET /bidi/down SSE で配信する実 streaming 実装。
 
 // axum Router・POST ハンドラー・SSE ハンドラーで使用する型を import する
 use axum::{
@@ -12,6 +13,8 @@ use axum::{
     routing::{get, post},
     // extract::Query: クエリパラメータを抽出する Extractor
     extract::Query,
+    // extract::State: axum State 依存性注入（EventBus を handler に注入する）
+    extract::State,
     // response::sse: SSE（Server-Sent Events）型を提供するモジュール
     response::sse::{Event, KeepAlive, Sse},
     // response::IntoResponse: 各 handler の戻り値を HTTP Response に変換するトレイト
@@ -27,6 +30,10 @@ use async_stream::stream;
 use serde::Deserialize;
 // std::convert::Infallible: SSE Stream の Item エラー型に使用する（stream が失敗しないことを示す）
 use std::convert::Infallible;
+// std::sync::Arc: EventBus の shared state 共有に使用する
+use std::sync::Arc;
+// crate::event_bus: EventBus と DomainEvent をインポートする
+use crate::event_bus::{DomainEvent, EventBus};
 // AdapterManifest: adapter の capability 自己宣言型
 use super::AdapterManifest;
 
@@ -79,9 +86,11 @@ pub struct DownQuery {
 }
 
 // handle_up は POST /bidi/up の handler。
-// client → server 方向のメッセージを受け取り、request_id で SSE down stream と対応付ける。
+// client → server 方向のメッセージを受け取り、EventBus に publish して SSE down stream に転送する。
 // wall clock を使わない（TTL 計算には HLC を使う — 本 handler は TTL 計算なし）。
 pub async fn handle_up(
+    // State(event_bus): axum State 依存性注入で EventBus を受け取る
+    State(event_bus): State<Arc<EventBus>>,
     // headers: HTTP リクエストヘッダーを受け取る（X-Request-Id 取得に使用する）
     headers: HeaderMap,
     // body: JSON リクエストボディを受け取る（session_id / request_id / payload を取得する）
@@ -115,16 +124,59 @@ pub async fn handle_up(
         .cloned()
         .unwrap_or(serde_json::Value::Null);
 
+    // body から event_type を取得する（なければ "client_message" を使う）
+    let event_type = body
+        .get("event_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("client_message")
+        .to_string();
+
     // 受け取ったメッセージを構造化ログに記録する（tracing を使う）
     tracing::info!(
         // session_id フィールドを構造化ログに含める
         session_id = %session_id,
         // request_id フィールドを構造化ログに含める
         request_id = %request_id,
-        // payload のサイズをログに残す
-        payload_type = %payload.to_string().len(),
+        // event_type をログに残す
+        event_type = %event_type,
         "paired_post_sse up message received"
     );
+
+    // session_id が空の場合は 400 Bad Request を返す
+    if session_id.is_empty() {
+        // session_id は必須フィールドであるため 400 を返す
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "session_id is required",
+            })),
+        );
+    }
+
+    // DomainEvent を構築して EventBus に publish する
+    let domain_event = DomainEvent {
+        // session_id: イベントの宛先セッション識別子を設定する
+        session_id: session_id.clone(),
+        // event_type: ドメインイベント種別を設定する
+        event_type: event_type.clone(),
+        // payload: ドメインイベントのペイロードを設定する
+        payload: payload.clone(),
+        // sequence: この実装では request_id のハッシュを仮のシーケンス番号に使う
+        // NOTE: 本実装では単純に 0 を使う（本番では単調インクリメントカウンタを使う）
+        sequence: 0,
+    };
+
+    // EventBus に DomainEvent を publish する（broadcast channel で SSE subscribers に転送する）
+    if let Err(e) = event_bus.publish(domain_event) {
+        // publish 失敗をログに記録する
+        tracing::warn!(
+            // session_id フィールドを構造化ログに含める
+            session_id = %session_id,
+            // エラー内容をログに記録する
+            error = %e,
+            "paired_post_sse: EventBus publish failed"
+        );
+    }
 
     // 受信確認を JSON で返す（200 OK + { "received": true, "session_id": ... }）
     let response_body = serde_json::json!({
@@ -134,6 +186,8 @@ pub async fn handle_up(
         "session_id": session_id,
         // request_id: 対応する SSE down stream の識別子
         "request_id": request_id,
+        // event_type: 処理したイベント種別をエコーバックする
+        "event_type": event_type,
     });
 
     // 200 OK ステータスコードと JSON ボディを返す
@@ -142,8 +196,10 @@ pub async fn handle_up(
 
 // handle_down は GET /bidi/down の handler。
 // server → client 方向の SSE stream を返す。
-// KeepAlive で接続を維持し、session_started event と heartbeat を送信する。
+// EventBus から broadcast Receiver を取得し、DomainEvent を SSE Event に変換して配信する。
 pub async fn handle_down(
+    // State(event_bus): axum State 依存性注入で EventBus を受け取る
+    State(event_bus): State<Arc<EventBus>>,
     // params: クエリパラメータを DownQuery 型として受け取る
     Query(params): Query<DownQuery>,
 ) -> Sse<impl futures_util::Stream<Item = Result<Event, Infallible>>> {
@@ -170,18 +226,30 @@ pub async fn handle_down(
         "paired_post_sse down SSE stream opened"
     );
 
+    // EventBus から session_id に対応する broadcast Receiver を取得する
+    let mut rx = event_bus.subscribe(&session_id);
+
+    // session_id を clone してクロージャ内で所有権を移動する
+    let session_id_for_stream = session_id.clone();
+    // request_id を clone してクロージャ内で所有権を移動する
+    let request_id_for_stream = request_id.clone();
+    // conformance_class を clone してクロージャ内で所有権を移動する
+    let conformance_class_for_stream = conformance_class.clone();
+    // last_event_id を clone してクロージャ内で所有権を移動する
+    let last_event_id_for_stream = last_event_id.clone();
+
     // async_stream::stream! マクロで非同期 Stream を生成する
     let event_stream = stream! {
         // session_started イベントを最初に送信する（クライアントに接続確立を通知する）
         let session_started_data = serde_json::json!({
             // session_id: セッション識別子をクライアントに通知する
-            "session_id": session_id,
+            "session_id": session_id_for_stream,
             // request_id: 対応する POST up stream の識別子をクライアントに通知する
-            "request_id": request_id,
+            "request_id": request_id_for_stream,
             // conformance_class: 確立した Bidi class をクライアントに通知する
-            "conformance_class": conformance_class,
+            "conformance_class": conformance_class_for_stream,
             // resume_from: resume_token（last_event_id）をエコーバックする
-            "resume_from": last_event_id,
+            "resume_from": last_event_id_for_stream,
         });
         // session_started イベントを yield する
         yield Ok(
@@ -189,28 +257,79 @@ pub async fn handle_down(
             Event::default()
                 .event("session_started")
                 // session_id を SSE id フィールドに設定する（resume 時の Last-Event-ID に使用する）
-                .id(&session_id)
+                .id(session_id_for_stream.as_str())
                 // セッション開始データを JSON 文字列で data フィールドに設定する
                 .data(session_started_data.to_string())
         );
 
-        // heartbeat イベントを一定間隔で送信する（接続を維持するため）
-        // NOTE: 実際の broadcast channel からの event receive は将来実装する
-        //       現在は heartbeat のみを送信して接続を維持する
-        let heartbeat_data = serde_json::json!({
-            // type: heartbeat であることを示す
-            "type": "heartbeat",
-            // session_id: セッション識別子をクライアントに通知する
-            "session_id": session_id,
-        });
-        // heartbeat イベントを yield する
-        yield Ok(
-            // event 名を "heartbeat" に設定する
-            Event::default()
-                .event("heartbeat")
-                // heartbeat データを JSON 文字列で data フィールドに設定する
-                .data(heartbeat_data.to_string())
-        );
+        // broadcast Receiver からイベントを受信し続ける無限ループ
+        loop {
+            // recv(): broadcast channel からイベントを非同期受信する
+            match rx.recv().await {
+                // 正常受信: DomainEvent を SSE Event に変換して yield する
+                Ok(domain_event) => {
+                    // DomainEvent を JSON 文字列にシリアライズする
+                    let data = serde_json::json!({
+                        // event_type: ドメインイベント種別をクライアントに通知する
+                        "event_type": domain_event.event_type,
+                        // payload: ドメインイベントのペイロードをクライアントに配信する
+                        "payload": domain_event.payload,
+                        // sequence: SESSION_ORDERED の担保のためにシーケンス番号を送信する
+                        "sequence": domain_event.sequence,
+                        // session_id: イベントの宛先セッション識別子をクライアントに通知する
+                        "session_id": domain_event.session_id,
+                        // request_id: 対応する POST up stream の識別子をクライアントに通知する
+                        "request_id": request_id_for_stream,
+                    });
+                    // SSE id にシーケンス番号を設定して Last-Event-ID resume を支援する
+                    let event_id = domain_event.sequence.to_string();
+                    // DomainEvent を SSE Event に変換して yield する
+                    yield Ok(
+                        // event 名を "data" に設定する
+                        Event::default()
+                            .event("data")
+                            // SSE id フィールドにシーケンス番号を設定する
+                            .id(event_id.as_str())
+                            // ドメインイベントデータを JSON 文字列で data フィールドに設定する
+                            .data(data.to_string())
+                    );
+                }
+                // Lagged: バッファ溢れで一部イベントがスキップされた（broadcast channel が遅延した）
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(skip_count)) => {
+                    // server_truth_advance イベントをクライアントに通知してリカバリを促す
+                    let lag_data = serde_json::json!({
+                        // type: server_truth_advance であることを示す
+                        "type": "server_truth_advance",
+                        // skipped: スキップされたイベント数をクライアントに通知する
+                        "skipped": skip_count,
+                        // session_id: 対象セッション識別子を含める
+                        "session_id": session_id_for_stream,
+                    });
+                    // server_truth_advance イベントを yield する（クライアントにラグを通知する）
+                    yield Ok(
+                        // event 名を "server_truth_advance" に設定する
+                        Event::default()
+                            .event("server_truth_advance")
+                            // ラグ通知データを JSON 文字列で data フィールドに設定する
+                            .data(lag_data.to_string())
+                    );
+                    // Lagged 後は受信を継続する（チャンネルは有効なため）
+                }
+                // Closed: broadcast channel が閉じられた（送信側がドロップした）
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    // complete イベントをクライアントに送信してストリームの終端を通知する
+                    yield Ok(
+                        // event 名を "complete" に設定する
+                        Event::default()
+                            .event("complete")
+                            // ストリーム終了データを JSON 文字列で data フィールドに設定する
+                            .data("{\"reason\":\"channel_closed\"}")
+                    );
+                    // ループを終了してストリームを閉じる
+                    break;
+                }
+            }
+        }
     };
 
     // Sse::new で stream を wrap し、KeepAlive で接続を維持する
@@ -220,12 +339,14 @@ pub async fn handle_down(
 }
 
 // router は paired_post_sse adapter の axum Router を構築して返す。
-// /bidi/up に POST ハンドラー、/bidi/down に GET（SSE）ハンドラーを登録する。
-pub fn router() -> Router {
+// EventBus を State として注入し、/bidi/up に POST ハンドラー、/bidi/down に GET（SSE）ハンドラーを登録する。
+pub fn router(event_bus: Arc<EventBus>) -> Router {
     // Router::new() で空のルーターを作成し、route を追加する
     Router::new()
         // POST /bidi/up: client → server メッセージ受付エンドポイント
         .route("/bidi/up", post(handle_up))
         // GET /bidi/down: server → client SSE streaming エンドポイント
         .route("/bidi/down", get(handle_down))
+        // EventBus を axum State として注入する（handler が Arc<EventBus> を受け取れるようにする）
+        .with_state(event_bus)
 }

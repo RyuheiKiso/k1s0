@@ -5,3 +5,5 @@
 pub mod state;
 // 添付ファイルストア trait モジュールを公開する
 pub mod attachments;
+// outbox モジュールを公開する（HLC ベース TTL / PII strip / Idempotency-Key 生成）
+pub mod outbox;

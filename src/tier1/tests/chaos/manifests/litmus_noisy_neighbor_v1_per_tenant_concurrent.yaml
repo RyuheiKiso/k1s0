@@ -1,0 +1,103 @@
+# Litmus ChaosEngine: tier1 noisy neighbor 並列リクエスト枯渇テスト
+# 09_テナント容量適合仕様に基づくテナント間 Concurrency quota 独立性を検証する
+# このマニフェストを apply すると pod-http-latency + pod-network-loss chaos experiment が実行される
+# 使用方法: kubectl apply -f litmus_noisy_neighbor_v1_per_tenant_concurrent.yaml
+
+# Litmus ChaosEngine API バージョン
+apiVersion: litmuschaos.io/v1alpha1
+# リソース種別: ChaosEngine
+kind: ChaosEngine
+# メタデータ設定
+metadata:
+  # ChaosEngine リソース名: concurrent request noisy neighbor テスト
+  name: tier1-noisy-neighbor-concurrent-test
+  # 対象 namespace: tier1 テスト用 namespace
+  namespace: tier1-test
+  # ラベル: テスト種別と quota_class を明示する
+  labels:
+    # テスト種別: noisy neighbor テスト
+    test-type: noisy-neighbor
+    # 適合仕様参照: 09_テナント容量適合仕様
+    spec-ref: "09_tenant_capacity"
+    # quota class: concurrent request quota の分離テスト（v1_per_tenant_concurrency）
+    k1s0.io/quota-class: v1_per_tenant_concurrency
+# ChaosEngine の仕様設定
+spec:
+  # 対象アプリケーション情報
+  appinfo:
+    # 対象 namespace
+    appns: tier1-test
+    # 対象アプリのラベルセレクター
+    applabel: "app=tier1-gateway"
+    # 対象 API グループ
+    appkind: deployment
+  # Chaos 実験用サービスアカウント
+  chaosServiceAccount: litmus-admin
+  # 実験後のターゲット Pod の処理方法（delete: chaos 後に Pod を削除する）
+  jobCleanUpPolicy: delete
+  # モニタリング設定: Prometheus メトリクスを有効化する
+  monitoring: true
+  # 実行する Chaos 実験リスト
+  experiments:
+    # pod-http-latency: 対象 Pod の HTTP レスポンスに遅延を注入して並列接続を滞留させる実験
+    - name: pod-http-latency
+      # 実験の仕様設定
+      spec:
+        # 実験のコンポーネント設定
+        components:
+          # 環境変数設定
+          env:
+            # TOTAL_CHAOS_DURATION: chaos 実験の継続時間（秒）
+            - name: TOTAL_CHAOS_DURATION
+              # 60 秒間 HTTP 遅延を注入して並列接続が滞留する状況を作る
+              value: "60"
+            # LATENCY: 注入する HTTP レスポンス遅延（ms）
+            - name: LATENCY
+              # 500ms の遅延を注入して token bucket の枯渇状況を作り出す
+              value: "500"
+            # TARGET_SERVICE_PORT: chaos を当てる HTTP ポート番号
+            - name: TARGET_SERVICE_PORT
+              # gateway サービスポート 8080 を対象とする
+              value: "8080"
+            # TARGET_CONTAINER: chaos を当てるコンテナ名
+            - name: TARGET_CONTAINER
+              # tier1-gateway コンテナを対象とする
+              value: "tier1-gateway"
+            # CHAOS_NAMESPACE: chaos を当てる namespace
+            - name: CHAOS_NAMESPACE
+              # tier1-test namespace を対象とする
+              value: "tier1-test"
+            # QUOTA_CLASS: 対象 quota_class を明示する（harness 側での選択キーに使用する）
+            - name: QUOTA_CLASS
+              # concurrency quota class を指定する（library_token_bucket per_tenant_per_action）
+              value: "v1_per_tenant_concurrency"
+        # 実験のステータス確認設定
+        status:
+          # ChaosResult: chaos 実験の結果を確認する
+          - name: ChaosResult
+            # 期待する結果: v1_per_tenant_concurrency 分離テストが pass すること
+            value: v1_per_tenant_concurrency_isolation_pass
+    # pod-network-loss: パケットロスを注入してさらなる並列接続の滞留を強制する実験
+    - name: pod-network-loss
+      # 実験の仕様設定
+      spec:
+        # 実験のコンポーネント設定
+        components:
+          # 環境変数設定
+          env:
+            # TOTAL_CHAOS_DURATION: chaos 実験の継続時間（秒）
+            - name: TOTAL_CHAOS_DURATION
+              # 60 秒間パケットロスを注入して並列接続 retry を増大させる
+              value: "60"
+            # NETWORK_PACKET_LOSS_PERCENTAGE: パケットロス率（%）
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              # 20% のパケットロスを注入して再送 retry による並列接続増加を模擬する
+              value: "20"
+            # TARGET_CONTAINER: chaos を当てるコンテナ名
+            - name: TARGET_CONTAINER
+              # tier1-gateway コンテナを対象とする
+              value: "tier1-gateway"
+            # CHAOS_NAMESPACE: chaos を当てる namespace
+            - name: CHAOS_NAMESPACE
+              # tier1-test namespace を対象とする
+              value: "tier1-test"

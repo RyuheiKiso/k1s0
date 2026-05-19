@@ -6,6 +6,9 @@ import type { ConflictEvent } from "./events.js";
 import type { PendingQueueEntry, ServerTruthEntry, OptimisticLocalEntry, PurgeEvent, PurgeReason } from "./layers.js";
 import { resolveSubtypeActions } from "./subtypes.js";
 import type { AnySubtypeAction } from "./subtypes.js";
+// PII strip を outbox パッケージから import する（PQ enqueue 前に PII を除去するため）
+// @k1s0/tier3-outbox は pnpm workspace:* で state パッケージと連携する
+import { stripPiiFields } from "@k1s0/tier3-outbox";
 
 // 4 layer state の集合体
 export interface ClientState<T, TPayload = unknown> {
@@ -27,6 +30,16 @@ export interface ReducerResult<T, TPayload = unknown> {
   readonly actions: readonly ReducerAction[];
 }
 
+// auto_resend_with_chained_key の型付きアクション（T3-4: string ではなく明示的型で表現する）
+export interface AutoResendWithChainedKeyAction {
+  // アクション種別（文字列リテラル型で固定する）
+  readonly subtypeAction: "auto_resend_with_chained_key";
+  // chain 元の idempotency_key（rebase 前の key）
+  readonly chainedFrom: string;
+  // chain 後の新しい idempotency_key
+  readonly newKey: string;
+}
+
 // reducer から返される副作用 actions 型
 export type ReducerAction =
   // server_truth を更新する
@@ -43,8 +56,10 @@ export type ReducerAction =
   | { readonly type: "SEND_QUEUE_IN_ORDER" }
   // business error を表示する
   | { readonly type: "PRESENT_BUSINESS_ERROR"; readonly errorCode: string }
-  // BusinessConflict subtype action を実行する
+  // BusinessConflict subtype action を実行する（subtypeAction は typed union で必ず "auto_resend_with_chained_key" を含む）
   | { readonly type: "DISPATCH_CONFLICT_SUBTYPE"; readonly subtypeAction: string; readonly detail: unknown }
+  // auto_resend_with_chained_key の型付きアクション（T3-4: 明示的型付きバリアント）
+  | { readonly type: "AUTO_RESEND_WITH_CHAINED_KEY"; readonly action: AutoResendWithChainedKeyAction }
   // 3way merge UI を表示する
   | { readonly type: "PRESENT_3WAY_MERGE_UI" }
   // silent toast を表示する
@@ -65,6 +80,33 @@ export function createInitialState<T, TPayload = unknown>(): ClientState<T, TPay
     pendingQueue: [],
     queueHeld: false,
   };
+}
+
+// PQ enqueue のユーティリティ: PII strip を適用してから PendingQueueEntry を追加する
+// T3-3: enqueue 前に必ず stripPiiFields を呼び出すことを強制する
+export function enqueuePendingQueue<TPayload extends Record<string, unknown>>(
+  queue: readonly PendingQueueEntry<TPayload>[],
+  entry: PendingQueueEntry<TPayload>,
+  piiFieldNames: readonly string[],
+): readonly PendingQueueEntry<TPayload>[] {
+  // PII strip を実行してから payload を差し替える
+  const strippedPayload = stripPiiFields(
+    // entry の payload を PII strip の対象とする
+    entry.payload as Record<string, unknown>,
+    // PII フィールド名リスト
+    piiFieldNames,
+  ) as TPayload;
+  // PII strip 済み payload で entry を差し替えた新しいエントリを生成する
+  const strippedEntry: PendingQueueEntry<TPayload> = {
+    // layer 識別子はそのまま引き継ぐ
+    layer: entry.layer,
+    // PII strip 済み payload を設定する
+    payload: strippedPayload,
+    // lineage はそのまま引き継ぐ
+    lineage: entry.lineage,
+  };
+  // PII strip 済みエントリを queue の末尾に追加して返す
+  return [...queue, strippedEntry];
 }
 
 // 全 layer purge（5 trigger: logout / refresh_token_expiry / tenant_switch / actor_switch / device_bound_key_rotate）
@@ -181,7 +223,23 @@ function reduceOptimisticRejected<T, TPayload>(
   if (conflictSubtype !== undefined) {
     const subtypeActions = resolveSubtypeActions(conflictSubtype, idempotencyKey, undefined, undefined);
     for (const sa of subtypeActions) {
-      actions.push({ type: "DISPATCH_CONFLICT_SUBTYPE", subtypeAction: sa.actionType, detail: sa });
+      // T3-4: auto_resend_with_chained_key は明示的型付き AUTO_RESEND_WITH_CHAINED_KEY action として dispatch する
+      if (sa.actionType === "auto_resend_with_chained_key") {
+        // 型付き AutoResendWithChainedKeyAction として action を生成する
+        const typedAction: AutoResendWithChainedKeyAction = {
+          // subtypeAction は必ず "auto_resend_with_chained_key" リテラル
+          subtypeAction: "auto_resend_with_chained_key",
+          // chain 元の idempotency_key を設定する
+          chainedFrom: sa.chainedFrom,
+          // chain 後の新しい idempotency_key を設定する
+          newKey: sa.newKey,
+        };
+        // 型付きアクションを AUTO_RESEND_WITH_CHAINED_KEY として push する
+        actions.push({ type: "AUTO_RESEND_WITH_CHAINED_KEY", action: typedAction });
+      } else {
+        // auto_resend_with_chained_key 以外は従来通り DISPATCH_CONFLICT_SUBTYPE として dispatch する
+        actions.push({ type: "DISPATCH_CONFLICT_SUBTYPE", subtypeAction: sa.actionType, detail: sa });
+      }
     }
   }
   return { nextState, actions };
@@ -221,8 +279,20 @@ function reduceBusinessConflict<T, TPayload>(
   for (const sa of subtypeActions as readonly AnySubtypeAction[]) {
     switch (sa.actionType) {
       case "auto_resend_with_chained_key":
-        // PQ の idempotency_key を更新する（chain 後の新 key に変更）
-        actions.push({ type: "DISPATCH_CONFLICT_SUBTYPE", subtypeAction: sa.actionType, detail: sa });
+        // T3-4: auto_resend_with_chained_key は AUTO_RESEND_WITH_CHAINED_KEY 型付きアクションとして dispatch する
+        // subtypeAction フィールドは必ず "auto_resend_with_chained_key" リテラルになる（string ではなく型安全）
+        actions.push({
+          type: "AUTO_RESEND_WITH_CHAINED_KEY",
+          // 型付き AutoResendWithChainedKeyAction を設定する
+          action: {
+            // subtypeAction は "auto_resend_with_chained_key" リテラル型で固定する
+            subtypeAction: "auto_resend_with_chained_key",
+            // chain 元の idempotency_key
+            chainedFrom: sa.chainedFrom,
+            // chain 後の新しい idempotency_key
+            newKey: sa.newKey,
+          },
+        });
         break;
       case "present_3way_merge_ui_hold_queue":
         // 3way merge UI + queue hold
@@ -231,6 +301,7 @@ function reduceBusinessConflict<T, TPayload>(
         actions.push({ type: "HOLD_QUEUE" });
         break;
       case "refetch_server_truth":
+        // server_truth を再取得する（version=0 で再初期化する）
         actions.push({ type: "UPDATE_SERVER_TRUTH", version: 0 });
         break;
       case "delete_queue_entry":
@@ -244,12 +315,15 @@ function reduceBusinessConflict<T, TPayload>(
         actions.push({ type: "DELETE_PQ_ENTRY", idempotencyKey: sa.idempotencyKey });
         break;
       case "notify_user_silent_toast":
+        // silent toast 通知
         actions.push({ type: "NOTIFY_SILENT_TOAST", message: sa.message });
         break;
       case "update_presence_indicator":
+        // presence indicator 更新
         actions.push({ type: "UPDATE_PRESENCE", actorId: sa.actorId });
         break;
       case "allow_user_to_continue_or_abort":
+        // ユーザーに続行/中止を選択させる（従来通り DISPATCH_CONFLICT_SUBTYPE として dispatch する）
         actions.push({ type: "DISPATCH_CONFLICT_SUBTYPE", subtypeAction: sa.actionType, detail: sa });
         break;
     }

@@ -121,6 +121,10 @@ importers:
         version: 1.6.1(@types/node@25.8.0)
 
   packages/state:
+    dependencies:
+      '@k1s0/tier3-outbox':
+        specifier: workspace:*
+        version: link:../outbox
     devDependencies:
       typescript:
         specifier: ^5.4.0

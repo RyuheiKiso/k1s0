@@ -6,9 +6,12 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@k1s0/tier3-outbox": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

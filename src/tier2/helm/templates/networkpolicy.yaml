@@ -1,0 +1,35 @@
+# networkpolicy.yaml — k1s0-tier2 Helm チャート: NetworkPolicy テンプレート
+# 同一 namespace からの ingress のみを許可して tier2 テナント分離を実現する
+# cross-tenant-query-deny Kyverno ポリシーと協調して動作する
+apiVersion: networking.k8s.io/v1
+# Kubernetes NetworkPolicy リソース種別
+kind: NetworkPolicy
+metadata:
+  # NetworkPolicy 名（フルネームに -netpol サフィックスを付けて識別する）
+  name: {{ include "k1s0-tier2.fullname" . }}-netpol
+  # デプロイ先 Namespace（helm install の --namespace で指定する）
+  namespace: {{ .Release.Namespace }}
+  # NetworkPolicy ラベル（Helm が管理するラベルセット）
+  labels:
+    {{- include "k1s0-tier2.labels" . | nindent 4 }}
+spec:
+  # 対象 Pod をセレクタラベルで指定する（この NetworkPolicy が適用される Pod を選択する）
+  podSelector:
+    matchLabels:
+      {{- include "k1s0-tier2.selectorLabels" . | nindent 6 }}
+  # Ingress ルール（受信トラフィックの制御）
+  ingress:
+    # 同一 Namespace 内の Pod からの ingress を許可する
+    - from:
+        # 同一 Namespace の全 Pod からのアクセスを許可する（Pod セレクタを空にすることで実現する）
+        - podSelector: {}
+      # HTTP API ポートへのアクセスのみ許可する（不要なポートへのアクセスを拒否する）
+      ports:
+        # HTTP API ポートの TCP トラフィックを許可する
+        - protocol: TCP
+          # values.yaml の service.port を参照する
+          port: {{ .Values.service.port }}
+  # PolicyTypes に Ingress を指定する（Ingress トラフィックをこのポリシーで制御する）
+  policyTypes:
+    # Ingress トラフィック制御を有効にする
+    - Ingress

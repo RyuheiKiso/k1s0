@@ -1,0 +1,27 @@
+# k1s0-hlc — Hybrid Logical Clock (HLC) の Rust 実装
+# src/client/hlc_lib/rust/ に配置する。tier1 bfl WebAuthn challenge expiry,
+# tier2 cache TTL, tier2 temporal Workflow deadline に使用する。
+# wall-clock を TTL/deadline 比較に直接使う経路を禁止し、HLC elapsed で管理する。
+[package]
+# crate 名: k1s0-hlc（Cargo workspace 外の独立 crate として管理する）
+name = "k1s0-hlc"
+# バージョン: 0.1.0（初回物理化リリース）
+version = "0.1.0"
+# Rust edition 2021 を使用する
+edition = "2021"
+
+[lib]
+# lib.rs を Rust lib target として公開する
+name = "k1s0_hlc"
+
+[dependencies]
+# serde: HlcTimestamp の JSON シリアライズに使用する（feature = ["derive"]）
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+# serde feature: HlcTimestamp に Serialize / Deserialize を有効化する
+serde = ["dep:serde"]
+
+[dev-dependencies]
+# tokio: 非同期テストランナー（multi-thread で concurrent tick/recv をテストする）
+tokio = { version = "1", features = ["full"] }

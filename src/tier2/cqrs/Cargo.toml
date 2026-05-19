@@ -19,3 +19,8 @@ serde_json = "1"
 anyhow = "1"
 # chrono: 日時ライブラリ（ReadModel の updated_at フィールドに使用する）
 chrono = { version = "0.4", features = ["serde"] }
+# sqlx: PostgreSQL 非同期クライアント（PgPool / query_as で pgvector 検索を実行する）
+# postgres=Postgres ドライバ / runtime-tokio=tokio 非同期ランタイム / uuid=UUID 型 / json=jsonb 型
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid", "json"] }
+# tokio: 非同期ランタイム（sqlx runtime-tokio と対で使用する）
+tokio = { version = "1", features = ["full"] }

@@ -37,6 +37,36 @@ var validQuotaClasses = []string{
 	"v1_dedicated",
 }
 
+// validAuthClasses は 04_認証適合仕様.md §v1 auth_class セットの有効値一覧
+// idp_capabilities.lock.yaml の idp_id 値と同一のセットを使用する（SoT: lock.yaml）
+var validAuthClasses = []string{
+	// v1_human_session: OIDC code flow + DPoP proof-of-possession（人間ユーザーの対話セッション）
+	"v1_human_session",
+	// v1_workload_jwt: K8s ServiceAccount SVID JWT（ワークロード間通信）
+	"v1_workload_jwt",
+	// v1_device_attest: デバイス attestation chain（IoT / 端末アイデンティティ）
+	"v1_device_attest",
+	// v1_federated_exchange: RFC 8693 token exchange（外部 IdP 連携）
+	"v1_federated_exchange",
+	// v1_emergency_step_up: break-glass 緊急昇格（常に step_up 強制）
+	"v1_emergency_step_up",
+}
+
+// validKeyClasses は 05_鍵管理適合仕様.md §v1 key_class セットの有効値一覧
+// backends.lock.yaml の key_class 値と同一のセットを使用する（SoT: lock.yaml）
+var validKeyClasses = []string{
+	// v1_data_dek: データ暗号化鍵（DEK: software_kms_wrapped）
+	"v1_data_dek",
+	// v1_data_kek: DEK ラッピング鍵（KEK: hsm_pkcs11_shamir_distributed）
+	"v1_data_kek",
+	// v1_token_signing: JWT/SVID 署名鍵（OpenBao Transit 経由）
+	"v1_token_signing",
+	// v1_audit_root_signing: 監査 hash chain root 署名鍵
+	"v1_audit_root_signing",
+	// v1_mtls_workload: mTLS ワークロード証明書（SPIRE SVID）
+	"v1_mtls_workload",
+}
+
 // validConformanceClasses は 01_Bidi適合仕様.md §v1 conformance_class セットの有効値一覧
 // docs/04_詳細設計/01_適合仕様/01_Bidi適合仕様.md §3.2 v1 class セット（5 class）に準拠する
 var validConformanceClasses = []string{
@@ -123,9 +153,35 @@ func (v *Tier1ServiceValidator) Handle(ctx context.Context, req admission.Reques
 		}
 	}
 
-	// TODO: authClass / keyClass フィールドの validation を実装する
-	// authClass は 04_認証適合仕様.md §v1 auth_class セットと照合する
-	// keyClass は 05_鍵管理適合仕様.md §v1 key_class セットと照合する
+	// ---- 5. authClass フィールドの検証 ----
+
+	// authClass が設定されている場合のみ検証する（省略は許容する）
+	if tier1Svc.Spec.AuthClass != "" {
+		// 有効な auth_class セットと照合する（04_認証適合仕様.md §idp_capabilities.lock.yaml 由来）
+		if !containsString(validAuthClasses, tier1Svc.Spec.AuthClass) {
+			// 無効な authClass は denied を返す
+			return admission.Denied(fmt.Sprintf(
+				"tier1: spec.authClass %q は無効な値です。有効値: %s (04_認証適合仕様 §v1 auth_class セット)",
+				tier1Svc.Spec.AuthClass,
+				strings.Join(validAuthClasses, " / "),
+			))
+		}
+	}
+
+	// ---- 6. keyClass フィールドの検証 ----
+
+	// keyClass が設定されている場合のみ検証する（省略は許容する）
+	if tier1Svc.Spec.KeyClass != "" {
+		// 有効な key_class セットと照合する（05_鍵管理適合仕様.md §backends.lock.yaml 由来）
+		if !containsString(validKeyClasses, tier1Svc.Spec.KeyClass) {
+			// 無効な keyClass は denied を返す
+			return admission.Denied(fmt.Sprintf(
+				"tier1: spec.keyClass %q は無効な値です。有効値: %s (05_鍵管理適合仕様 §v1 key_class セット)",
+				tier1Svc.Spec.KeyClass,
+				strings.Join(validKeyClasses, " / "),
+			))
+		}
+	}
 
 	// 全検証を通過した場合は allowed を返す
 	return admission.Allowed(fmt.Sprintf("Tier1Service %s/%s validation passed", req.Namespace, req.Name))

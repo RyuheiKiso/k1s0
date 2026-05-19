@@ -88,28 +88,20 @@ pub struct KeyHandle {
 }
 
 impl KeyHandle {
-    // create_stub は OpenBao Transit 呼出なしに stub の KeyHandle を生成する。
-    // 本番では OpenBaoClient::encrypt/wrap を呼び出す bfl/src/openbao.rs を使う。
-    pub fn create_stub(key_class: KeyClass, handle_id: String) -> Self {
-        // 生 key bytes は受け取っても Self には保存せず、公開 API に漏れない
+    // from_remote_handle は OpenBao Transit が管理する鍵の handle を構築する。
+    // 生 key bytes は Gateway に渡らず OpenBao 内に閉じる（spec §5 層 defense-in-depth 層 A）。
+    // handle_id: OpenBao Transit key name（`/v1/transit/sign/{handle_id}` で参照する）。
+    pub fn from_remote_handle(key_class: KeyClass, handle_id: String) -> Self {
+        // _material は None: bytes は OpenBao 内に閉じるため Gateway は保持しない
         Self {
+            // OpenBao Transit key name を handle_id として設定する
             handle_id,
+            // 鍵の用途クラスを設定する
             key_class,
+            // OpenBao Transit 経由で生成直後は有効と見なす
             is_valid: true,
+            // Gateway は生 key bytes を保持しない（spec §公開 API 型保証）
             _material: None,
-        }
-    }
-
-    // from_key_material は生 key bytes を受け取り、KeyHandle として wrap する。
-    // 呼び出し元のスコープを抜けると key_bytes は zeroize で消去される。
-    pub fn from_key_material(key_class: KeyClass, handle_id: String, key_bytes: Vec<u8>) -> Self {
-        // KeyMaterial に key_bytes を移動（Arc 共有で複数サービスに渡せる）
-        let material = Arc::new(KeyMaterial { key_bytes });
-        Self {
-            handle_id,
-            key_class,
-            is_valid: true,
-            _material: Some(material),
         }
     }
 

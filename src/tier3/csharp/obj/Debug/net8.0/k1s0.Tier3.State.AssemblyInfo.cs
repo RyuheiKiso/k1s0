@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("k1s0 tier3 4 layer client state（C# 等価強度実装）")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+611a887d921f1ee0b9ab76e4dfd2580297d76555")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+7b02fa2ffa42639015486ed5a8367fa07b66bf7f")]
 [assembly: System.Reflection.AssemblyProductAttribute("k1s0.Tier3.State")]
 [assembly: System.Reflection.AssemblyTitleAttribute("k1s0.Tier3.State")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]

@@ -18,6 +18,8 @@ export type {
 } from "./outbox.js";
 export {
   IDEMPOTENCY_KEY_TTL_MS,
+  // HLC タイムスタンプ生成関数（wall-clock TTL 禁止規約に従い HLC を提供する）
+  hlcNow,
   isExpired,
   generateIdempotencyKey,
   chainIdempotencyKey,
