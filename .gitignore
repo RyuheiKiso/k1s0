@@ -16,3 +16,4 @@ src/_crosscutting/09_audit_ingest_gap_monitor/monitor/target/release/*
 src/client/hlc_lib/rust/target/debug/*
 .claire/
 .claude/worktrees/
+src/tier2/temporal/target/
