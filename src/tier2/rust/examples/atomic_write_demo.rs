@@ -20,6 +20,18 @@ use k1s0_tier2::atomic_triple_write::{StateChange, TableClass};
 use uuid::Uuid;
 // 環境変数取得
 use std::env;
+// sqlx::PgPool: オフラインデモ用に connect_lazy でダミープールを生成する
+use sqlx::PgPool;
+
+// デモ用のオフラインダミー PgPool を生成するヘルパー関数（SQL 生成デモでは DB 接続不要）
+fn make_demo_pool() -> PgPool {
+    // TEST_DATABASE_URL が設定されている場合はその URL を使用する（未設定時はダミー URL）
+    let url = env::var("TEST_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://localhost/k1s0_demo".to_string());
+    // connect_lazy: 実際の接続を遅延させてオフラインデモでも PgPool を生成できるようにする
+    PgPool::connect_lazy(&url)
+        .expect("connect_lazy should not fail on valid URL format")
+}
 
 // tokio 非同期ランタイム
 #[tokio::main]
@@ -41,8 +53,10 @@ async fn main() {
         "demo-actor-a".to_string(),
         SessionPurpose::BusinessOp,
     );
-    // AtomicTripleWrite をテナント A のコンテキストで生成する
-    let writer_a = AtomicTripleWrite::new(ctx_a);
+    // デモ用オフラインダミー PgPool を生成する（SQL 生成のみのため実接続不要）
+    let demo_pool = make_demo_pool();
+    // AtomicTripleWrite をテナント A のコンテキストで生成する（TenantContext と PgPool を渡す）
+    let writer_a = AtomicTripleWrite::new(ctx_a, demo_pool.clone());
     // テナント A のコンテキストで正常な StateChange を生成する
     let valid_change = StateChange {
         // テスト用の aggregate ID を生成する
@@ -97,8 +111,8 @@ async fn main() {
         // Support purpose: PII 参照時のセッション目的
         SessionPurpose::Support,
     );
-    // AtomicTripleWrite を Support コンテキストで生成する
-    let writer_support = AtomicTripleWrite::new(ctx_support);
+    // AtomicTripleWrite を Support コンテキストで生成する（TenantContext と PgPool を渡す）
+    let writer_support = AtomicTripleWrite::new(ctx_support, demo_pool.clone());
     // P4: PiiSegregated テーブルクラスの StateChange を生成する
     let pii_change = StateChange {
         aggregate_id: Uuid::new_v4(),
@@ -144,8 +158,8 @@ async fn main() {
         "demo-actor-sql".to_string(),
         SessionPurpose::BusinessOp,
     );
-    // AtomicTripleWrite を生成する
-    let writer_demo = AtomicTripleWrite::new(ctx_demo);
+    // AtomicTripleWrite を生成する（TenantContext と PgPool を渡す）
+    let writer_demo = AtomicTripleWrite::new(ctx_demo, demo_pool.clone());
     // SQL を生成する（実 DB 不要）
     match writer_demo.build_triple_write_sql(&valid_change) {
         Ok(sql) => {
@@ -226,7 +240,8 @@ async fn main() {
                         "demo-actor-pg".to_string(),
                         SessionPurpose::BusinessOp,
                     );
-                    let writer_pg = AtomicTripleWrite::new(ctx_pg);
+                    // AtomicTripleWrite を生成する（TenantContext と実 PgPool を渡す）
+                    let writer_pg = AtomicTripleWrite::new(ctx_pg, pool.clone());
                     let pg_change = StateChange {
                         aggregate_id: Uuid::new_v4(),
                         tenant_id: tenant_a,

@@ -1,0 +1,68 @@
+# tauri_bundle.dmg.yaml — Tauri macOS DMG バンドル設定
+# macOS 向けの Disk Image (.dmg) 形式でアプリケーションをパッケージングする
+# Apple Developer ID による署名と notarization を行い Gatekeeper 通過を保証する
+apiVersion: k1s0.io/v1 # k1s0 カスタムリソースの API バージョン
+kind: TauriBundleConfig # Tauri バンドル設定リソースとして宣言する
+metadata:
+  name: k1s0-companion-dmg # バンドル設定の識別名
+  labels:
+    # プラットフォーム識別ラベル（CI が macOS ジョブを選択するために使用する）
+    k1s0.io/platform: macos
+    # バンドル形式ラベル
+    k1s0.io/bundle-format: dmg
+spec:
+  # --- アプリケーション基本情報 ---
+  appName: "k1s0 Companion" # macOS での表示アプリ名（Finder・About に使用される）
+  appVersion: "1.0.0" # バンドルバージョン（CFBundleShortVersionString に対応する）
+  bundleIdentifier: "io.k1s0.companion" # 逆 DNS 形式のバンドル識別子（macOS 一意性要件）
+  # アプリ最小動作 macOS バージョン（Monterey 12.0 以上を要件とする）
+  minimumSystemVersion: "12.0"
+
+  # --- macOS DMG バンドル固有設定 ---
+  dmg:
+    # DMG ウィンドウのアイコン配置設定
+    appPosition:
+      x: 180 # アプリアイコンの X 座標（ピクセル）
+      y: 170 # アプリアイコンの Y 座標（ピクセル）
+    # Applications フォルダショートカットの位置
+    applicationsPosition:
+      x: 480 # Applications ショートカットの X 座標（ピクセル）
+      y: 170 # Applications ショートカットの Y 座標（ピクセル）
+    # DMG ウィンドウサイズ
+    windowSize:
+      width: 660 # DMG ウィンドウの幅（ピクセル）
+      height: 400 # DMG ウィンドウの高さ（ピクセル）
+    # DMG 背景画像パス（src/tier3/companion/assets/ 配下のファイルを参照する）
+    background: "src/tier3/companion/assets/dmg-background.png"
+
+  # --- コード署名設定 ---
+  codesign:
+    # Apple Developer ID Application 証明書の識別子
+    # CI では APPLE_SIGNING_IDENTITY 環境変数から注入する（ハードコード禁止）
+    identity: "Developer ID Application: k1s0 Inc (TEAM_ID_PLACEHOLDER)"
+    # entitlements ファイルへのパス（hardened runtime 用）
+    entitlementsFile: "src/tier3/companion/src-tauri/entitlements.plist"
+    # hardened runtime を有効にする（notarization 必須要件）
+    hardenedRuntime: true
+    # timestamp server の URL（Apple の timestamp authority を使用する）
+    timestampUrl: "http://timestamp.apple.com/ts01"
+
+  # --- Notarization 設定 ---
+  notarization:
+    # Apple ID（CI では APPLE_ID 環境変数から注入する）
+    appleId: "ci@k1s0.io"
+    # App-specific パスワードを保持する Keychain Item 名
+    # CI では APPLE_APP_SPECIFIC_PASSWORD 環境変数から注入する
+    appleIdPasswordKeychainItem: "AC_PASSWORD"
+    # App Store Connect チーム ID（CI では APPLE_TEAM_ID 環境変数から注入する）
+    teamId: "TEAM_ID_PLACEHOLDER"
+
+  # --- アイコン設定 ---
+  icons:
+    # macOS 用 ICNS ファイルへのパス（Tauri が自動で各サイズを生成する元ファイル）
+    - "icons/icon.icns"
+    # 高解像度 Retina Display 用 PNG（1024x1024）
+    - "icons/icon_1024x1024@2x.png"
+
+  # --- ビルド成果物の配置 ---
+  outputDir: "target/release/bundle/dmg" # DMG ファイルの出力先ディレクトリ

@@ -9,7 +9,7 @@
 - **Legacy**: .NET Framework 4.6.2+（WinForms / WPF）
 - **pnpm workspace root**: `src/tier3/typescript/pnpm-workspace.yaml`
 - **lock.yaml 配置先**: `src/tier3/lock/`（手書き禁止）
-- **CRDT**: `src/tier3/typescript/src/crdt/`（tier3 内部に閉じ込める。cross-cutting spec 不要）
+- **CRDT**: `src/tier3/typescript/packages/crdt/`（tier3 内部に閉じ込める。cross-cutting spec 不要）
 
 設計パターン・モジュール構成の詳細は `docs/03_概要設計/04_tier3設計方針/README.md` を単一の真とする。
 

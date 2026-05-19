@@ -1,0 +1,26 @@
+# k1s0-tier2-notary: RFC 3161 タイムスタンプ認証および Sigstore Rekor 透明性ログ連携クレート
+# 鍵管理適合仕様 05: 外部公証 (RFC 3161 TSA / Rekor) による削除 / 変更の attest を提供する
+[package]
+# パッケージ名: k1s0-tier2-notary
+name = "k1s0-tier2-notary"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# reqwest: HTTP クライアント（RFC 3161 TSA への POST / Rekor API への POST に使用する）
+# rustls-tls: システム OpenSSL に依存しない TLS 実装を使用する
+reqwest = { version = "0.12", features = ["rustls-tls"] }
+# tokio: 非同期ランタイム（reqwest の非同期 HTTP 呼び出しに使用する）
+tokio = { version = "1", features = ["full"] }
+# anyhow: エラーハンドリング（Result<T> の統合 error context に使用する）
+anyhow = "1"
+# serde: シリアライズ / デシリアライズフレームワーク（Rekor リクエスト / レスポンスの JSON に使用する）
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON ライブラリ（Rekor API リクエストボディの構築に使用する）
+serde_json = "1"
+# base64: バイナリデータを base64 にエンコードして Rekor API リクエストに含めるために使用する
+base64 = "0.22"
+# tracing: 構造化ロギング（HTTP リクエスト送信 / レスポンス受信のトレースに使用する）
+tracing = "0.1"

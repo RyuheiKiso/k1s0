@@ -19,7 +19,9 @@ description = "k1s0 tier3 4 layer client state（Rust 等価強度実装）"
 [dependencies]
 # シリアライズ / デシリアライズ
 serde = { version = "1", features = ["derive"] }
-# UUID v4
+# JSON 値の動的操作（outbox の PII strip に使用する）
+serde_json = "1"
+# UUID v4（Idempotency-Key 生成に使用する）
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]

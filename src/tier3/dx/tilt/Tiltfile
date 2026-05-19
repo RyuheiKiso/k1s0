@@ -1,0 +1,76 @@
+# Tiltfile — tier3 companion ローカル k8s 開発ループ設定
+# Tilt を使用して tier3 companion の変更を k8s クラスターに自動反映する
+# devcontainer の postCreateCommand で tilt がインストールされていることを前提とする
+
+# --- ローカル開発向け設定 ---
+# Tilt バージョン要件を強制する（0.33 以上が必要）
+version_settings(constraint='>=0.33.0')
+
+# --- Docker ビルド設定 ---
+# tier3 companion の Docker イメージをビルドする
+docker_build(
+  # イメージ名（k8s_yaml と同じ名前を使用する）
+  'k1s0/tier3-companion-mock',
+  # ビルドコンテキスト（companion_local_mock ディレクトリ）
+  'src/tier3/dx/companion_local_mock',
+  # Dockerfile のパス（companion_local_mock 内の Dockerfile を使用する）
+  dockerfile='src/tier3/dx/companion_local_mock/Dockerfile',
+  # ライブ同期設定（ファイル変更時に pod を再起動せずに反映する）
+  live_update=[
+    # TypeScript ファイルの変更をコンテナ内に同期する
+    sync('src/tier3/dx/companion_local_mock', '/app'),
+    # package.json が変更された場合は npm install を再実行する
+    run(
+      'npm install',
+      # package.json の変更時のみ npm install を実行する
+      trigger=['package.json'],
+    ),
+  ],
+)
+
+# --- k8s マニフェスト設定 ---
+# tier3 companion mock の k8s マニフェストを適用する
+k8s_yaml([
+  # companion mock の Deployment・Service を定義するマニフェスト
+  'src/tier3/dx/companion_local_mock/k8s/deployment.yaml',
+  # companion mock の ConfigMap（環境変数設定）
+  'src/tier3/dx/companion_local_mock/k8s/configmap.yaml',
+])
+
+# --- k8s リソース設定 ---
+# companion mock の k8s リソース設定（依存関係・ポートフォワードを定義する）
+k8s_resource(
+  # k8s Deployment 名（deployment.yaml の metadata.name と一致させる）
+  'tier3-companion-mock',
+  # ポートフォワード設定: ローカルの 9999 番ポートを Pod の 9999 番に転送する
+  port_forwards=[
+    # WebSocket サーバーのポートフォワード（companion_local_mock/server.ts と一致）
+    '9999:9999',
+  ],
+  # リソースのラベル（Tilt UI でグルーピングする）
+  labels=['tier3-companion'],
+  # このリソースが依存するリソースを指定する（なければ空リスト）
+  resource_deps=[],
+)
+
+# --- ローカル開発向けヘルパー ---
+# tier3 SPA の pnpm dev サーバーをローカルで起動するコマンド
+local_resource(
+  # ローカルリソース名
+  'tier3-spa-dev',
+  # SPA dev サーバーを起動するコマンド
+  serve_cmd='cd src/tier3/typescript && pnpm dev',
+  # ポートフォワード設定（Vite dev server の標準ポート）
+  serve_dir='.',
+  # SPA ソースファイルの変更を監視するディレクトリ
+  deps=[
+    'src/tier3/typescript/spa/src',
+    'src/tier3/typescript/packages',
+  ],
+  # Tilt UI でのラベル
+  labels=['tier3-spa'],
+)
+
+# --- ウォッチ設定 ---
+# Tiltfile 自体の変更を監視して自動リロードする
+watch_file('src/tier3/dx/tilt/Tiltfile')

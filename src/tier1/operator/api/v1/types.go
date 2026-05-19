@@ -22,6 +22,14 @@ type Tier1ServiceSpec struct {
 	QuotaClass string `json:"quotaClass"`
 	// SloClass: SLO クラス（07_SLO適合仕様.md §v1 slo_class セット）
 	SloClass string `json:"sloClass"`
+	// AuthClass: 認証クラス（04_認証適合仕様.md §v1 auth_class セット）— idp_capabilities.lock.yaml の idp_id 値を指定する
+	// +optional
+	// +kubebuilder:validation:Enum=v1_human_session;v1_workload_jwt;v1_device_attest;v1_federated_exchange;v1_emergency_step_up
+	AuthClass string `json:"authClass,omitempty"`
+	// KeyClass: 鍵管理クラス（05_鍵管理適合仕様.md §v1 key_class セット）— backends.lock.yaml の key_class 値を指定する
+	// +optional
+	// +kubebuilder:validation:Enum=v1_data_dek;v1_data_kek;v1_token_signing;v1_audit_root_signing;v1_mtls_workload
+	KeyClass string `json:"keyClass,omitempty"`
 	// Replicas: Pod のレプリカ数
 	Replicas int32 `json:"replicas"`
 }

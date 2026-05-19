@@ -122,6 +122,16 @@ pub enum PurgeReason {
     DeviceBoundKeyRotate,
 }
 
+// AutoResendWithChainedKeyAction は auto_resend_with_chained_key の型付きアクション
+// T3-4: string メッセージではなく明示的な型付き enum variant で表現する
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoResendWithChainedKeyAction {
+    // chain 元の idempotency_key（rebase 前の key）
+    pub chained_from: String,
+    // chain 後の新しい idempotency_key
+    pub new_key: String,
+}
+
 // reducer が返す副作用 actions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReducerAction {
@@ -139,8 +149,10 @@ pub enum ReducerAction {
     SendQueueInOrder,
     // business error を表示する
     PresentBusinessError { error_code: String },
-    // BusinessConflict subtype action を dispatch する
+    // BusinessConflict subtype action を dispatch する（auto_resend_with_chained_key 以外）
     DispatchConflictSubtype { subtype: BusinessConflictSubtype },
+    // auto_resend_with_chained_key の型付きアクション（T3-4: string ではなく明示的型で表現する）
+    AutoResendWithChainedKey { action: AutoResendWithChainedKeyAction },
     // 3way merge UI を表示する
     Present3WayMergeUi,
     // silent toast を表示する
@@ -274,16 +286,24 @@ pub fn reduce(state: &ClientState, event: &ConflictEvent) -> ReducerResult {
                     if is_clean {
                         // rebase_clean: OL rollback + chain した新 key で auto resend する
                         let base_key = next_state.optimistic_local_key.clone().unwrap_or_default();
+                        // chain した新しい idempotency_key を生成する
                         let new_key = chain_idempotency_key(&base_key, "rebase");
                         // OL を rollback する
                         next_state.optimistic_local_key = None;
-                        // rollback + auto resend actions を追加する
+                        // rollback action を追加する
                         actions.push(ReducerAction::RollbackOptimistic);
-                        actions.push(ReducerAction::SendQueueInOrder);
-                        // chain した新 key の detail を dispatch する
-                        actions.push(ReducerAction::NotifySilentToast {
-                            message: format!("rebase_clean: auto resend with key={}", new_key),
+                        // T3-4: auto_resend_with_chained_key は型付き AutoResendWithChainedKey action として dispatch する
+                        actions.push(ReducerAction::AutoResendWithChainedKey {
+                            // AutoResendWithChainedKeyAction を設定する
+                            action: AutoResendWithChainedKeyAction {
+                                // chain 元の idempotency_key を設定する
+                                chained_from: base_key,
+                                // chain 後の新しい idempotency_key を設定する
+                                new_key: new_key.clone(),
+                            },
                         });
+                        // auto resend action を追加する
+                        actions.push(ReducerAction::SendQueueInOrder);
                     } else {
                         // rebase_dirty: safe 側に倒して 3way merge UI を表示する
                         next_state.queue_held = true;

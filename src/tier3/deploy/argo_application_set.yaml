@@ -1,0 +1,100 @@
+# argo_application_set.yaml — Argo CD ApplicationSet: PR preview 環境自動生成
+# Pull Request ごとに独立した preview namespace を作成してレビュー環境を提供する
+# 設計方針 31_配布デプロイ運用: PR preview の自動化
+apiVersion: argoproj.io/v1alpha1 # Argo CD の API バージョンを指定する
+kind: ApplicationSet # ApplicationSet リソースとして宣言する
+metadata:
+  name: k1s0-pr-preview # ApplicationSet リソースの識別名
+  namespace: argocd # Argo CD が常駐する argocd 名前空間に配置する
+spec:
+  # --- ジェネレーター設定 ---
+  # Pull Request ジェネレーターを使用してオープン中の PR を自動検出する
+  generators:
+    - pullRequest:
+        # GitHub リポジトリの設定
+        github:
+          # PR を監視するオーナー名（GitHub organization または user）
+          owner: k1s0-io
+          # PR を監視するリポジトリ名
+          repo: k1s0
+          # GitHub API トークンを保持する Secret の参照（private repo 用）
+          tokenRef:
+            # argocd 名前空間の github-token Secret を参照する
+            secretName: github-token
+            # Secret の key 名
+            key: token
+          # Draft PR は除外してレビュー準備済みの PR のみ対象とする
+          filters:
+            - isDraft: false
+        # PR の状態変化を検知する再同期間隔（ポーリング）
+        requeueAfterSeconds: 60
+
+  # --- テンプレート設定 ---
+  # ジェネレーターが検出した各 PR に対して Application を生成する
+  template:
+    metadata:
+      # PR 番号を名前に埋め込んで各 PR の Application を識別する
+      name: "k1s0-pr-{{number}}"
+      # argocd 名前空間に Application を作成する
+      namespace: argocd
+      # PR がクローズされたときに Application を自動削除するためのアノテーション
+      annotations:
+        # PR クローズ後に自動でリソースを削除する（preview 環境のライフサイクル管理）
+        argocd-image-updater.argoproj.io/force-delete: "true"
+      labels:
+        # PR preview であることを示すラベル（一覧フィルタリング用）
+        k1s0.io/env-type: pr-preview
+        # PR 番号ラベル（追跡のため）
+        k1s0.io/pr-number: "{{number}}"
+
+    spec:
+      # Application を管理する Argo CD プロジェクト（RBAC スコープを tier3 に限定）
+      project: tier3
+
+      # --- ソース設定 ---
+      source:
+        # リポジトリ URL（HTTPS 形式で認証情報は Secret 経由）
+        repoURL: "https://github.com/k1s0-io/k1s0.git"
+        # PR のブランチを参照する（Argo CD が自動的にチェックアウトする）
+        targetRevision: "{{head_sha}}"
+        # Helm チャートが配置されているパス（tier3 deploy Helm チャートを使用する）
+        path: src/tier3/deploy/helm
+        # Helm 設定（PR 固有の値を上書きする）
+        helm:
+          # PR 番号を Helm value として渡す（Ingress ホスト名などに使用する）
+          parameters:
+            # PR 番号を integer として渡す
+            - name: prNumber
+              value: "{{number}}"
+            # PR の HEAD SHA をイメージタグとして使用する
+            - name: image.tag
+              value: "{{head_sha}}"
+            # 環境種別を pr-preview に設定する
+            - name: environment
+              value: pr-preview
+          # PR preview は最小リソースで起動する（values ファイルで定義）
+          valueFiles:
+            - values.yaml
+            - values.pr-preview.yaml
+
+      # --- デプロイ先設定 ---
+      destination:
+        # デプロイ先クラスター（in-cluster = Argo CD が動いている cluster 自身）
+        server: "https://kubernetes.default.svc"
+        # PR ごとに独立した namespace を作成する（pr-{number} 形式）
+        namespace: "pr-{{number}}"
+
+      # --- 同期ポリシー ---
+      syncPolicy:
+        # 自動同期を有効にする（PR push のたびに自動デプロイ）
+        automated:
+          # PR クローズ時に namespace 含めてリソースを自動削除する
+          prune: true
+          # Argo CD の望む状態に自動的に修正する（手動変更を上書きする）
+          selfHeal: true
+        # 同期オプションの設定
+        syncOptions:
+          # namespace が存在しない場合は自動作成する（PR ごとに新規 namespace を作成）
+          - CreateNamespace=true
+          # Server-side Apply を使用して大きなリソースでも apply を成功させる
+          - ServerSideApply=true

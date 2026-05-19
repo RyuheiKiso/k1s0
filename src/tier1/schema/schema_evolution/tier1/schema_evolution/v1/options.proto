@@ -1,0 +1,100 @@
+// tier1 スキーマ進化適合仕様 v1 — proto option 定義
+// 06_スキーマ進化適合仕様.md §v1 schema_class セット（6 class）を機械可読な form に固定する。
+// schema_class は Buf breaking-change policy / migration pair dry_run / Apicurio schema registry
+// の build artifact 生成 input として使用される。
+syntax = "proto3";
+
+// パッケージ宣言: tier1.schema_evolution.v1 名前空間を使用する
+package tier1.schema_evolution.v1;
+
+// google.protobuf.descriptor: method / field / message option 定義に必要
+import "google/protobuf/descriptor.proto";
+
+// Go パッケージパス宣言
+option go_package = "github.com/k1s0-io/k1s0/tier1/schema_evolution/v1;schemaevolutionv1";
+// Java マルチファイル生成を有効にする
+option java_multiple_files = true;
+// Java パッケージ宣言
+option java_package = "io.k1s0.tier1.schema_evolution.v1";
+
+// SchemaClass は 06_スキーマ進化適合仕様.md §v1 schema_class セット（6 class）を宣言する。
+// 1 class 値が forward_compat / backward_compat / breaking_window / migration_pair
+// の policy bundle を一意に導出する。
+enum SchemaClass {
+  // デフォルト（未指定）— 必ず明示的に指定すること
+  SCHEMA_CLASS_UNSPECIFIED = 0;
+  // v1_additive_only: フィールド追加のみ許容（後方互換 + 前方互換）
+  SCHEMA_CLASS_ADDITIVE_ONLY = 1;
+  // v1_compatible_evolution: non-breaking 変更許容（型変更・rename は禁止）
+  SCHEMA_CLASS_COMPATIBLE_EVOLUTION = 2;
+  // v1_breaking_allowed: breaking 変更を migration pair 経由で許容（dual_write 必須）
+  SCHEMA_CLASS_BREAKING_ALLOWED = 3;
+  // v1_immutable_snapshot: 一度 publish されたら変更禁止（audit / legal archive 用）
+  SCHEMA_CLASS_IMMUTABLE_SNAPSHOT = 4;
+  // v1_internal_only: 外部パートナーへの露出禁止（internal service 間のみ）
+  SCHEMA_CLASS_INTERNAL_ONLY = 5;
+  // v1_experimental: SLO 非保証・前後互換非保証（feature branch 期間限定）
+  SCHEMA_CLASS_EXPERIMENTAL = 6;
+}
+
+// MigrationPairPolicy は migration pair dry_run の policy を宣言する。
+// SchemaClass が v1_breaking_allowed の場合に必須で付与する。
+enum MigrationPairPolicy {
+  // デフォルト（未指定）
+  MIGRATION_PAIR_POLICY_UNSPECIFIED = 0;
+  // dual_write: 新旧両スキーマへ書き込みを継続する期間を設ける
+  MIGRATION_PAIR_POLICY_DUAL_WRITE = 1;
+  // expand_contract: expand フェーズ → migrate フェーズ → contract フェーズの 3 段階
+  MIGRATION_PAIR_POLICY_EXPAND_CONTRACT = 2;
+  // blue_green: blue/green deployment で新旧を同時起動して確認する
+  MIGRATION_PAIR_POLICY_BLUE_GREEN = 3;
+}
+
+// SchemaFieldOptions は個別フィールドに付与する schema_class annotation を宣言する。
+// RPC request / response の各フィールドに付与して Buf lint で欠落を検出する。
+message SchemaFieldOptions {
+  // field_schema_class: このフィールドが属する schema_class
+  SchemaClass field_schema_class = 1;
+  // deprecated_since: フィールドが deprecate された spec バージョン（semver 形式）
+  string deprecated_since = 2;
+  // replacement_field: deprecate 時の代替フィールド名（FQDN）
+  string replacement_field = 3;
+}
+
+// SchemaMessageOptions は message 全体に付与する schema_class annotation を宣言する。
+// message 単位で schema_class を一括指定する際に使用する。
+message SchemaMessageOptions {
+  // message_schema_class: このメッセージ全体に適用する schema_class
+  SchemaClass message_schema_class = 1;
+  // migration_pair_policy: v1_breaking_allowed の場合の migration pair policy
+  MigrationPairPolicy migration_pair_policy = 2;
+  // breaking_window_days: breaking change を宣言してから実際に削除するまでの猶予日数
+  int32 breaking_window_days = 3;
+}
+
+// SchemaMethodOptions は RPC method に付与する schema_class annotation を宣言する。
+// method レベルで schema_class を指定して Buf lint が method 単位で検証できるようにする。
+message SchemaMethodOptions {
+  // method_schema_class: この RPC method に適用する schema_class
+  SchemaClass method_schema_class = 1;
+  // migration_pair_policy: v1_breaking_allowed の場合の migration pair policy
+  MigrationPairPolicy migration_pair_policy = 2;
+}
+
+// field_schema は個別フィールドに付与する extension option。
+extend google.protobuf.FieldOptions {
+  // field_schema: このフィールドの schema_class を指定する
+  SchemaFieldOptions field_schema = 50010;
+}
+
+// message_schema は message 全体に付与する extension option。
+extend google.protobuf.MessageOptions {
+  // message_schema: このメッセージの schema_class を指定する
+  SchemaMessageOptions message_schema = 50011;
+}
+
+// method_schema は RPC method に付与する extension option。
+extend google.protobuf.MethodOptions {
+  // method_schema: この RPC method の schema_class を指定する
+  SchemaMethodOptions method_schema = 50012;
+}

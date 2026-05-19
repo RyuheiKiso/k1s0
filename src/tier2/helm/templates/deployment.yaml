@@ -60,3 +60,66 @@ spec:
           # リソース制限（values.yaml から取得する）
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          # ConfigMap と Secret から環境変数を一括マウントする（envFrom）
+          envFrom:
+            # アプリケーション設定 ConfigMap から環境変数を取得する
+            - configMapRef:
+                # k1s0-tier2 設定 ConfigMap 名（フルネーム + -config サフィックス）
+                name: {{ include "k1s0-tier2.fullname" . }}-config
+                # ConfigMap が存在しない場合は optional にする
+                optional: true
+            # 機密設定 Secret から環境変数を取得する
+            - secretRef:
+                # k1s0-tier2 シークレット名（フルネーム + -secret サフィックス）
+                name: {{ include "k1s0-tier2.fullname" . }}-secret
+                # Secret が存在しない場合は optional にする
+                optional: true
+          # ボリュームマウント（TLS 証明書をコンテナ内にマウントする）
+          volumeMounts:
+            # TLS 証明書ボリュームをマウントする
+            - name: tls-certs
+              # TLS 証明書マウントパス（アプリケーションが参照するパス）
+              mountPath: /etc/tls
+              # 読み取り専用マウントにする（証明書ファイルの誤書き込みを防ぐ）
+              readOnly: true
+        # OTel (OpenTelemetry) コレクターサイドカーコンテナ定義
+        - name: otel-collector
+          # OTel コレクターコンテナイメージ（Harbor 内部レジストリを使用する）
+          image: harbor.k1s0.internal/k1s0/otelcol:latest
+          # イメージプルポリシーを設定する
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # OTel コレクターがリッスンするポート定義
+          ports:
+            # gRPC OTLP ポート（アプリケーションからのテレメトリデータ受信用）
+            - name: otlp-grpc
+              # gRPC OTLP ポート番号（OpenTelemetry 標準ポート）
+              containerPort: 4317
+              # TCP プロトコルを指定する
+              protocol: TCP
+            # HTTP OTLP ポート（HTTP 経由のテレメトリデータ受信用）
+            - name: otlp-http
+              # HTTP OTLP ポート番号（OpenTelemetry 標準ポート）
+              containerPort: 4318
+              # TCP プロトコルを指定する
+              protocol: TCP
+          # OTel コレクターのリソース制限（サイドカーは軽量に保つ）
+          resources:
+            requests:
+              # CPU 要求値（軽量なサイドカーなので最小限に設定する）
+              cpu: "50m"
+              # メモリ要求値
+              memory: "64Mi"
+            limits:
+              # CPU 上限
+              cpu: "200m"
+              # メモリ上限
+              memory: "256Mi"
+      # Pod にマウントするボリュームを定義する
+      volumes:
+        # TLS 証明書ボリューム定義
+        - name: tls-certs
+          secret:
+            # TLS 証明書 Secret 名（フルネーム + -tls サフィックス）
+            secretName: {{ include "k1s0-tier2.fullname" . }}-tls
+            # Secret が存在しない場合は optional にする
+            optional: true

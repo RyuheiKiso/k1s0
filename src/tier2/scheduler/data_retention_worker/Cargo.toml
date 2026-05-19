@@ -1,0 +1,24 @@
+# k1s0 tier2 data-retention-worker: パーティションテーブルの保持期限超過行を削除するバイナリ
+# 設計方針: RETENTION_DAYS 日より古い audit_events_YYYY_MM パーティションを DROP TABLE IF EXISTS する
+[package]
+# パッケージ名: data-retention-worker
+name = "data-retention-worker"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# tokio: 非同期ランタイム（#[tokio::main] エントリポイントに使用する）
+tokio = { version = "1", features = ["full"] }
+# sqlx: PostgreSQL 非同期クライアント（接続・DDL 実行に使用する）
+# postgres=Postgres ドライバ / runtime-tokio-native-tls=TLS 付き tokio ランタイム / macros=#[tokio::test] 等
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-native-tls", "macros"] }
+# tracing: 構造化ロギング（info! / warn! / error! マクロで削除結果を記録する）
+tracing = "0.1"
+# tracing-subscriber: tracing バックエンド（stdout への JSON / テキスト出力）
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# anyhow: エラーハンドリング（main 関数の Result<()> に使用する）
+anyhow = "1"
+# chrono: 日時ライブラリ（RETENTION_DAYS 計算で使用する / wall-clock TTL 禁止規約は deadline に適用）
+chrono = { version = "0.4", features = ["serde"] }

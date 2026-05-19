@@ -190,6 +190,8 @@ const (
 	ActionSendQueueInOrder ReducerActionType = "send_queue_in_order"
 	// ActionPresentBusinessError は business error を表示する action を表す
 	ActionPresentBusinessError ReducerActionType = "present_business_error"
+	// ActionAutoResendWithChainedKey は auto_resend_with_chained_key の型付き action を表す（T3-4）
+	ActionAutoResendWithChainedKey ReducerActionType = "auto_resend_with_chained_key"
 	// ActionPresent3WayMergeUi は 3way merge UI を表示する action を表す
 	ActionPresent3WayMergeUi ReducerActionType = "present_3way_merge_ui"
 	// ActionNotifySilentToast は silent toast を表示する action を表す
@@ -201,6 +203,15 @@ const (
 	// ActionPurgeAllLayers は全 layer を purge する action を表す
 	ActionPurgeAllLayers ReducerActionType = "purge_all_layers"
 )
+
+// AutoResendWithChainedKeyDetail は auto_resend_with_chained_key action の型付き詳細
+// T3-4: string メッセージではなく明示的な型付き struct で表現する
+type AutoResendWithChainedKeyDetail struct {
+	// chain 元の idempotency_key（rebase 前の key）
+	ChainedFrom string
+	// chain 後の新しい idempotency_key
+	NewKey string
+}
 
 // ReducerAction は reducer が返す副作用 action を表す
 type ReducerAction struct {
@@ -359,12 +370,24 @@ func reduceBusinessConflictWithFieldDiff(state ClientState, subtype BusinessConf
 			newKey := chainIdempotencyKey(baseKey, "rebase")
 			// rebase_clean: PQ の key を更新して auto resend する
 			nextState := state
+			// OL を rollback する
 			nextState.OptimisticLocalKey = ""
+			// T3-4: auto_resend_with_chained_key は AutoResendWithChainedKeyDetail 型付き action として dispatch する
+			typedDetail := AutoResendWithChainedKeyDetail{
+				// chain 元の idempotency_key を設定する
+				ChainedFrom: baseKey,
+				// chain 後の新しい idempotency_key を設定する
+				NewKey: newKey,
+			}
 			return ReducerResult{
 				NextState: nextState,
 				Actions: []ReducerAction{
+					// OL rollback action を追加する
 					{Type: ActionRollbackOptimistic},
-					{Type: ActionSendQueueInOrder, Detail: newKey},
+					// T3-4: 型付き AutoResendWithChainedKey action を dispatch する
+					{Type: ActionAutoResendWithChainedKey, Detail: typedDetail},
+					// auto resend action を追加する
+					{Type: ActionSendQueueInOrder},
 				},
 			}
 		}

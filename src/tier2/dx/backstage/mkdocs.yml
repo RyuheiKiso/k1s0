@@ -1,0 +1,58 @@
+# mkdocs.yml — k1s0 tier2 Backstage TechDocs 設定ファイル
+# Backstage TechDocs プラグインが MkDocs を使用して静的ドキュメントを生成するための設定
+# backstage.io/techdocs-ref: "dir:." アノテーションと組み合わせて使用する
+
+# サイト名（Backstage TechDocs の見出しタイトルとして使用する）
+site_name: k1s0 tier2
+
+# ドキュメントソースディレクトリ（monorepo ルートからの相対パスで docs/ を指定する）
+docs_dir: ../../../../docs
+
+# サイト説明（Backstage カタログの description と一致させる）
+site_description: "k1s0 テナント分離プラットフォーム tier2 ドキュメント — 業界中立マルチテナント API 層"
+
+# MkDocs テーマ設定（Backstage TechDocs が要求する material テーマを使用する）
+theme:
+  # Backstage TechDocs が推奨する mkdocs-techdocs-core テーマを使用する
+  name: material
+
+# MkDocs プラグイン設定
+plugins:
+  # 検索機能を有効にする
+  - search
+
+# ナビゲーション構成（docs/ ディレクトリのメインセクションに対応させる）
+nav:
+  # プロジェクト概要セクション
+  - ホーム: 01_プロジェクト概要/README.md
+  # アーキテクチャ概要セクション
+  - アーキテクチャ概要:
+    # 軸登録適合仕様のドキュメントを参照する
+    - 軸登録適合仕様: 02_適合仕様/00_軸登録適合仕様.md
+    # tier1 設計方針のドキュメントを参照する
+    - tier2 設計方針: 03_概要設計/03_tier2設計方針/README.md
+  # 詳細設計セクション
+  - 詳細設計:
+    # テナント分離適合仕様のドキュメントを参照する
+    - テナント分離適合仕様: 04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md
+    # tier2 強制機構のドキュメントを参照する
+    - tier2 強制機構: 04_詳細設計/02_強制機構/02_tier2強制機構.md
+    # lock.yaml 体系のドキュメントを参照する
+    - lock.yaml 体系: 04_詳細設計/05_lock_yaml体系/README.md
+  # 環境構築セクション
+  - 環境構築:
+    # tier2 環境構築手順のドキュメントを参照する
+    - tier2 環境構築: 05_環境構築/README.md
+
+# Markdown 拡張設定（Backstage TechDocs が要求する拡張を有効にする）
+markdown_extensions:
+  # コードブロックのハイライトを有効にする
+  - pymdownx.highlight
+  # コードブロックのスーパーフェンスを有効にする
+  - pymdownx.superfences
+  # タブ切り替えを有効にする
+  - pymdownx.tabbed
+  # アドモニション（Note / Warning 等のブロック）を有効にする
+  - admonition
+  # テーブル拡張を有効にする
+  - tables

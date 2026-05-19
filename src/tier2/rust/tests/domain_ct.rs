@@ -20,6 +20,18 @@ use k1s0_tier2::{
 use k1s0_tier2::atomic_triple_write::{StateChange, TableClass};
 // UUID: テスト用 aggregate_id / tenant_id 生成に使用する
 use uuid::Uuid;
+// sqlx::PgPool: contract test ではオフライン用 connect_lazy でダミープールを生成する
+use sqlx::PgPool;
+
+// contract test 用のオフラインダミー PgPool を生成するヘルパー関数（DB 接続は不要）
+fn make_test_pool() -> PgPool {
+    // TEST_DATABASE_URL が設定されている場合はその URL を使用する（未設定時はダミー URL）
+    let url = std::env::var("TEST_DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://localhost/k1s0_test".to_string());
+    // connect_lazy: 実際の接続を遅延させてオフライン contract test でも PgPool を生成できるようにする
+    PgPool::connect_lazy(&url)
+        .expect("connect_lazy should not fail on valid URL format")
+}
 
 // テスト用の TenantContext を生成するヘルパー関数（integration test 共通）
 // tenant_id: テスト用テナント識別子
@@ -42,8 +54,10 @@ fn ct_tenant_scoped_aggregate_state_change() {
     let tenant_id = Uuid::new_v4();
     // TenantContext を生成する
     let ctx = make_ctx(tenant_id);
-    // AtomicTripleWrite を生成する
-    let writer = AtomicTripleWrite::new(ctx);
+    // テスト用オフラインダミー PgPool を生成する
+    let pool = make_test_pool();
+    // AtomicTripleWrite を生成する（TenantContext と PgPool を渡す）
+    let writer = AtomicTripleWrite::new(ctx, pool);
     // TenantScoped aggregate の StateChange を生成する
     let change = StateChange {
         // テスト用 aggregate ID
@@ -83,8 +97,10 @@ fn ct_tenant_master_aggregate_state_change() {
     let tenant_id = Uuid::new_v4();
     // TenantContext を生成する
     let ctx = make_ctx(tenant_id);
-    // AtomicTripleWrite を生成する
-    let writer = AtomicTripleWrite::new(ctx);
+    // テスト用オフラインダミー PgPool を生成する
+    let pool = make_test_pool();
+    // AtomicTripleWrite を生成する（TenantContext と PgPool を渡す）
+    let writer = AtomicTripleWrite::new(ctx, pool);
     // TenantMaster aggregate の StateChange を生成する
     let change = StateChange {
         // テスト用 aggregate ID
@@ -125,8 +141,10 @@ fn ct_pii_segregated_aggregate_requires_audit() {
         // Support: PII 参照操作に使用する purpose
         SessionPurpose::Support,
     );
-    // AtomicTripleWrite を生成する
-    let writer = AtomicTripleWrite::new(ctx);
+    // テスト用オフラインダミー PgPool を生成する
+    let pool = make_test_pool();
+    // AtomicTripleWrite を生成する（TenantContext と PgPool を渡す）
+    let writer = AtomicTripleWrite::new(ctx, pool);
     // PiiSegregated aggregate の StateChange を生成する（P4 audit 必須の対象）
     let pii_change = StateChange {
         aggregate_id: Uuid::new_v4(),
@@ -161,8 +179,10 @@ fn ct_cross_tenant_state_change_rejected() {
     // テナント A の TenantContext を生成する
     let tenant_a = Uuid::new_v4();
     let ctx_a = make_ctx(tenant_a);
-    // AtomicTripleWrite はテナント A のコンテキストで生成する
-    let writer = AtomicTripleWrite::new(ctx_a);
+    // テスト用オフラインダミー PgPool を生成する
+    let pool = make_test_pool();
+    // AtomicTripleWrite はテナント A のコンテキストで生成する（TenantContext と PgPool を渡す）
+    let writer = AtomicTripleWrite::new(ctx_a, pool);
 
     // テナント B の StateChange を生成する（cross-tenant 書込の試み）
     let tenant_b = Uuid::new_v4();

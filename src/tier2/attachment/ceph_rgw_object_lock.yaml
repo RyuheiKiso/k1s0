@@ -1,0 +1,133 @@
+# ceph_rgw_object_lock.yaml — Ceph RGW Object Lock Compliance 設定
+# 28_業務添付帳票資産適合仕様.md §object_lock: 添付ファイルの改ざん防止を保証する
+# AWS S3 互換の Object Lock Compliance モードを Ceph RadosGW で設定する
+
+# Ceph RGW bucket 設定の API バージョン（Ceph Nautilus 以降 S3 互換）
+apiVersion: k1s0.io/v1
+# リソース種別
+kind: CephRgwBucketPolicy
+metadata:
+  # バケットポリシーの名前
+  name: k1s0-tier2-attachment-object-lock
+  # 対象 namespace（tier2 attachment バケットが存在する namespace）
+  namespace: k1s0-tier2
+  # オーナーラベル
+  labels:
+    # k1s0 軸ラベル
+    k1s0.io/axis: tier2
+    # データ種別ラベル
+    k1s0.io/data-class: attachment
+    # spec 参照ラベル
+    k1s0.io/spec: "conformance.28_attachment_asset"
+spec:
+  # bucket_name: Object Lock を有効化する Ceph RGW バケット名
+  bucket_name: "k1s0-tier2-attachments"
+  # region: Ceph RGW の仮想リージョン名（自社 Ceph クラスタの設定に合わせる）
+  region: "k1s0-internal"
+  # object_lock_configuration: S3 ObjectLockConfiguration に対応する設定
+  object_lock_configuration:
+    # ObjectLockEnabled: バケット作成時に Object Lock を有効化する（後付け不可）
+    object_lock_enabled: true
+    # rule: デフォルト retention rule を設定する
+    rule:
+      # default_retention: バケット全体のデフォルト保持期間
+      default_retention:
+        # mode: Compliance モード（管理者でも削除・短縮不可 — GOVERNANCE は削除可）
+        # 28 §legal_hold: 法的保全要件に対応するため Compliance モードを使用する
+        mode: COMPLIANCE
+        # days: デフォルト保持日数（帳票は 7 年保存 = 2555 日）
+        # 法定保存期間 7 年（電子帳簿保存法・会社法等）に準拠する
+        days: 2555
+
+  # bucket_policy: バケットポリシー（テナント分離 + 書込権限制限）
+  bucket_policy:
+    # version: IAM ポリシー形式のバージョン
+    version: "2012-10-17"
+    # statement: ポリシーのルールリスト
+    statement:
+      # ルール 1: テナント付き ServiceAccount のみ read/write を許可する
+      - sid: "AllowTenantServiceAccountAccess"
+        # effect: Allow（許可）
+        effect: Allow
+        # principal: k1s0-tier2 namespace の attachment ServiceAccount のみ
+        principal:
+          # 対象 ServiceAccount の ARN 形式（Ceph は IAM 互換 ARN を使用する）
+          aws: "arn:aws:iam::k1s0:root"
+        # action: 添付ファイルの read/write に必要な S3 API を許可する
+        action:
+          # GetObject: ファイルダウンロードを許可する
+          - "s3:GetObject"
+          # PutObject: ファイルアップロードを許可する
+          - "s3:PutObject"
+          # GetObjectLegalHold: 法的保全状態の確認を許可する
+          - "s3:GetObjectLegalHold"
+          # GetObjectRetention: retention 期間の確認を許可する
+          - "s3:GetObjectRetention"
+        # resource: バケット内の全オブジェクトを対象にする
+        resource: "arn:aws:s3:::k1s0-tier2-attachments/*"
+
+      # ルール 2: Object Lock / retention の変更を明示的に Deny する
+      - sid: "DenyObjectLockModification"
+        # effect: Deny（拒否）— Allow より優先される
+        effect: Deny
+        # principal: 全ての principal に対して Deny する
+        principal: "*"
+        # action: Object Lock 設定変更を禁止する
+        action:
+          # PutObjectLegalHold: legal hold の変更を禁止する
+          - "s3:PutObjectLegalHold"
+          # PutObjectRetention: retention の短縮を禁止する（Compliance モードで自動禁止されるが明示する）
+          - "s3:PutObjectRetention"
+          # DeleteObjectVersion: バージョン付きオブジェクトの削除を禁止する
+          - "s3:DeleteObjectVersion"
+          # PutBucketObjectLockConfiguration: バケット全体の設定変更を禁止する
+          - "s3:PutBucketObjectLockConfiguration"
+        # resource: バケット全体を対象にする
+        resource:
+          # バケット自体への変更を禁止する
+          - "arn:aws:s3:::k1s0-tier2-attachments"
+          # バケット内全オブジェクトへの変更を禁止する
+          - "arn:aws:s3:::k1s0-tier2-attachments/*"
+
+  # versioning: Object Lock 使用時はバージョニングが必須
+  versioning:
+    # status: バージョニングを有効にする（Object Lock の前提条件）
+    status: Enabled
+
+  # cors_configuration: SPA から添付ファイルを直接アップロードする際の CORS 設定
+  cors_configuration:
+    # allowed_origins: k1s0 SPA のオリジンのみ許可する
+    allowed_origins:
+      # SPA の本番オリジン
+      - "https://app.k1s0.internal"
+      # Tauri Companion のオリジン
+      - "tauri://localhost"
+    # allowed_methods: アップロード / ダウンロードに必要なメソッドを許可する
+    allowed_methods:
+      # GET: ダウンロード
+      - GET
+      # PUT: アップロード（presigned URL 使用）
+      - PUT
+      # HEAD: メタデータ確認
+      - HEAD
+    # allowed_headers: 必要なヘッダーのみ許可する
+    allowed_headers:
+      # Content-Type: ファイル種別ヘッダー
+      - "Content-Type"
+      # Content-Disposition: ファイル名ヘッダー
+      - "Content-Disposition"
+      # x-amz-server-side-encryption: サーバーサイド暗号化ヘッダー
+      - "x-amz-server-side-encryption"
+    # expose_headers: クライアントに返すヘッダー
+    expose_headers:
+      # ETag: チェックサム確認に使用する
+      - ETag
+    # max_age_seconds: CORS preflight のキャッシュ時間（1 時間）
+    max_age_seconds: 3600
+
+  # encryption: サーバーサイド暗号化設定（SSE-S3 デフォルト）
+  encryption:
+    # sse_algorithm: AES256 サーバーサイド暗号化を使用する
+    sse_algorithm: AES256
+    # NOTE: より強固な暗号化が必要な場合は SSE-KMS（OpenBao 連携）に切り替えること
+    # kms_key_id: "openbao-kms-arn"  # 現時点では SSE-S3 で対応する

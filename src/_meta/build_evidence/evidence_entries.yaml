@@ -320,3 +320,48 @@ evidence_entries:
     collected_at: "2026-05-18T00:00:00Z"
     # S5 stub: SLSA attestation は Stage 5 で実施
     notes: "S5 stub: SLSA attestation は Stage 5 で実施"
+
+  # v1.0.0 完璧化: tier1 stub controller 4 件 + SPIRE + OIDC + Schema Evolution 実装
+  - cell_id: tier1.operator_controllers_physical_green
+    # tier1 operator controller 全 stub 解消の証拠（keyclass/sloclass/quotaclass/lifecycle real impl）
+    build_evidence_id: cargo_build_pass_tier1_operator_v1_physical_20260519
+    # 証拠収集日時
+    collected_at: "2026-05-19T00:00:00Z"
+    # tier1 operator controller 4 件の real impl（OpenBao Transit / PrometheusRule / ResourceQuota / OSV API）
+    notes: "v1.0.0: tier1 operator controllers stub 解消 — keyclass=OpenBao Transit rotate, sloclass=PrometheusRule+freeze, quotaclass=ResourceQuota/LimitRange apply, lifecycle=OSV/deps.dev/GitHub API"
+
+  # v1.0.0 完璧化: tier1 SPIRE Workload API real gRPC 実装
+  - cell_id: tier1.spire_workload_api_physical_green
+    # SPIRE Workload API tonic gRPC 実装の証拠
+    build_evidence_id: cargo_build_pass_tier1_bfl_spire_v1_physical_20260519
+    # 証拠収集日時
+    collected_at: "2026-05-19T00:00:00Z"
+    # tonic UnixStream connector + prost types + FetchX509SVID server-streaming RPC
+    notes: "v1.0.0: SPIRE workload stub 解消 — tonic gRPC over Unix socket, FetchX509SVID server-streaming, prost message types"
+
+  # v1.0.0 完璧化: tier1 Schema Evolution proto 新設
+  - cell_id: tier1.schema_evolution_proto_physical_green
+    # schema_evolution proto + buf.yaml + lint plugin 追加の証拠
+    build_evidence_id: buf_lint_pass_tier1_schema_evolution_v1_20260519
+    # 証拠収集日時
+    collected_at: "2026-05-19T00:00:00Z"
+    # 6 schema_class enum + field/message/method option extension + buf.work.yaml 追加 + lint plugin 更新
+    notes: "v1.0.0: schema_evolution axis proto 新設 — 6 class enum, field/message/method option, buf.work.yaml, lint plugin RequiredAnnotations"
+
+  # v1.0.0 完璧化: tier2 Valkey cache + Temporal + external proto 4 系統実装
+  - cell_id: tier2.cache_temporal_integration_physical_green
+    # tier2 Valkey cache + Temporal + external proto 4 系統の証拠
+    build_evidence_id: cargo_build_pass_tier2_cache_temporal_v1_20260519
+    # 証拠収集日時
+    collected_at: "2026-05-19T00:00:00Z"
+    # Valkey cache 4 言語 + Temporal 5 workflow + external proto 4 系統（ERP/EDI/Modbus/OPC-UA）
+    notes: "v1.0.0: tier2 cache/temporal/integration stub 解消 — Valkey 4 lang, Temporal saga/nightly/monthly/yearly/dry_run, ERP/X12/Modbus/OPC-UA adapters"
+
+  # v1.0.0 完璧化: tier3 Outbox HLC + 4 言語 parity + Companion DPoP 実装
+  - cell_id: tier3.outbox_companion_physical_green
+    # tier3 Outbox HLC + Companion DPoP の証拠
+    build_evidence_id: cargo_test_pass_tier3_outbox_companion_v1_20260519
+    # 証拠収集日時
+    collected_at: "2026-05-19T00:00:00Z"
+    # Outbox HLC 化 + 4 言語 parity + Companion WebSocket + DPoP + PSK HMAC
+    notes: "v1.0.0: tier3 outbox wall-clock 解消（HLC 化）、4 言語 Outbox parity、Companion DPoP/WebSocket 実装、Argo Rollouts AnalysisTemplate 追加"

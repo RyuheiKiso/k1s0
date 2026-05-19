@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@k1s0/tier3-outbox": ["../outbox/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }

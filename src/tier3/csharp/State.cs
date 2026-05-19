@@ -105,6 +105,15 @@ public enum PurgeReason
     DeviceBoundKeyRotate,
 }
 
+// AutoResendWithChainedKeyAction は auto_resend_with_chained_key の型付きアクション
+// T3-4: string メッセージではなく明示的な型付きクラスで表現する
+public sealed record AutoResendWithChainedKeyAction(
+    // chain 元の idempotency_key（rebase 前の key）
+    string ChainedFrom,
+    // chain 後の新しい idempotency_key
+    string NewKey
+);
+
 // reducer が返す副作用 actions の基底 record
 public abstract record ReducerAction;
 // server_truth を更新する
@@ -121,8 +130,10 @@ public sealed record DeletePqEntryAction(string IdempotencyKey) : ReducerAction;
 public sealed record SendQueueInOrderAction : ReducerAction;
 // business error を表示する
 public sealed record PresentBusinessErrorAction(string ErrorCode) : ReducerAction;
-// BusinessConflict subtype action を dispatch する
+// BusinessConflict subtype action を dispatch する（auto_resend_with_chained_key 以外）
 public sealed record DispatchConflictSubtypeAction(BusinessConflictSubtype Subtype) : ReducerAction;
+// auto_resend_with_chained_key の型付きアクション（T3-4: string ではなく明示的型付きクラスで表現する）
+public sealed record AutoResendWithChainedKeyReducerAction(AutoResendWithChainedKeyAction Action) : ReducerAction;
 // 3way merge UI を表示する
 public sealed record Present3WayMergeUiAction : ReducerAction;
 // silent toast を表示する
@@ -281,11 +292,20 @@ public static class ClientStateReducer
             var newKey = IdempotencyKeyHelper.ChainIdempotencyKey(baseKey, "rebase");
             // OL を rollback して auto resend する
             var nextState = state with { OptimisticLocalKey = null };
+            // T3-4: auto_resend_with_chained_key は AutoResendWithChainedKeyReducerAction として dispatch する
+            var typedAction = new AutoResendWithChainedKeyAction(
+                // chain 元の idempotency_key を設定する
+                ChainedFrom: baseKey,
+                // chain 後の新しい idempotency_key を設定する
+                NewKey: newKey
+            );
             return new(nextState, [
+                // OL rollback action を追加する
                 new RollbackOptimisticAction(),
+                // T3-4: 型付き AutoResendWithChainedKeyReducerAction を dispatch する
+                new AutoResendWithChainedKeyReducerAction(typedAction),
+                // auto resend action を追加する
                 new SendQueueInOrderAction(),
-                // chain した新 key を detail に含む silent toast で通知する
-                new NotifySilentToastAction($"rebase_clean: auto resend with key={newKey}"),
             ]);
         }
         // FieldDiff がない / intersecting の場合は rebase_dirty → 3way merge UI + hold

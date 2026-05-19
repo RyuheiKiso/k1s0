@@ -1,0 +1,36 @@
+# k1s0 tier2 temporal workflows: Temporal SDK を使用した業務 Workflow 定義
+[package]
+# パッケージ名: k1s0-tier2-temporal
+name = "k1s0-tier2-temporal"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# tokio: 非同期ランタイム（Temporal SDK の非同期 Workflow 実行に必要）
+tokio = { version = "1", features = ["full"] }
+# anyhow: エラーハンドリングに使用する
+anyhow = "1"
+# serde: Workflow 入出力の JSON シリアライズに使用する
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON 変換に使用する
+serde_json = "1"
+# tracing: 構造化ロギングに使用する
+tracing = "0.1"
+# tracing-subscriber: ロギングサブスクライバーに使用する
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# uuid: Workflow ID 生成に使用する
+uuid = { version = "1", features = ["v4"] }
+# chrono: 業務日付計算に使用する（wall-clock はステータス記録目的のみ使用する）
+chrono = { version = "0.4", features = ["serde"] }
+# temporal-client: Temporal server への gRPC クライアント（SDK コア）
+# NOTE: temporal-sdk-core は alpha 段階のため、API 安定化後に update すること
+temporal-client = { version = "0.1", optional = true }
+# thiserror: Workflow エラー型に使用する
+thiserror = "1"
+
+[features]
+# temporal-sdk feature: 実際の Temporal SDK を有効化する（optional）
+# feature なしでは workflow logic のみビルドされる（Unit Test 用）
+temporal = ["dep:temporal-client"]
