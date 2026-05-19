@@ -29,6 +29,8 @@ import (
 
 	// Kubernetes API マシナリーのインポート: metav1.Time に使用する
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// controller-runtime ルートパッケージのインポート: ctrl.NewControllerManagedBy / ctrl.Manager に使用する
+	ctrl "sigs.k8s.io/controller-runtime"
 	// controller-runtime クライアントのインポート: API サーバとの通信に使用する
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	// controller-runtime ログのインポート: 構造化ログに使用する
@@ -203,6 +205,17 @@ func fetchKeyLatestVersion(ctx context.Context, keyName string) (int, error) {
 type KeyClassReconciler struct {
 	// Kubernetes クライアント: API サーバとのリソース読み書きに使用する
 	client.Client
+}
+
+// SetupWithManager はコントローラをマネージャーに登録して KeyClass イベントを監視する
+// 05_鍵管理適合仕様.md §rotation_cadence enforcement のエントリポイントとなる
+func (r *KeyClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// ctrl.NewControllerManagedBy でコントローラを構築してマネージャーに登録する
+	return ctrl.NewControllerManagedBy(mgr).
+		// KeyClass リソースの変更イベントを監視する
+		For(&tier1v1.KeyClass{}).
+		// コントローラを登録して返す
+		Complete(r)
 }
 
 // Reconcile は KeyClass リソースの desired state と actual state を一致させる

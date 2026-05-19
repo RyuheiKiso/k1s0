@@ -9,6 +9,59 @@ pub mod noisy_neighbor;
 pub mod litmus_workflow_harness;
 
 // ============================================================
+// quota_class 別 manifest ファイル選択
+// ============================================================
+
+// 5 quota_class すべての Litmus ChaosEngine manifest パスを返す定数マッピング関数
+// quota_class_id: quota_class の識別子文字列（classes.yaml の id フィールドと対応する）
+// Returns: 対応する manifest ファイルの相対パス。未知の quota_class は None を返す
+pub fn manifest_for_quota_class(quota_class_id: &str) -> Option<&'static str> {
+    // quota_class_id に応じて manifest ファイルパスを返す
+    match quota_class_id {
+        // v1_per_tenant_qps: QPS 制限の noisy neighbor テスト（既存 manifest）
+        "v1_per_tenant_qps" => Some(
+            "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_qps.yaml",
+        ),
+        // v1_per_tenant_storage: Storage quota の noisy neighbor テスト
+        "v1_per_tenant_storage" => Some(
+            "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_storage.yaml",
+        ),
+        // v1_per_tenant_compute: Compute quota の noisy neighbor テスト
+        "v1_per_tenant_compute" => Some(
+            "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_compute.yaml",
+        ),
+        // v1_per_tenant_egress: Egress quota の noisy neighbor テスト
+        "v1_per_tenant_egress" => Some(
+            "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_egress.yaml",
+        ),
+        // v1_per_tenant_concurrency: 並列リクエスト quota の noisy neighbor テスト
+        "v1_per_tenant_concurrency" => Some(
+            "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_concurrent.yaml",
+        ),
+        // 未知の quota_class は None を返す
+        _ => None,
+    }
+}
+
+// 全 5 quota_class の manifest パスを配列で返す関数
+// Returns: 5 manifest ファイルパスの固定長配列
+pub fn all_quota_class_manifests() -> [&'static str; 5] {
+    // 全 quota_class の manifest パスを網羅した配列を返す
+    [
+        // QPS quota manifest
+        "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_qps.yaml",
+        // Storage quota manifest
+        "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_storage.yaml",
+        // Compute quota manifest
+        "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_compute.yaml",
+        // Egress quota manifest
+        "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_egress.yaml",
+        // Concurrency quota manifest
+        "src/tier1/tests/chaos/manifests/litmus_noisy_neighbor_v1_per_tenant_concurrent.yaml",
+    ]
+}
+
+// ============================================================
 // quota_class 定義
 // ============================================================
 
@@ -299,6 +352,57 @@ mod tests {
         assert_eq!(counter.current_qps, 10, "QPS should be clamped to max quota limit");
         // クォータ内であることを確認する
         assert!(counter.is_within_quota(), "Counter should be within quota after clamping");
+    }
+
+    // ---- manifest_for_quota_class の検証テスト ----
+
+    // manifest_for_quota_class: 全 5 quota_class の manifest パスが返ることを検証する
+    #[test]
+    fn test_manifest_for_quota_class_all_five_classes() {
+        // v1_per_tenant_qps の manifest パスが Some であることを確認する
+        assert!(
+            manifest_for_quota_class("v1_per_tenant_qps").is_some(),
+            "v1_per_tenant_qps の manifest は Some を返すべき"
+        );
+        // v1_per_tenant_storage の manifest パスが Some であることを確認する
+        assert!(
+            manifest_for_quota_class("v1_per_tenant_storage").is_some(),
+            "v1_per_tenant_storage の manifest は Some を返すべき"
+        );
+        // v1_per_tenant_compute の manifest パスが Some であることを確認する
+        assert!(
+            manifest_for_quota_class("v1_per_tenant_compute").is_some(),
+            "v1_per_tenant_compute の manifest は Some を返すべき"
+        );
+        // v1_per_tenant_egress の manifest パスが Some であることを確認する
+        assert!(
+            manifest_for_quota_class("v1_per_tenant_egress").is_some(),
+            "v1_per_tenant_egress の manifest は Some を返すべき"
+        );
+        // v1_per_tenant_concurrency の manifest パスが Some であることを確認する
+        assert!(
+            manifest_for_quota_class("v1_per_tenant_concurrency").is_some(),
+            "v1_per_tenant_concurrency の manifest は Some を返すべき"
+        );
+        // 未知の quota_class は None を返すことを確認する
+        assert!(
+            manifest_for_quota_class("v1_unknown_class").is_none(),
+            "未知の quota_class は None を返すべき"
+        );
+    }
+
+    // all_quota_class_manifests: 5 件の manifest パスが返ることを検証する
+    #[test]
+    fn test_all_quota_class_manifests_returns_five_entries() {
+        // 全 manifest パスを取得する
+        let manifests = all_quota_class_manifests();
+        // 5 件であることを確認する
+        assert_eq!(manifests.len(), 5, "all_quota_class_manifests は 5 件を返すべき");
+        // 全パスが空でないことを確認する
+        for path in &manifests {
+            // 各パスが空文字列でないことを確認する
+            assert!(!path.is_empty(), "manifest パスは空であってはいけない");
+        }
     }
 
     // ---- Litmus ChaosEngine を使用する E2E テスト（要 k8s cluster: 通常は #[ignore]）----

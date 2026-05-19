@@ -7,8 +7,8 @@ pairs:
   - pair_id: relational_pg_pair
     from_oss: cnpg_postgresql
     to_oss: stackgres_postgresql
-    # ペア全体の最終 green 日時
-    last_green_at: "2026-05-17T13:00:00Z"
+    # ペア全体の最終 green 日時（yearly_dry_run complete_phase が HLC ベースで更新する）
+    last_green_at: "2026-05-20T00:00:00Z"
     phases:
       # フェーズ 1: スキーマ差分検出（pg_dump --schema-only で diff）
       - phase_id: schema_diff
@@ -40,7 +40,8 @@ pairs:
   - pair_id: messaging_kafka_pair
     from_oss: strimzi_kafka
     to_oss: redpanda
-    last_green_at: "2026-05-17T13:05:00Z"
+    # ペア全体の最終 green 日時（yearly_dry_run complete_phase が HLC ベースで更新する）
+    last_green_at: "2026-05-20T00:01:00Z"
     phases:
       # フェーズ 1: スキーマ差分検出（Kafka topic metadata 比較）
       - phase_id: schema_diff
@@ -72,7 +73,8 @@ pairs:
   - pair_id: workflow_pair
     from_oss: temporal
     to_oss: cadence
-    last_green_at: "2026-05-17T13:10:00Z"
+    # ペア全体の最終 green 日時（yearly_dry_run complete_phase が HLC ベースで更新する）
+    last_green_at: "2026-05-20T00:02:00Z"
     phases:
       # フェーズ 1: スキーマ差分検出（workflow history export 比較）
       - phase_id: schema_diff
@@ -104,7 +106,8 @@ pairs:
   - pair_id: rule_engine_pair
     from_oss: zen_engine
     to_oss: custom_rust_dsl
-    last_green_at: "2026-05-17T13:15:00Z"
+    # ペア全体の最終 green 日時（yearly_dry_run complete_phase が HLC ベースで更新する）
+    last_green_at: "2026-05-20T00:03:00Z"
     phases:
       # フェーズ 1: スキーマ差分検出（DSL AST 等価性チェック）
       - phase_id: schema_diff

@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	// Kubernetes runtime schema のインポート: GroupVersionResource 指定に使用する
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	// controller-runtime ルートパッケージのインポート: ctrl.NewControllerManagedBy / ctrl.Manager に使用する
+	ctrl "sigs.k8s.io/controller-runtime"
 	// controller-runtime クライアントのインポート: API サーバとの通信に使用する
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	// controller-runtime ログのインポート: 構造化ログに使用する
@@ -146,6 +148,17 @@ func freezeConfigMapName(sloClassName string) string {
 type SLOClassReconciler struct {
 	// Kubernetes クライアント: API サーバとのリソース読み書きに使用する
 	client.Client
+}
+
+// SetupWithManager はコントローラをマネージャーに登録して SLOClass イベントを監視する
+// 07_SLO適合仕様.md §slo_class enforcement のエントリポイントとなる
+func (r *SLOClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// ctrl.NewControllerManagedBy でコントローラを構築してマネージャーに登録する
+	return ctrl.NewControllerManagedBy(mgr).
+		// SLOClass リソースの変更イベントを監視する
+		For(&tier1v1.SLOClass{}).
+		// コントローラを登録して返す
+		Complete(r)
 }
 
 // Reconcile は SLOClass リソースの desired state と actual state を一致させる

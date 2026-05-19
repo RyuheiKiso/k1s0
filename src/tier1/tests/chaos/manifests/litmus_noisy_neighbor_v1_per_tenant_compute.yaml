@@ -1,0 +1,103 @@
+# Litmus ChaosEngine: tier1 noisy neighbor コンピュート枯渇テスト
+# 09_テナント容量適合仕様に基づくテナント間 Compute quota 独立性を検証する
+# このマニフェストを apply すると pod-cpu-hog + pod-memory-hog chaos experiment が実行される
+# 使用方法: kubectl apply -f litmus_noisy_neighbor_v1_per_tenant_compute.yaml
+
+# Litmus ChaosEngine API バージョン
+apiVersion: litmuschaos.io/v1alpha1
+# リソース種別: ChaosEngine
+kind: ChaosEngine
+# メタデータ設定
+metadata:
+  # ChaosEngine リソース名: compute noisy neighbor テスト
+  name: tier1-noisy-neighbor-compute-test
+  # 対象 namespace: tier1 テスト用 namespace
+  namespace: tier1-test
+  # ラベル: テスト種別と quota_class を明示する
+  labels:
+    # テスト種別: noisy neighbor テスト
+    test-type: noisy-neighbor
+    # 適合仕様参照: 09_テナント容量適合仕様
+    spec-ref: "09_tenant_capacity"
+    # quota class: compute quota の分離テスト
+    k1s0.io/quota-class: v1_per_tenant_compute
+# ChaosEngine の仕様設定
+spec:
+  # 対象アプリケーション情報
+  appinfo:
+    # 対象 namespace
+    appns: tier1-test
+    # 対象アプリのラベルセレクター
+    applabel: "app=tier1-gateway"
+    # 対象 API グループ
+    appkind: deployment
+  # Chaos 実験用サービスアカウント
+  chaosServiceAccount: litmus-admin
+  # 実験後のターゲット Pod の処理方法（delete: chaos 後に Pod を削除する）
+  jobCleanUpPolicy: delete
+  # モニタリング設定: Prometheus メトリクスを有効化する
+  monitoring: true
+  # 実行する Chaos 実験リスト（CPU + Memory の複合 compute quota テスト）
+  experiments:
+    # pod-cpu-hog: 対象 Pod の CPU を高負荷状態にする実験
+    - name: pod-cpu-hog
+      # 実験の仕様設定
+      spec:
+        # 実験のコンポーネント設定
+        components:
+          # 環境変数設定
+          env:
+            # TOTAL_CHAOS_DURATION: chaos 実験の継続時間（秒）
+            - name: TOTAL_CHAOS_DURATION
+              # 60 秒間 CPU を hog して compute quota 枯渇シナリオを再現する
+              value: "60"
+            # CPU_CORES: hog する CPU コア数
+            - name: CPU_CORES
+              # 4 コアを hog して compute quota の上限をテストする
+              value: "4"
+            # CPU_LOAD: hog する CPU 負荷率（%）
+            - name: CPU_LOAD
+              # 90% の CPU 負荷を与えて v1_per_tenant_compute quota 境界を確認する
+              value: "90"
+            # TARGET_CONTAINER: chaos を当てるコンテナ名
+            - name: TARGET_CONTAINER
+              # tier1-gateway コンテナを対象とする
+              value: "tier1-gateway"
+            # CHAOS_NAMESPACE: chaos を当てる namespace
+            - name: CHAOS_NAMESPACE
+              # tier1-test namespace を対象とする
+              value: "tier1-test"
+            # QUOTA_CLASS: 対象 quota_class を明示する（harness 側での選択キーに使用する）
+            - name: QUOTA_CLASS
+              # compute quota class を指定する
+              value: "v1_per_tenant_compute"
+        # 実験のステータス確認設定
+        status:
+          # ChaosResult: chaos 実験の結果を確認する
+          - name: ChaosResult
+            # 期待する結果: v1_per_tenant_compute 分離テストが pass すること
+            value: v1_per_tenant_compute_isolation_pass
+    # pod-memory-hog: 対象 Pod のメモリを高負荷状態にする実験（CPU と組み合わせて compute quota を総合テストする）
+    - name: pod-memory-hog
+      # 実験の仕様設定
+      spec:
+        # 実験のコンポーネント設定
+        components:
+          # 環境変数設定
+          env:
+            # TOTAL_CHAOS_DURATION: chaos 実験の継続時間（秒）
+            - name: TOTAL_CHAOS_DURATION
+              # 60 秒間メモリを hog して compute quota 枯渇シナリオを再現する
+              value: "60"
+            # MEMORY_CONSUMPTION: 消費するメモリ量（MiB）
+            - name: MEMORY_CONSUMPTION
+              # 512 MiB を消費して compute quota の上限をテストする
+              value: "512"
+            # TARGET_CONTAINER: chaos を当てるコンテナ名
+            - name: TARGET_CONTAINER
+              # tier1-gateway コンテナを対象とする
+              value: "tier1-gateway"
+            # CHAOS_NAMESPACE: chaos を当てる namespace
+            - name: CHAOS_NAMESPACE
+              # tier1-test namespace を対象とする
+              value: "tier1-test"

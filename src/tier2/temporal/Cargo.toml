@@ -14,23 +14,30 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 # serde: Workflow 入出力の JSON シリアライズに使用する
 serde = { version = "1", features = ["derive"] }
-# serde_json: JSON 変換に使用する
+# serde_json: JSON 変換・アーカイブペイロード生成に使用する
 serde_json = "1"
 # tracing: 構造化ロギングに使用する
 tracing = "0.1"
 # tracing-subscriber: ロギングサブスクライバーに使用する
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# uuid: Workflow ID 生成に使用する
-uuid = { version = "1", features = ["v4"] }
+# uuid: Workflow ID / aggregate_id 生成に使用する
+uuid = { version = "1", features = ["v4", "serde"] }
 # chrono: 業務日付計算に使用する（wall-clock はステータス記録目的のみ使用する）
 chrono = { version = "0.4", features = ["serde"] }
-# temporal-client: Temporal server への gRPC クライアント（SDK コア）
-# NOTE: temporal-sdk-core は alpha 段階のため、API 安定化後に update すること
-temporal-client = { version = "0.1", optional = true }
 # thiserror: Workflow エラー型に使用する
 thiserror = "1"
+# sqlx: PostgreSQL 非同期クライアント（Activity 関数内の DB 操作に使用する）
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid", "chrono", "json"] }
+# k1s0-tier2: AtomicTripleWrite / TenantContext / StateChange を参照する
+k1s0-tier2 = { path = "../rust" }
+# k1s0-hlc: HLC タイムスタンプ生成（wall-clock TTL 禁止規約に従い HLC 経由で取得する）
+k1s0-hlc = { path = "../../client/hlc_lib/rust" }
+# reqwest: S3/MinIO への HTTP PUT + Kubernetes API PATCH に使用する（archive + cutover 必須）
+# default-features = false で TLS ライブラリへの依存を除去する（HTTP エンドポイント専用）
+# 本番では TLS プロキシ（Envoy/Linkerd sidecar）が TLS 終端を担う
+reqwest = { version = "0.12", features = ["json"], default-features = false }
 
 [features]
-# temporal-sdk feature: 実際の Temporal SDK を有効化する（optional）
-# feature なしでは workflow logic のみビルドされる（Unit Test 用）
-temporal = ["dep:temporal-client"]
+# temporal-sdk feature: 将来の Temporal SDK 統合用プレースホルダー（現在は SDK なしでビルドする）
+# temporal-sdk-core は alpha 段階のため、GA 後に temporal-client crate を追加する
+default = []

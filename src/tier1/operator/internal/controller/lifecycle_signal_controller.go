@@ -29,6 +29,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	// Kubernetes API マシナリーのインポート: metav1.Time に使用する
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// controller-runtime ルートパッケージのインポート: ctrl.NewControllerManagedBy / ctrl.Manager に使用する
+	ctrl "sigs.k8s.io/controller-runtime"
 	// controller-runtime クライアントのインポート
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	// controller-runtime ログのインポート
@@ -498,6 +500,17 @@ func evaluateLifecycleSignal(ctx context.Context, c client.Client, inv tier1v1.O
 type LifecycleSignalReconciler struct {
 	// Kubernetes クライアント: API サーバとのリソース読み書きに使用する
 	client.Client
+}
+
+// SetupWithManager はコントローラをマネージャーに登録して OSSInventory イベントを監視する
+// 08_OSSライフサイクル適合仕様.md §lifecycle_signal enforcement のエントリポイントとなる
+func (r *LifecycleSignalReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// ctrl.NewControllerManagedBy でコントローラを構築してマネージャーに登録する
+	return ctrl.NewControllerManagedBy(mgr).
+		// OSSInventory リソースの変更イベントを監視する
+		For(&tier1v1.OSSInventory{}).
+		// コントローラを登録して返す
+		Complete(r)
 }
 
 // Reconcile は OSSInventory CRD の変化を検知して lifecycle signal を評価し status を更新する

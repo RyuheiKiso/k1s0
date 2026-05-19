@@ -16,6 +16,8 @@ pub mod adapters;
 pub mod event_bus;
 // scenario_runner モジュール（scenarios.yaml から Bidi シナリオを読み込んで実行する）
 pub mod scenario_runner;
+// ua_aware モジュール（User-Agent に基づいて最適 Bidi transport adapter を選択する）
+pub mod ua_aware;
 
 // axum: HTTP ルーター（use される識別子のみインポートする）
 use axum::{Json, Router, routing::get, extract::Query, http::StatusCode, response::IntoResponse};
@@ -182,7 +184,7 @@ async fn key_handle_demo_handler() -> impl IntoResponse {
 
 // build_router は gateway の axum Router を構築して返す。
 // pub: integration test（tests/ 配下）と main.rs の両方から参照する。
-// EventBus を作成して long_poll adapter に注入する。
+// EventBus を作成して全 adapter に注入する（broadcast channel による event routing）。
 pub fn build_router() -> Router {
     // EventBus を生成する（gateway 全体で 1 インスタンス共有）
     let event_bus = EventBus::new();
@@ -198,18 +200,18 @@ pub fn build_router() -> Router {
         .route("/kek/demo", get(key_handle_demo_handler))
         // adapter 1: grpc_native — gRPC over HTTP/2（/grpc/...）
         .nest("/grpc", adapters::grpc_native::router())
-        // adapter 2: connect_bidi — Connect-RPC bidi（/connect/...）
-        .nest("/connect", adapters::connect_bidi::router())
-        // adapter 3: web_transport — WebTransport H/3 check + fallback（/webtransport/...）
-        .nest("/webtransport", adapters::web_transport::router())
-        // adapter 4: paired_post_sse — POST↔SSE pair（/post-sse/...）
-        .nest("/post-sse", adapters::paired_post_sse::router())
-        // adapter 5: sse_paired — EventSource SSE（/sse-stream/...）
-        .nest("/sse-stream", adapters::sse_paired::router())
+        // adapter 2: connect_bidi — Connect-RPC bidi（/connect/...）EventBus を注入する
+        .nest("/connect", adapters::connect_bidi::router(event_bus.clone()))
+        // adapter 3: web_transport — WebTransport H/3 check + fallback（/webtransport/...）EventBus を注入する
+        .nest("/webtransport", adapters::web_transport::router(event_bus.clone()))
+        // adapter 4: paired_post_sse — POST↔SSE pair（/post-sse/...）EventBus を注入する
+        .nest("/post-sse", adapters::paired_post_sse::router(event_bus.clone()))
+        // adapter 5: sse_paired — EventSource SSE（/sse-stream/...）EventBus を注入する
+        .nest("/sse-stream", adapters::sse_paired::router(event_bus.clone()))
         // adapter 6: long_poll — fetch long-poll（EventBus を注入して broadcast channel を配線する）
-        .nest("/long-poll", adapters::long_poll::router(event_bus))
+        .nest("/long-poll", adapters::long_poll::router(event_bus.clone()))
         // adapter 7: messaging_bridge — Kafka idempotent producer（/kafka/...）
         .nest("/kafka", adapters::messaging_bridge::router())
-        // adapter 8: webhook — HMAC-SHA256 signed webhook イベント受信（/webhook/...）
-        .nest("/webhook", adapters::webhook::router())
+        // adapter 8: webhook — HMAC-SHA256 signed webhook イベント受信（/webhook/...）EventBus を注入する
+        .nest("/webhook", adapters::webhook::router(event_bus))
 }

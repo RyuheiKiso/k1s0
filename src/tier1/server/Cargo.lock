@@ -1484,6 +1484,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "k1s0-hlc"
+version = "0.1.0"
+
+[[package]]
 name = "k1s0-tier1-bfl"
 version = "0.1.0"
 dependencies = [
@@ -1516,6 +1520,7 @@ dependencies = [
  "futures-util",
  "k8s-openapi",
  "kube",
+ "reqwest",
  "schemars",
  "serde",
  "serde_json",
@@ -1540,6 +1545,7 @@ dependencies = [
  "governor",
  "hex",
  "hmac",
+ "k1s0-hlc",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",

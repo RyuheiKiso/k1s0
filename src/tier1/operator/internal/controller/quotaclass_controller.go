@@ -21,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	// errors パッケージのインポート: IsNotFound エラー判定に使用する
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	// controller-runtime ルートパッケージのインポート: ctrl.NewControllerManagedBy / ctrl.Manager に使用する
+	ctrl "sigs.k8s.io/controller-runtime"
 	// controller-runtime クライアントのインポート: API サーバとの通信に使用する
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	// controller-runtime ログのインポート: 構造化ログに使用する
@@ -35,6 +37,17 @@ import (
 type QuotaClassReconciler struct {
 	// Kubernetes クライアント: API サーバとのリソース読み書きに使用する
 	client.Client
+}
+
+// SetupWithManager はコントローラをマネージャーに登録して QuotaClass イベントを監視する
+// 09_テナント容量適合仕様.md §quota enforcement のエントリポイントとなる
+func (r *QuotaClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// ctrl.NewControllerManagedBy でコントローラを構築してマネージャーに登録する
+	return ctrl.NewControllerManagedBy(mgr).
+		// QuotaClass リソースの変更イベントを監視する
+		For(&tier1v1.QuotaClass{}).
+		// コントローラを登録して返す
+		Complete(r)
 }
 
 // quotaLimitsForClass は quota_class ごとの ResourceQuota / LimitRange 値を返す

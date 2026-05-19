@@ -19,3 +19,23 @@ serde_json = "1"
 anyhow = "1"
 # chrono: 添付ファイルのアップロード日時に使用する（HLC タイムスタンプと併用する）
 chrono = { version = "0.4", features = ["serde"] }
+# aes-gcm: AES-256-GCM によるエンベロープ暗号化に使用する（DEK で平文を暗号化する）
+aes-gcm = "0.10"
+# zeroize: DEK（データ暗号化キー）をスコープ外で安全にゼロ消去するために使用する
+zeroize = "1.8"
+# reqwest: OpenBao Transit API を呼び出す非同期 HTTP クライアント（rustls を使用して openssl 依存を排除する）
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+# tokio: 非同期ランタイム（reqwest および async 関数の実行に使用する）
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+# base64: nonce および DEK を JSON/文字列として送受信するための Base64 エンコード/デコード
+base64 = "0.22"
+# object_store: S3/MinIO 互換オブジェクトストレージへのアップロード/ダウンロードに使用する
+object_store = { version = "0.11", features = ["aws"] }
+# serde_yaml: mime_allowlist.yaml の読み込みに使用する
+serde_yaml = "0.9"
+# rand: OsRng による暗号学的乱数生成（nonce / DEK 生成に使用する）
+rand = "0.8"
+
+[dev-dependencies]
+# tokio テスト: 非同期統合テストの実行に使用する
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
