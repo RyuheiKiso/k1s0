@@ -196,9 +196,8 @@ async fn test_paired_post_sse_up() {
     // レスポンスボディを JSON としてパースする
     let body: Value = resp.json();
     // received フラグが true であることを確認する
-    assert_eq!(
+    assert!(
         body["received"].as_bool().unwrap_or(false),
-        true,
         "/post-sse/bidi/up の received が true でなければならない"
     );
     // session_id がエコーバックされていることを確認する
@@ -270,9 +269,8 @@ async fn test_webtransport_check() {
     // レスポンスボディを JSON としてパースする
     let body: Value = resp.json();
     // available フィールドが false であることを確認する（h3_quic 未構成環境）
-    assert_eq!(
-        body["available"].as_bool().unwrap_or(true),
-        false,
+    assert!(
+        !body["available"].as_bool().unwrap_or(true),
         "/webtransport/check の available が false でなければならない（h3_quic_not_configured）"
     );
     // fallback フィールドが存在することを確認する（paired_post_sse に誘導する）

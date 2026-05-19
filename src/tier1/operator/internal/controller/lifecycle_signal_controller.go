@@ -23,6 +23,8 @@ import (
 	// time パッケージのインポート: RequeueAfter の指定に使用する
 	"time"
 
+	// go-cvss: NVD CVSS v3.1 Base Score calculator（OSS lifecycle CVSS 正規計算に使用する）
+	cvssmetric "github.com/goark/go-cvss/v3/metric"
 	// Kubernetes core/v1 API のインポート: Secret 読み取りに使用する
 	corev1 "k8s.io/api/core/v1"
 	// Kubernetes API マシナリーのインポート: metav1.Time に使用する
@@ -174,26 +176,24 @@ func fetchOSVSignals(ctx context.Context, ecosystem, packageName, version string
 	return cveCount, maxCvss, nil
 }
 
-// parseCVSSBaseScore は CVSS ベクター文字列からベーススコアを推定する
-// 簡易実装: 実際の CVSS calculator は別途実装が必要
+// parseCVSSBaseScore は CVSS v3.x ベクター文字列から NVD 仕様 Base Score を計算する
+// github.com/goark/go-cvss の CVSS v3.1 calculator を使用する
+// 計算式: roundup(min(Impact + Exploitability, 10)) — NVD CVSS v3.1 仕様準拠
+// cvssVector は "CVSS:3.1/AV:N/AC:L/..." または "AV:N/AC:L/..." 形式のどちらも受け付ける
 func parseCVSSBaseScore(cvssVector string) float64 {
-	// AV:N（Network）かつ AC:L（Low）の場合は高スコアとして 9.0 を返す
-	if strings.Contains(cvssVector, "AV:N") && strings.Contains(cvssVector, "AC:L") {
-		// ネットワーク + 低複雑度は critical に近い
-		if strings.Contains(cvssVector, "C:H") && strings.Contains(cvssVector, "I:H") {
-			// 機密性と完全性への影響が高い場合は 9.0 を返す
-			return 9.0
-		}
-		// それ以外はネットワーク経由で 7.0 を返す
-		return 7.0
+	// 空文字列の場合は 0.0 を返す（スコア不明 = 0 リスクとして扱う）
+	if cvssVector == "" {
+		return 0.0
 	}
-	// AV:L（Local）の場合は中程度のスコア 5.0 を返す
-	if strings.Contains(cvssVector, "AV:L") {
-		// ローカルアクセス必要は 5.0 を返す
-		return 5.0
+	// go-cvss の Base metric インスタンスを生成する（NVD CVSS v3.1 仕様準拠）
+	bm := cvssmetric.NewBase()
+	// CVSS ベクター文字列をデコードして Base metric フィールドを設定する
+	if _, err := bm.Decode(cvssVector); err != nil {
+		// デコード失敗の場合は 0.0 を返す（不正形式 / サポート外バージョン）
+		return 0.0
 	}
-	// デフォルト 3.0 を返す
-	return 3.0
+	// NVD 仕様の roundup(min(Impact + Exploitability, 10)) で Base Score を計算して返す
+	return bm.Score()
 }
 
 // fetchDepsDotDevSignals は deps.dev API からリリース日とライセンス情報を取得する

@@ -53,7 +53,7 @@ mod parity_tests {
     fn test_key_handle_has_private_is_false() {
         // has_private の期待値: 公開 API に生 key bytes を露出しないため常に false
         let expected_has_private = false;
-        // OpenBaoKeyHandle の create_stub は _material を None で生成する
+        // OpenBaoKeyHandle::from_remote_handle は _material を None で生成する
         // したがって公開 API から key bytes にアクセスする手段は存在しない
         let mock_has_private = false;
         // parity チェック: has_private が false であることを確認する

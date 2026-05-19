@@ -82,13 +82,15 @@ func buildPrometheusRuleSpec(sloClass *tier1v1.SLOClass) map[string]interface{} 
 		rule := map[string]interface{}{
 			// alert はアラート名を設定する
 			"alert": alertName,
-			// expr は burn rate 計算式を設定する（placeholder: 実際の Prometheus メトリクス名で置換する）
+			// expr は burn rate 計算式を設定する
+			// SoT: src/ops/alert_catalog/slo_breach_rules.yaml と同じメトリクス名を使用する
+			// k1s0_request_errors_total / k1s0_request_total / k1s0_slo_error_rate_threshold
 			"expr": fmt.Sprintf(
-				"(sum(rate(k1s0_slo_good_total{slo_class=%q}[%s])) / sum(rate(k1s0_slo_total{slo_class=%q}[%s]))) < (1 - %f * (1 - %f))",
+				"( sum(rate(k1s0_request_errors_total{slo_class=%q}[%s])) / sum(rate(k1s0_request_total{slo_class=%q}[%s])) ) / on() group_left() k1s0_slo_error_rate_threshold{slo_class=%q} > %f",
 				sloName, w.Short,
 				sloName, w.Long,
+				sloName,
 				w.BurnRateThreshold,
-				sloClass.Spec.Target,
 			),
 			// for は アラート発火までの持続時間（short window の 1/2）
 			"for": w.Short,
