@@ -75,8 +75,8 @@ vectors:
     operation: check_limit
     # 入力値
     input:
-      # quota class: v1_standard クラス（QPS 上限 10,000）
-      class: v1_standard
+      # quota class: v1_per_tenant_qps（QPS 上限 enforcement: schema/tenant_capacity/classes.yaml SoT 参照）
+      class: v1_per_tenant_qps
       # 現在の QPS: 100（制限値 10,000 より十分低い）
       current_qps: 100
     # 期待出力スキーマ
@@ -96,8 +96,8 @@ vectors:
     operation: negotiate_capabilities
     # 入力値
     input:
-      # conformance_class: c1_bidirectional_full（完全双方向通信対応クラス）
-      conformance_class: c1_bidirectional_full
+      # conformance_class: v1_interactive（双方向通信対応クラス: schema/bidi/classes.yaml SoT 参照）
+      conformance_class: v1_interactive
     # 期待出力スキーマ
     expected_output_schema:
       # accepted フィールドはブール値であること（ネゴシエーション成功なら true）
@@ -142,8 +142,8 @@ vectors:
     operation: generate_signing_key
     # 入力値
     input:
-      # キークラス: v1_signing（署名用鍵クラス）
-      key_class: v1_signing
+      # キークラス: v1_token_signing（JWT 署名用鍵クラス: schema/key_management/classes.yaml SoT 参照）
+      key_class: v1_token_signing
     # 期待出力スキーマ
     expected_output_schema:
       # raw key bytes が公開シグネチャに露出していないことを確認する

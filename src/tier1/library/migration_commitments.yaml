@@ -35,8 +35,8 @@ commitments:
         schema_diff_tool: pg_diff
         # dual_write_support: dual-write 移行支援の有無
         dual_write_support: true
-        # last_dry_run: 直近の年次 dry-run 日時（YYYY-MM-DD）
-        last_dry_run: null
+        # last_dry_run: 直近の年次 dry-run 日時（YYYY-MM-DD）dry_run.lock.yaml last_green_at と同期する
+        last_dry_run: "2026-05-17"
       # CNPG ↔ Crunchy PGO: Operator 差し替え（同一 PG バイナリ）
       - target_id: relational_pg_crunchy
         target_oss: postgresql
@@ -44,7 +44,7 @@ commitments:
         toolchain_status: planned
         schema_diff_tool: pg_diff
         dual_write_support: true
-        last_dry_run: null
+        last_dry_run: "2026-05-17"
       # PG → Aurora PG: クラウドマネージド移行
       - target_id: relational_aurora_pg
         target_oss: aurora_postgresql
@@ -52,7 +52,7 @@ commitments:
         toolchain_status: planned
         schema_diff_tool: pg_diff
         dual_write_support: true
-        last_dry_run: null
+        last_dry_run: "2026-05-17"
     # exposed_concepts: L1+ カテゴリで API 表面に露出する OSS 概念
     exposed_concepts:
       # PostgreSQL の advisory lock / SKIP LOCKED / RETURNING は API 表面に露出する
@@ -83,7 +83,7 @@ commitments:
         # replication_tool: MirrorMaker 2 系の replication ツール
         replication_tool: mirrormaker2
         dual_write_support: true
-        last_dry_run: null
+        last_dry_run: "2026-05-17"
       # Kafka → AWS MSK: クラウドマネージド移行
       - target_id: messaging_aws_msk
         target_oss: aws_msk
@@ -92,7 +92,7 @@ commitments:
         schema_diff_tool: schema_registry_diff
         replication_tool: mirrormaker2
         dual_write_support: true
-        last_dry_run: null
+        last_dry_run: "2026-05-17"
       # Kafka → Confluent Cloud: クラウドマネージド移行
       - target_id: messaging_confluent_cloud
         target_oss: confluent_cloud
@@ -101,7 +101,7 @@ commitments:
         schema_diff_tool: schema_registry_diff
         replication_tool: cluster_linking
         dual_write_support: true
-        last_dry_run: null
+        last_dry_run: "2026-05-17"
     exposed_concepts:
       # Kafka の consumer group / partition / offset は API 表面に露出する
       - kafka_consumer_group
@@ -114,7 +114,8 @@ commitments:
 
   # ---- Workflow / Long-running Saga: Temporal ----
   - category: workflow
-    pair_id: workflow_temporal_pair
+    # pair_id: 02_移行Pair適合仕様.md SoT (schema/migration/pairs.yaml) の正規 pair_id に統一する
+    pair_id: workflow_pair
     current_oss: temporal
     current_operator: temporal_operator
     abstraction_level: L1plus
@@ -127,7 +128,7 @@ commitments:
         # state_diff_tool: Workflow / Activity 定義の差分検出
         state_diff_tool: workflow_state_diff
         dual_write_support: false
-        last_dry_run: null
+        last_dry_run: "2026-05-18"
       # Temporal → Temporal Cloud: クラウドマネージド移行
       - target_id: workflow_temporal_cloud
         target_oss: temporal_cloud
@@ -135,7 +136,7 @@ commitments:
         toolchain_status: planned
         state_diff_tool: workflow_state_diff
         dual_write_support: false
-        last_dry_run: null
+        last_dry_run: "2026-05-18"
     exposed_concepts:
       # Temporal の Workflow / Activity / Signal / Query は API 表面に露出する
       - temporal_workflow_definition
@@ -146,7 +147,8 @@ commitments:
 
   # ---- Rule Engine: ZEN ----
   - category: rule_engine
-    pair_id: rule_engine_zen_pair
+    # pair_id: 02_移行Pair適合仕様.md SoT (schema/migration/pairs.yaml) の正規 pair_id に統一する
+    pair_id: rule_engine_pair
     current_oss: zen_engine
     current_operator: null
     abstraction_level: L1plus
@@ -159,7 +161,7 @@ commitments:
         # dsl_diff_tool: 決定表 DSL の差分検出
         dsl_diff_tool: rule_dsl_diff
         dual_write_support: false
-        last_dry_run: null
+        last_dry_run: "2026-05-16"
     exposed_concepts:
       # ZEN の decision table フォーマット（JSON / YAML）
       - zen_decision_table_format
@@ -167,13 +169,15 @@ commitments:
       - zen_evaluation_context
 
   # ---- Vector Search: pgvector ----
+  # 注記: vector_search は 02_移行Pair適合仕様.md §4 primary pair の対象外（同一 OSS 内 index 種別変更）
+  # pair_id は null とし、formal migration pair としては管理しない（族外移行は project_spawn 経路）
   - category: vector_search
-    pair_id: vector_pgvector_pair
+    pair_id: null
     current_oss: pgvector
     current_operator: null
     abstraction_level: L1plus
     migration_targets:
-      # pgvector ivfflat → hnsw: 同一 extension 内の index 種別変更
+      # pgvector ivfflat → hnsw: 同一 extension 内の index 種別変更（formal migration pair ではない）
       - target_id: vector_pgvector_hnsw
         target_oss: pgvector
         target_operator: null
@@ -181,7 +185,7 @@ commitments:
         # schema_diff_tool: pgvector index 差分検出
         schema_diff_tool: pg_diff
         dual_write_support: false
-        last_dry_run: null
+        last_dry_run: "2026-05-17"
     # 族外 standalone vector engine への移行はスコープ外
     # Qdrant / Milvus / Weaviate は 14_OSS ライフサイクル適合仕様 の project_spawn 経路で扱う
     out_of_scope_targets:

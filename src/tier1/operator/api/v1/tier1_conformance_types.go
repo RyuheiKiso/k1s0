@@ -22,8 +22,9 @@ type OSSInventorySpec struct {
 	// ライセンス種別: MIT / Apache-2.0 / GPL-3.0 等の SPDX 表記を使用する
 	LicenseType string `json:"licenseType,omitempty"`
 	// lifecycle_class: 08_OSSライフサイクル適合仕様.md §lifecycle_class セットの値を指定する
-	// v1_l1plus_primary / v1_l2star_alt / v1_l3_generic / v1_l4_dev_tool / v1_l5_sandbox / v1_l6_deprecated のいずれかを指定する
-	// +kubebuilder:validation:Enum=v1_l1plus_primary;v1_l2star_alt;v1_l3_generic;v1_l4_dev_tool;v1_l5_sandbox;v1_l6_deprecated
+	// v1_l1plus_primary / v1_l1plus_pair_target / v1_l2star_member / v1_l3_runtime / v1_reserved_category / v1_inhouse_authoritative のいずれかを指定する
+	// SoT: src/tier1/schema/oss_lifecycle/classes.yaml §lifecycle_classes 6 値
+	// +kubebuilder:validation:Enum=v1_l1plus_primary;v1_l1plus_pair_target;v1_l2star_member;v1_l3_runtime;v1_reserved_category;v1_inhouse_authoritative
 	LifecycleClass string `json:"lifecycleClass,omitempty"`
 	// バージョン: 使用中の OSS パッケージバージョン（semver 表記）
 	Version string `json:"version,omitempty"`
