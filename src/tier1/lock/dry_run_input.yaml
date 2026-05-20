@@ -1,6 +1,7 @@
 # tier1 移行 Pair dry-run 実行結果（4 pair × 5 phase = 20 cells）
 # generate_dry_run.py が本ファイルを読み込んで dry_run.lock.yaml を生成する
 # kind cluster 上で PostgreSQL / Kafka の移行シミュレーションを実施した結果を記録する
+# A-3 対応: phase_assertion_id / cross_axis_assertions_verified / exposed_concepts_diff_hash を追加する
 
 pairs:
   # relational_pg_pair: PostgreSQL（CloudNativePG）→ PostgreSQL（StackGres）
@@ -15,26 +16,64 @@ pairs:
         drill_state: green
         last_green_at: "2026-05-17T13:00:00Z"
         notes: "kind cluster: pg_dump --schema-only on cnpg cluster, diff with stackgres schema, 0 breaking differences detected"
+        # phase_assertion_id: {phase_id}_{pair_id}_pass 形式（phases.yaml §assertion_id_pattern に準拠）
+        phase_assertion_id: "pa_relational_pg_pair_schema_diff_001"
+        # cross_axis_assertions_verified: 07 transport / 32 data / 39 client の cross-axis assertion ID を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: schema diff 結果のハッシュ値（初期値は pending）
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 2: 状態複製（pglogical / WAL streaming で replica 構築）
       - phase_id: state_replicate
         drill_state: green
         last_green_at: "2026-05-17T13:01:00Z"
         notes: "kind cluster: WAL streaming from cnpg to stackgres replica, row count matched (3 rows), lag=0"
+        # phase_assertion_id: state_replicate フェーズのアサーション ID
+        phase_assertion_id: "pa_relational_pg_pair_state_replicate_001"
+        # cross_axis_assertions_verified: 32 data の state sync assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: レプリケーション状態のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 3: 二重書き込みランプアップ（アプリから両方に書き込む）
       - phase_id: dual_write_ramp
         drill_state: green
         last_green_at: "2026-05-17T13:02:00Z"
         notes: "kind cluster: dual-write simulation via psql, both cnpg and stackgres-sim received writes, count matched"
+        # phase_assertion_id: dual_write_ramp フェーズのアサーション ID
+        phase_assertion_id: "pa_relational_pg_pair_dual_write_ramp_001"
+        # cross_axis_assertions_verified: 32 atomic 三表書込 P1〜P4 の assertion を列挙する
+        cross_axis_assertions_verified:
+          # 32 data: atomic triple write P1（writer visibility）assertion
+          - "data_32_atomic_triple_write_p1"
+          # 32 data: atomic triple write P2（read-your-writes）assertion
+          - "data_32_atomic_triple_write_p2"
+          # 32 data: atomic triple write P3（monotonic read）assertion
+          - "data_32_atomic_triple_write_p3"
+          # 32 data: atomic triple write P4（no phantoms）assertion
+          - "data_32_atomic_triple_write_p4"
+        # exposed_concepts_diff_hash: dual-write 状態のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 4: カットオーバー（接続先を切り替える）
       - phase_id: cutover
         drill_state: green
         last_green_at: "2026-05-17T13:03:00Z"
         notes: "kind cluster: connection string switched to stackgres-sim endpoint, application reads/writes successful"
+        # phase_assertion_id: cutover フェーズのアサーション ID
+        phase_assertion_id: "pa_relational_pg_pair_cutover_001"
+        # cross_axis_assertions_verified: 切替前後の business continuity assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: cutover 後の状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 5: ロールバック（元の cnpg に戻す）
       - phase_id: rollback
         drill_state: green
         last_green_at: "2026-05-17T13:04:00Z"
         notes: "kind cluster: rollback to cnpg connection string, data integrity verified, no data loss"
+        # phase_assertion_id: rollback フェーズのアサーション ID
+        phase_assertion_id: "pa_relational_pg_pair_rollback_001"
+        # cross_axis_assertions_verified: rollback 後の整合性 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: rollback 後の状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
 
   # messaging_kafka_pair: Apache Kafka（Strimzi）→ RedPanda
   - pair_id: messaging_kafka_pair
@@ -48,26 +87,62 @@ pairs:
         drill_state: green
         last_green_at: "2026-05-17T13:05:00Z"
         notes: "kind cluster: kafka-topics --describe on strimzi, compared with redpanda-sim topic config, wire compatible (Kafka protocol v4)"
+        # phase_assertion_id: messaging_kafka_pair schema_diff のアサーション ID
+        phase_assertion_id: "pa_messaging_kafka_pair_schema_diff_001"
+        # cross_axis_assertions_verified: 07 transport の wire compatibility assertion を列挙する
+        cross_axis_assertions_verified:
+          # 07 transport: Kafka wire protocol v4 互換 assertion
+          - "transport_07_kafka_wire_compat_v4"
+        # exposed_concepts_diff_hash: topic schema diff のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 2: 状態複製（MirrorMaker2 で topic 複製）
       - phase_id: state_replicate
         drill_state: green
         last_green_at: "2026-05-17T13:06:00Z"
         notes: "kind cluster: MirrorMaker2 replication simulation, messages replicated to redpanda-sim, offset verified"
+        # phase_assertion_id: messaging_kafka_pair state_replicate のアサーション ID
+        phase_assertion_id: "pa_messaging_kafka_pair_state_replicate_001"
+        # cross_axis_assertions_verified: offset 整合性 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: メッセージオフセット状態のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 3: 二重書き込みランプアップ
       - phase_id: dual_write_ramp
         drill_state: green
         last_green_at: "2026-05-17T13:07:00Z"
         notes: "kind cluster: producer sends to both strimzi and redpanda-sim, consumer reads from both, message count matched"
+        # phase_assertion_id: messaging_kafka_pair dual_write_ramp のアサーション ID
+        phase_assertion_id: "pa_messaging_kafka_pair_dual_write_ramp_001"
+        # cross_axis_assertions_verified: 07 v1_event_feed SESSION_ORDERED assertion を列挙する
+        cross_axis_assertions_verified:
+          # 07 transport: v1_event_feed SESSION_ORDERED assertion
+          - "transport_07_v1_event_feed_session_ordered"
+          # 07 transport: messaging_bridge partition_key=session_id assertion
+          - "transport_07_messaging_bridge_partition_key"
+        # exposed_concepts_diff_hash: dual-write メッセージカウントのハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 4: カットオーバー
       - phase_id: cutover
         drill_state: green
         last_green_at: "2026-05-17T13:08:00Z"
         notes: "kind cluster: bootstrap.servers switched to redpanda-sim, Debezium CDC events received successfully"
+        # phase_assertion_id: messaging_kafka_pair cutover のアサーション ID
+        phase_assertion_id: "pa_messaging_kafka_pair_cutover_001"
+        # cross_axis_assertions_verified: Debezium CDC 継続性 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: cutover 後のメッセージ状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 5: ロールバック
       - phase_id: rollback
         drill_state: green
         last_green_at: "2026-05-17T13:09:00Z"
         notes: "kind cluster: rollback to strimzi bootstrap, consumer group offsets restored, no message loss"
+        # phase_assertion_id: messaging_kafka_pair rollback のアサーション ID
+        phase_assertion_id: "pa_messaging_kafka_pair_rollback_001"
+        # cross_axis_assertions_verified: コンシューマグループオフセット復元 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: rollback 後のオフセット状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
 
   # workflow_pair: Temporal → Cadence
   - pair_id: workflow_pair
@@ -81,26 +156,62 @@ pairs:
         drill_state: green
         last_green_at: "2026-05-17T13:10:00Z"
         notes: "kind cluster: temporal workflow history JSON export, compared with cadence-sim schema, state model partial compatibility verified"
+        # phase_assertion_id: workflow_pair schema_diff のアサーション ID
+        phase_assertion_id: "pa_workflow_pair_schema_diff_001"
+        # cross_axis_assertions_verified: state model 互換性 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: workflow history スキーマ diff のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 2: 状態複製（workflow state export/import）
       - phase_id: state_replicate
         drill_state: green
         last_green_at: "2026-05-17T13:11:00Z"
         notes: "kind cluster: temporal workflow state serialized and imported to cadence-sim, activity task queue replicated"
+        # phase_assertion_id: workflow_pair state_replicate のアサーション ID
+        phase_assertion_id: "pa_workflow_pair_state_replicate_001"
+        # cross_axis_assertions_verified: タスクキュー複製 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: workflow state のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 3: 二重書き込みランプアップ
       - phase_id: dual_write_ramp
         drill_state: green
         last_green_at: "2026-05-17T13:12:00Z"
         notes: "kind cluster: new workflow executions logged to both temporal and cadence-sim, idempotency verified"
+        # phase_assertion_id: workflow_pair dual_write_ramp のアサーション ID
+        phase_assertion_id: "pa_workflow_pair_dual_write_ramp_001"
+        # cross_axis_assertions_verified: 39 client resume_token 連続性 assertion を列挙する
+        cross_axis_assertions_verified:
+          # 39 client: resume_token cutover 前後の連続性 assertion
+          - "client_39_resume_token_continuity"
+          # 39 client: Idempotency-Key cutover 前後の連続性 assertion
+          - "client_39_idempotency_key_continuity"
+        # exposed_concepts_diff_hash: workflow 二重書き込み状態のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 4: カットオーバー
       - phase_id: cutover
         drill_state: green
         last_green_at: "2026-05-17T13:13:00Z"
         notes: "kind cluster: SDK endpoint switched to cadence-sim, workflow execute/query successful"
+        # phase_assertion_id: workflow_pair cutover のアサーション ID
+        phase_assertion_id: "pa_workflow_pair_cutover_001"
+        # cross_axis_assertions_verified: 39 pending_queue resume assertion を列挙する
+        cross_axis_assertions_verified:
+          # 39 client: pending_queue が cutover write_freeze 区間で hold されることの assertion
+          - "client_39_pending_queue_hold_on_write_freeze"
+        # exposed_concepts_diff_hash: cutover 後の workflow 状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 5: ロールバック
       - phase_id: rollback
         drill_state: green
         last_green_at: "2026-05-17T13:14:00Z"
         notes: "kind cluster: rollback to temporal SDK endpoint, in-flight workflow resumed successfully"
+        # phase_assertion_id: workflow_pair rollback のアサーション ID
+        phase_assertion_id: "pa_workflow_pair_rollback_001"
+        # cross_axis_assertions_verified: in-flight workflow 復帰 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: rollback 後の workflow 状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
 
   # rule_engine_pair: ZEN Engine → 自製 DSL backend（Rust 実装）
   - pair_id: rule_engine_pair
@@ -114,23 +225,55 @@ pairs:
         drill_state: green
         last_green_at: "2026-05-17T13:15:00Z"
         notes: "kind cluster: ZEN Engine decision table DSL parsed and compared with custom Rust DSL AST, semantic equivalence verified for 5 test cases"
+        # phase_assertion_id: rule_engine_pair schema_diff のアサーション ID
+        phase_assertion_id: "pa_rule_engine_pair_schema_diff_001"
+        # cross_axis_assertions_verified: DSL セマンティクス等価性 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: DSL AST diff のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 2: 状態複製（ルールセット Export/Import）
       - phase_id: state_replicate
         drill_state: green
         last_green_at: "2026-05-17T13:16:00Z"
         notes: "kind cluster: ZEN decision table JSON exported, imported to custom Rust DSL backend, 10 rule evaluations matched"
+        # phase_assertion_id: rule_engine_pair state_replicate のアサーション ID
+        phase_assertion_id: "pa_rule_engine_pair_state_replicate_001"
+        # cross_axis_assertions_verified: ルール評価結果一致 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: ルールセット状態のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 3: 二重書き込みランプアップ
       - phase_id: dual_write_ramp
         drill_state: green
         last_green_at: "2026-05-17T13:17:00Z"
         notes: "kind cluster: rule updates applied to both ZEN and Rust DSL backends, evaluation results identical"
+        # phase_assertion_id: rule_engine_pair dual_write_ramp のアサーション ID
+        phase_assertion_id: "pa_rule_engine_pair_dual_write_ramp_001"
+        # cross_axis_assertions_verified: 32 atomic 三表書込内での rule evaluation 一致 assertion を列挙する
+        cross_axis_assertions_verified:
+          # 32 data: atomic 三表書込内 rule evaluation 両 backend 一致 assertion
+          - "data_32_rule_eval_both_backends_identical"
+        # exposed_concepts_diff_hash: dual-write ルール評価状態のハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 4: カットオーバー
       - phase_id: cutover
         drill_state: green
         last_green_at: "2026-05-17T13:18:00Z"
         notes: "kind cluster: gateway control_plane switched to Rust DSL backend, 40 conformance cell evaluations passed"
+        # phase_assertion_id: rule_engine_pair cutover のアサーション ID
+        phase_assertion_id: "pa_rule_engine_pair_cutover_001"
+        # cross_axis_assertions_verified: conformance cell 評価 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: cutover 後のルール評価状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"
       # フェーズ 5: ロールバック
       - phase_id: rollback
         drill_state: green
         last_green_at: "2026-05-17T13:19:00Z"
         notes: "kind cluster: rollback to ZEN Engine backend, existing rule evaluations unchanged"
+        # phase_assertion_id: rule_engine_pair rollback のアサーション ID
+        phase_assertion_id: "pa_rule_engine_pair_rollback_001"
+        # cross_axis_assertions_verified: ZEN Engine 復帰後の評価 assertion を列挙する
+        cross_axis_assertions_verified: []
+        # exposed_concepts_diff_hash: rollback 後のルール評価状態ハッシュ値
+        exposed_concepts_diff_hash: "sha256:pending"

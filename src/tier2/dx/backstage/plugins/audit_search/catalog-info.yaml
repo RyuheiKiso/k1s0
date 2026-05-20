@@ -1,0 +1,41 @@
+# audit_search/catalog-info.yaml — 監査ログ検索 Backstage plugin のカタログエントリ
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §開発者体験 / Backstage plugin
+# docs 参照: docs/04_詳細設計/01_適合仕様/08_業務エラー監査適合仕様.md
+# Backstage API バージョン
+apiVersion: backstage.io/v1alpha1
+# リソース種別: Component（Backstage Software Catalog に登録する）
+kind: Component
+metadata:
+  # plugin のコンポーネント名（Backstage catalog の一意識別子）
+  name: k1s0-tier2-audit-search-plugin
+  # plugin の説明
+  description: "k1s0 tier2 監査ログ検索 plugin — ClickHouse 監査イベントの全文検索・ハッシュチェーン検証 UI を提供する"
+  # ラベル
+  labels:
+    # 所属軸ラベル
+    k1s0.axis: tier2
+    # 実装 Phase ラベル
+    k1s0.phase: P10
+    # plugin 種別ラベル
+    k1s0.plugin.type: audit-search
+  # アノテーション
+  annotations:
+    # GitHub リポジトリリンク
+    github.com/project-slug: "RyuheiKiso/k1s0"
+    # techdocs 生成対象パス
+    backstage.io/techdocs-ref: "dir:."
+spec:
+  # コンポーネント種別（website: UI plugin）
+  type: website
+  # ライフサイクルステージ
+  lifecycle: experimental
+  # オーナーチームの参照
+  owner: "team:k1s0-core"
+  # 所属システム
+  system: "k1s0-platform"
+  # この plugin が依存するコンポーネント
+  dependsOn:
+    # tier2 REST API への依存（監査イベントは tier2 API 経由で検索する）
+    - "component:k1s0-tier2"
+    # ClickHouse データストアへの依存（監査イベントの保存先）
+    - "resource:k1s0-clickhouse"

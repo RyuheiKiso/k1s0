@@ -121,31 +121,13 @@ let _currentConfig: OtelBrowserConfig | null = null;
 let _rootSpan: SpanContext | null = null;
 
 // OTel Browser SDK を初期化する
+// production/development 分岐禁止規約: 環境によって動作が変わるデバッグ出力は削除する
 export function initOtelBrowser(config: OtelBrowserConfig): SpanContext {
   // 設定を保持する
   _currentConfig = config;
   // ページロード用のルートスパンを生成する
   _rootSpan = startRootSpan("pageload");
-  // resource attributes を console に記録する（開発用デバッグ）
-  // 本番では collector にエクスポートする
-  if (config.environment !== "production") {
-    // 開発環境のみ console.debug に出力する
-    console.debug("[OTel] initialized", {
-      // サービス名
-      serviceName: config.serviceName,
-      // サービスバージョン
-      serviceVersion: config.serviceVersion,
-      // テナント
-      tenantSlug: config.tenantSlug,
-      // 環境
-      environment: config.environment,
-      // trace ID
-      traceId: _rootSpan.traceId,
-      // span ID
-      spanId: _rootSpan.spanId,
-    });
-  }
-  // ルートスパンを返す
+  // ルートスパンを返す（console.debug による環境別出力は禁止規約に従い削除済み）
   return _rootSpan;
 }
 
@@ -182,22 +164,8 @@ export function endSpan(
   if (Math.random() > _currentConfig.samplingRate) return;
   // span 終了時刻を計算する
   const endTimeMs = Date.now();
-  // 開発環境のみ console.debug に出力する
-  if (_currentConfig.environment !== "production") {
-    console.debug("[OTel] span ended", {
-      // span 名
-      spanName: span.spanName,
-      // trace ID
-      traceId: span.traceId,
-      // span ID
-      spanId: span.spanId,
-      // 持続時間（ミリ秒）
-      durationMs: endTimeMs - span.startTimeMs,
-      // 追加 attributes
-      attributes,
-    });
-  }
   // collector へのエクスポートは fire-and-forget で実行する（エラーは無視する）
+  // production/development 分岐禁止規約: console.debug による環境別出力は削除済み
   void exportSpanToCollector(_currentConfig, span, endTimeMs, attributes);
 }
 

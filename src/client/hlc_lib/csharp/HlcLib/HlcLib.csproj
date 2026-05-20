@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- k1s0-hlc C# ライブラリプロジェクト定義 -->
+  <!-- wall-clock TTL 禁止規律（src/CLAUDE.md §wall-clock TTL 禁止）に従い、 -->
+  <!-- 全 deadline 計算を HLC ベースで行う基盤 C# ライブラリを定義する。 -->
+  <PropertyGroup>
+    <!-- ターゲットフレームワーク: .NET 8.0 を使用する（LTS 版） -->
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Nullable: nullable reference types を有効化する（null 安全性を強制する） -->
+    <Nullable>enable</Nullable>
+    <!-- ImplicitUsings: using ディレクティブの暗黙的インポートを有効化する -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- アセンブリ名 -->
+    <AssemblyName>K1s0.HlcLib</AssemblyName>
+    <!-- ルート名前空間 -->
+    <RootNamespace>K1s0.HlcLib</RootNamespace>
+  </PropertyGroup>
+</Project>

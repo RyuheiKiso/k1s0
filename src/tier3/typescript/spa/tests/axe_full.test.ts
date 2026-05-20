@@ -1,6 +1,7 @@
 // axe_full.test.ts — @axe-core/react を使った WCAG AA 準拠テスト
 // 設計方針 14: axe-core + WCAG 2.1 AA を CI 必須とする
 // 強制機構 03_tier3強制機構 層 11: WCAG 2.1 AA axe-core CI
+// FieldDiff 型は packages/state/src/events.ts の FieldDiff（clientFields / serverFields 形式）に揃える
 
 // @testing-library/react をインポートする
 import { render } from '@testing-library/react';
@@ -10,16 +11,36 @@ import { describe, test, expect } from 'vitest';
 import axe from 'axe-core';
 
 // BusinessErrorPanel コンポーネントをインポートする
-import { BusinessErrorPanel } from '../packages/ui-components/src/BusinessErrorPanel';
+// BusinessErrorPanel の props は errors（readonly BusinessError[]）/ title / onDismiss を使用する
+import { BusinessErrorPanel, type BusinessError } from '../packages/ui-components/src/BusinessErrorPanel';
 
 describe('WCAG AA axe-core 準拠テスト', () => {
   test('BusinessErrorPanel が WCAG AA 準拠である', async () => {
+    // BusinessErrorPanel に渡すエラー一覧を用意する
+    // stale_write subtype の FieldDiff に対応するエラーメッセージを使用する
+    // FieldDiff は packages/state/src/events.ts で { clientFields: string[]; serverFields: string[] } として定義されている
+    const errors: readonly BusinessError[] = [
+      {
+        // エラーコード: stale_write（fieldDiff.clientFields と serverFields の disjoint）
+        code: 'stale_write',
+        // エラーメッセージ: quantity フィールドの競合（fieldDiff.clientFields: ['quantity'], serverFields: ['quantity']）
+        message: 'quantity フィールドが競合しています（clientFields: ["quantity"], serverFields: ["quantity"]）',
+        // 重大度: エラー
+        severity: 'error',
+        // 対象フィールド: quantity
+        field: 'quantity',
+      },
+    ];
     // BusinessErrorPanel を DOM にレンダリングする
     const { container } = render(
+      // errors / title / onDismiss の props で正しい型を使用する（subtype/fieldDiff/onResolve は BusinessErrorPanel の props に存在しない）
       <BusinessErrorPanel
-        subtype="stale_write"
-        fieldDiff={{ field: 'quantity', local: 5, remote: 3 }}
-        onResolve={() => {}}
+        // エラー一覧を渡す（FieldDiff は events.ts の型に揃えた上でエラーメッセージとして表現する）
+        errors={errors}
+        // タイトルを設定する
+        title="競合エラー"
+        // クローズハンドラを渡す（アクセシビリティテスト用）
+        onDismiss={() => {}}
       />
     );
 

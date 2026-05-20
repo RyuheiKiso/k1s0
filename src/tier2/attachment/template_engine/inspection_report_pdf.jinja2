@@ -1,0 +1,176 @@
+{#- inspection_report_pdf.jinja2 — 検査報告書 PDF Jinja2 テンプレート -#}
+{#- docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §帳票生成 -#}
+{#- docs 参照: src/tier2/extension_points.yaml § report_template -#}
+{#- PII フィールドは render 前に redact すること（field_pii annotation 参照）-#}
+{#- 変数一覧:
+    - tenant_name: テナント名称（文字列）
+    - report: 検査報告書オブジェクト（以下のフィールドを持つ）
+        - report_id: 報告書識別子（UUID v7 形式）
+        - result_id: 検査結果識別子（UUID v7 形式）
+        - production_batch_id: 検査対象バッチ識別子（UUID v7 形式）
+        - inspector_name: 検査担当者名（PII: render 前に redact 済みであること）
+        - occurred_at: 検査実施日時（HLC タイムスタンプ文字列）
+        - verdict: 合否判定（PASS / FAIL / REQUIRES_REVIEW）
+        - measurement_items: 測定項目リスト（item_name / measured_value / unit / within_spec）
+        - overall_summary: 総評コメント（任意。PII が含まれる場合は redact すること）
+        - attachments: 添付ファイル情報リスト（file_name / mime_type / size_bytes）
+    - generated_at: 帳票生成日時（HLC タイムスタンプ文字列）
+    - doc_version: テンプレートバージョン（例: "1.0.0"）
+-#}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  {#- HTML ヘッダ: 文字コードと CSS スタイルを定義する -#}
+  <meta charset="UTF-8">
+  {#- PDF 出力用ページタイトル -#}
+  <title>検査報告書 {{ report.result_id }}</title>
+  <style>
+    {#- 全体レイアウト: A4 サイズ相当のマージンを設定する -#}
+    body { font-family: "Noto Sans JP", "IPAexGothic", sans-serif; margin: 20mm; font-size: 10pt; }
+    {#- ヘッダエリアのスタイル -#}
+    .header { display: flex; justify-content: space-between; margin-bottom: 8mm; }
+    {#- タイトル文字スタイル -#}
+    .title { font-size: 18pt; font-weight: bold; }
+    {#- メタ情報エリアのスタイル -#}
+    .meta { text-align: right; font-size: 9pt; color: #555; }
+    {#- 判定結果バッジのスタイル（PASS / FAIL / REQUIRES_REVIEW で色分けする）-#}
+    .verdict-badge {
+      display: inline-block;
+      padding: 2mm 5mm;
+      border-radius: 2mm;
+      font-weight: bold;
+      font-size: 14pt;
+    }
+    {#- PASS: 緑色バッジ -#}
+    .verdict-pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    {#- FAIL: 赤色バッジ -#}
+    .verdict-fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    {#- REQUIRES_REVIEW: 黄色バッジ -#}
+    .verdict-review { background-color: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    {#- 測定結果テーブルのスタイル -#}
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6mm; }
+    {#- テーブルヘッダのスタイル -#}
+    th { background-color: #f0f0f0; border: 1px solid #ccc; padding: 2mm 3mm; text-align: center; }
+    {#- テーブルセルのスタイル -#}
+    td { border: 1px solid #ccc; padding: 2mm 3mm; }
+    {#- 仕様範囲外セルは赤背景で警告を示す -#}
+    td.out-of-spec { background-color: #fff0f0; color: #721c24; }
+    {#- 仕様範囲内セルは緑背景で合格を示す -#}
+    td.within-spec { background-color: #f0fff0; color: #155724; }
+    {#- 総評セクションのスタイル -#}
+    .summary-section { background-color: #fafafa; border: 1px solid #ddd; padding: 3mm 5mm; margin-bottom: 6mm; }
+    {#- 添付ファイルリストのスタイル -#}
+    .attachment-list { font-size: 9pt; color: #555; }
+    {#- フッタエリアのスタイル -#}
+    .footer { margin-top: 8mm; font-size: 8pt; color: #777; border-top: 1px solid #ccc; padding-top: 3mm; }
+  </style>
+</head>
+<body>
+  {#- ヘッダエリア: タイトルと基本情報 -#}
+  <div class="header">
+    {#- 検査報告書タイトル -#}
+    <div class="title">検 査 報 告 書</div>
+    {#- 右上: 基本情報 -#}
+    <div class="meta">
+      {#- 対象バッチ識別子 -#}
+      <div>バッチ ID: {{ report.production_batch_id }}</div>
+      {#- 検査実施日時 -#}
+      <div>検査日時: {{ report.occurred_at }}</div>
+      {#- テナント名称 -#}
+      <div>テナント: {{ tenant_name }}</div>
+    </div>
+  </div>
+
+  {#- 合否判定バッジエリア -#}
+  <div style="margin-bottom: 6mm;">
+    <strong>判定結果: </strong>
+    {#- 判定結果に応じてバッジの色クラスを切り替える -#}
+    {% if report.verdict == 'PASS' %}
+      {#- PASS: 緑色バッジで合格を示す -#}
+      <span class="verdict-badge verdict-pass">PASS（合格）</span>
+    {% elif report.verdict == 'FAIL' %}
+      {#- FAIL: 赤色バッジで不合格を示す -#}
+      <span class="verdict-badge verdict-fail">FAIL（不合格）</span>
+    {% else %}
+      {#- REQUIRES_REVIEW: 黄色バッジで要確認を示す -#}
+      <span class="verdict-badge verdict-review">REQUIRES REVIEW（要確認）</span>
+    {% endif %}
+  </div>
+
+  {#- 検査担当者情報エリア -#}
+  <div style="margin-bottom: 6mm;">
+    {#- 検査担当者名（PII: render 前に redact 済みであること）-#}
+    <strong>検査担当者:</strong> {{ report.inspector_name }}
+  </div>
+
+  {#- 測定結果テーブル -#}
+  <table>
+    <thead>
+      <tr>
+        {#- 測定結果テーブルのヘッダ行 -#}
+        <th>No.</th>
+        <th>測定項目</th>
+        <th>測定値</th>
+        <th>単位</th>
+        <th>仕様内/外</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#- 測定項目をループで出力する -#}
+      {% for item in report.measurement_items %}
+      <tr>
+        {#- 行番号（1 始まり）-#}
+        <td>{{ loop.index }}</td>
+        {#- 測定項目名（業界中立の汎用名称）-#}
+        <td>{{ item.item_name }}</td>
+        {#- 測定値 -#}
+        <td class="amount">{{ item.measured_value }}</td>
+        {#- 単位 -#}
+        <td>{{ item.unit }}</td>
+        {#- 仕様内/外の判定（within_spec に応じてセルの色クラスを切り替える）-#}
+        {% if item.within_spec %}
+          {#- 仕様範囲内: 緑背景で合格を示す -#}
+          <td class="within-spec">合格</td>
+        {% else %}
+          {#- 仕様範囲外: 赤背景で不合格を示す -#}
+          <td class="out-of-spec">不合格</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {#- 総評セクション（任意入力）-#}
+  {% if report.overall_summary %}
+  <div class="summary-section">
+    <strong>総評:</strong>
+    {#- 総評コメント（PII が含まれる場合は render 前に redact すること）-#}
+    <p>{{ report.overall_summary }}</p>
+  </div>
+  {% endif %}
+
+  {#- 添付ファイルリスト（任意）-#}
+  {% if report.attachments %}
+  <div class="attachment-list">
+    <strong>添付ファイル:</strong>
+    <ul>
+      {#- 添付ファイル情報をループで出力する -#}
+      {% for attachment in report.attachments %}
+      <li>
+        {#- ファイル名・MIME タイプ・ファイルサイズを表示する -#}
+        {{ attachment.file_name }} ({{ attachment.mime_type }} / {{ attachment.size_bytes }} bytes)
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {#- フッタエリア: 帳票生成情報 -#}
+  <div class="footer">
+    {#- 帳票生成日時と識別子を表示する -#}
+    <div>帳票生成日時: {{ generated_at }} / テンプレートバージョン: {{ doc_version }} / 報告書 ID: {{ report.report_id }}</div>
+    {#- 自動生成注記 -#}
+    <div>本帳票は k1s0 tier2 帳票エンジンにより自動生成されました。</div>
+  </div>
+</body>
+</html>

@@ -30,13 +30,44 @@ const BANNED_APIS: &[&str] = &[
 
 // FACADE_REQUIRED_PATTERNS: tier2/tier3 から OSS crate を直接 import することを禁止するパターン
 // src/CLAUDE.md §依存方向の制約「tier2 → tier1 OSS crate の直接 public API 露出禁止（facade 経由必須）」
+// 17 カテゴリの banned_oss_types_in_public_api を網羅する（SoT: src/tier1/schema/categories/categories.yaml）
 const FACADE_REQUIRED_PATTERNS: &[&str] = &[
+    // ── カテゴリ 11: Messaging / EventBus (L1+: Kafka) ──
+    // confluent_kafka 直接 import 禁止（IMessagingProducer facade 経由必須）
+    "use confluent_kafka::",
+    // rdkafka 直接 import 禁止（IMessagingProducer facade 経由必須）
+    "use rdkafka::",
+    // rskafka 直接 import 禁止（IMessagingProducer facade 経由必須）
+    "use rskafka::",
+    // ── カテゴリ 13: Relational Store / Single-leader (L1+: PostgreSQL) ──
     // Npgsql 直接 import 禁止（IDbClient facade 経由必須）
     "use Npgsql::",
-    // Confluent.Kafka 直接 import 禁止（IMessagingProducer facade 経由必須）
-    "use confluent_kafka::",
-    // Temporalio 直接 import 禁止（IWorkflowClient facade 経由必須）
+    // tokio_postgres 直接 import 禁止（IDbClient facade 経由必須）
+    "use tokio_postgres::",
+    // ── カテゴリ 16: Workflow / Long-running Saga (L1+: Temporal) ──
+    // temporalio 直接 import 禁止（IWorkflowClient facade 経由必須）
     "use temporalio::",
+    // ── カテゴリ 08: KeyValue / Cache (L3: Valkey/Redis) ──
+    // valkey 直接 import 禁止（IKvClient facade 経由必須）
+    "use valkey::",
+    // redis 直接 import 禁止（IKvClient facade 経由必須）
+    "use redis::",
+    // ── カテゴリ 17: Rule Engine (L1+: ZEN Engine) ──
+    // zen_engine 直接 import 禁止（IRuleEngine facade 経由必須）
+    "use zen_engine::",
+    // ── カテゴリ 06: Secret Management (L3: OpenBao) ──
+    // openbao / vaultrs 直接 import 禁止（ISecretClient facade 経由必須）
+    "use vaultrs::",
+    "use openbao::",
+    // ── カテゴリ 15: Vector Search (L1+: pgvector) ──
+    // Qdrant / Milvus 直接 import 禁止（IVectorSearch facade 経由必須）
+    "use qdrant_client::",
+    // ── カテゴリ 12: Schema Registry (L2*: Apicurio) ──
+    // apicurio_registry 直接 import 禁止（ISchemaRegistry facade 経由必須）
+    "use apicurio_registry::",
+    // ── カテゴリ 07: Configuration / Feature Flag (L2*: OpenFeature) ──
+    // flagd 直接 import 禁止（IFeatureFlag facade 経由必須）
+    "use flagd::",
 ];
 
 // LintViolation: lint 違反を表す構造体

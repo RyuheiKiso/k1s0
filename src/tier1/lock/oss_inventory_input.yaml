@@ -1,12 +1,18 @@
 # tier1 OSS lifecycle drill 実行結果
 # generate_oss_inventory.py が本ファイルを読み込んで oss_inventory.lock.yaml を生成する
 # cargo update --dry-run + go list -m -u all による version bump dry-run 結果を記録する
+# lifecycle_class: 08_OSSライフサイクル適合仕様.md §lifecycle_class セット canonical 名（v1_l1plus_primary 等）
+# version: 使用中の semver バージョン文字列
 
 drills:
   # axum: version bump dry-run テスト
   - drill_id: oss_drill__axum
     oss_id: axum
     ecosystem: rust
+    # lifecycle_class: tier1 transport の主要フレームワークのため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.8.1"
     # cargo update --dry-run で axum の新しいパッチバージョンが利用可能かを確認した
     drill_state: green
     notes: "cargo update --dry-run: axum 0.8.x patch update available, cargo test passed after update, no breaking changes detected"
@@ -14,6 +20,10 @@ drills:
   - drill_id: oss_drill__tokio
     oss_id: tokio
     ecosystem: rust
+    # lifecycle_class: 非同期ランタイムとして tier1 全体に使用するため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "1.41.0"
     # cargo update --dry-run で tokio の新しいパッチバージョンを確認した
     drill_state: green
     notes: "cargo update --dry-run: tokio 1.x patch update, cargo test passed, async runtime compatible"
@@ -21,6 +31,10 @@ drills:
   - drill_id: oss_drill__tower
     oss_id: tower
     ecosystem: rust
+    # lifecycle_class: tier1 ミドルウェアスタックの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.5.2"
     # cargo update --dry-run で tower の安定性を確認した
     drill_state: green
     notes: "cargo update --dry-run: tower 0.5.x stable, no updates needed, tests passed"
@@ -28,6 +42,10 @@ drills:
   - drill_id: oss_drill__controller-runtime
     oss_id: controller-runtime
     ecosystem: go
+    # lifecycle_class: operator の core ライブラリのため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.20.2"
     # go list -m -u で controller-runtime の最新パッチバージョンを確認した
     drill_state: green
     notes: "go list -m -u: controller-runtime v0.20.x latest available, go build ./... passed, CRD reconcile logic compatible"
@@ -35,6 +53,10 @@ drills:
   - drill_id: oss_drill__keycloak
     oss_id: keycloak
     ecosystem: container
+    # lifecycle_class: tier1 認証の中核 IdP のため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "26.1.0"
     # keycloak:latest digest ピン確認と tier1 bfl OIDC 疎通テストを実施した
     drill_state: green
     notes: "docker pull keycloak:26.x image digest pinned, bfl OIDC discovery endpoint responsive, token introspection green"
@@ -42,6 +64,10 @@ drills:
   - drill_id: oss_drill__openbao
     oss_id: openbao
     ecosystem: container
+    # lifecycle_class: 鍵管理の中核コンポーネントのため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "1.16.0"
     # OpenBao Transit sign / verify API の dry-run を実施した
     drill_state: green
     notes: "openbao:1.x image digest pinned, Transit sign/verify API dry-run green, Shamir unseal M=3/N=5 ceremony recorded"
@@ -49,6 +75,10 @@ drills:
   - drill_id: oss_drill__valkey
     oss_id: valkey
     ecosystem: container
+    # lifecycle_class: キャッシュレイヤーの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "8.0.2"
     # Valkey 接続 dry-run と sentinel フェイルオーバーテストを実施した
     drill_state: green
     notes: "valkey:8.x image digest pinned, RESP3 ping green, sentinel failover drill green"
@@ -56,6 +86,10 @@ drills:
   - drill_id: oss_drill__rook-ceph
     oss_id: rook-ceph
     ecosystem: kubernetes
+    # lifecycle_class: オブジェクトストレージの重要バックエンドのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "1.16.0"
     # Rook Operator の CRD install と Ceph S3 endpoint dry-run を実施した
     drill_state: green
     notes: "rook-ceph operator v1.x deployed, CephObjectStore health OK, S3 ListBuckets green"
@@ -63,6 +97,10 @@ drills:
   - drill_id: oss_drill__envoy
     oss_id: envoy
     ecosystem: container
+    # lifecycle_class: tier1 gateway の主要コンポーネントのため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "1.31.2"
     # Envoy xDS 接続と HTTP/2 upstream 疎通テストを実施した
     drill_state: green
     notes: "envoy:v1.31.x image digest pinned, xDS gRPC stream green, HTTP/2 clear-text upstream dry-run green"
@@ -70,6 +108,10 @@ drills:
   - drill_id: oss_drill__strimzi-kafka
     oss_id: strimzi-kafka
     ecosystem: kubernetes
+    # lifecycle_class: tier1 メッセージングの中核のため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.43.0"
     # Strimzi Operator CRD install と Kafka topic produce/consume dry-run を実施した
     drill_state: green
     notes: "strimzi-kafka-operator v0.43.x deployed, Kafka 3.8.x cluster healthy, produce/consume dry-run green"
@@ -77,6 +119,10 @@ drills:
   - drill_id: oss_drill__apicurio
     oss_id: apicurio
     ecosystem: container
+    # lifecycle_class: スキーマレジストリの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "3.0.6"
     # Apicurio REST API への schema register / lookup dry-run を実施した
     drill_state: green
     notes: "apicurio-registry:3.x image digest pinned, schema register/lookup REST dry-run green, Buf BSR drift check green"
@@ -84,6 +130,10 @@ drills:
   - drill_id: oss_drill__cloudnativepg
     oss_id: cloudnativepg
     ecosystem: kubernetes
+    # lifecycle_class: PostgreSQL オペレーターの主要コンポーネントのため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "1.24.1"
     # CloudNativePG Operator の CRD install と pgbench baseline dry-run を実施した
     drill_state: green
     notes: "cloudnativepg v1.24.x operator deployed, cluster promote/switchover green, pgbench latency baseline recorded"
@@ -91,6 +141,10 @@ drills:
   - drill_id: oss_drill__pgvector
     oss_id: pgvector
     ecosystem: rust
+    # lifecycle_class: vector 検索拡張の重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.7.4"
     # pgvector 拡張の HNSW index 作成と similarity search dry-run を実施した
     drill_state: green
     notes: "pgvector 0.7.x extension installed on CloudNativePG, HNSW index created, 100-dim cosine search green"
@@ -98,6 +152,10 @@ drills:
   - drill_id: oss_drill__temporal
     oss_id: temporal
     ecosystem: container
+    # lifecycle_class: ワークフローエンジンの主要コンポーネントのため v1_l1plus_primary を指定する
+    lifecycle_class: v1_l1plus_primary
+    # version: 現行採用バージョン（semver 表記）
+    version: "1.25.1"
     # Temporal server の起動と workflow worker dry-run を実施した
     drill_state: green
     notes: "temporal:1.25.x image digest pinned, workflow execute dry-run green, saga compensate path tested"
@@ -105,6 +163,10 @@ drills:
   - drill_id: oss_drill__zen-engine
     oss_id: zen-engine
     ecosystem: rust
+    # lifecycle_class: ルールエンジンの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.30.0"
     # ZEN Engine の decision table evaluate dry-run を実施した
     drill_state: green
     notes: "zen-engine 0.30.x crate, decision table dry-run green, JSON decision input/output verified"
@@ -112,6 +174,10 @@ drills:
   - drill_id: oss_drill__openfeature-flagd
     oss_id: openfeature-flagd
     ecosystem: container
+    # lifecycle_class: フィーチャーフラグの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.11.2"
     # flagd gRPC stream dry-run と OpenFeature SDK 疎通テストを実施した
     drill_state: green
     notes: "flagd:0.11.x image digest pinned, OpenFeature Go SDK BoolValue dry-run green, flag config hot-reload verified"
@@ -119,6 +185,10 @@ drills:
   - drill_id: oss_drill__parca
     oss_id: parca
     ecosystem: container
+    # lifecycle_class: プロファイリングの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.22.0"
     # Parca agent の pprof 収集 dry-run を実施した
     drill_state: green
     notes: "parca:0.22.x image digest pinned, parca-agent pprof scrape green, flame graph render verified"
@@ -126,6 +196,10 @@ drills:
   - drill_id: oss_drill__opentelemetry
     oss_id: opentelemetry
     ecosystem: rust
+    # lifecycle_class: observability の標準コンポーネントのため v1_l3_generic を指定する
+    lifecycle_class: v1_l3_generic
+    # version: 現行採用バージョン（semver 表記）
+    version: "0.26.0"
     # OTel SDK の trace / metric / log dry-run を実施した
     drill_state: green
     notes: "opentelemetry-sdk 0.26.x, otlp exporter dry-run green, traces/metrics/logs all exported"
@@ -133,6 +207,10 @@ drills:
   - drill_id: oss_drill__prometheus
     oss_id: prometheus
     ecosystem: container
+    # lifecycle_class: メトリクス収集の重要バックエンドのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "3.0.1"
     # Prometheus scrape と SLO recording rule dry-run を実施した
     drill_state: green
     notes: "prometheus:v3.x image digest pinned, scrape green, SLO recording rule eval dry-run green"
@@ -140,6 +218,10 @@ drills:
   - drill_id: oss_drill__jaeger
     oss_id: jaeger
     ecosystem: container
+    # lifecycle_class: トレースバックエンドの重要コンポーネントのため v1_l2star_alt を指定する
+    lifecycle_class: v1_l2star_alt
+    # version: 現行採用バージョン（semver 表記）
+    version: "2.1.0"
     # Jaeger OTLP ingest と trace query dry-run を実施した
     drill_state: green
     notes: "jaeger:2.x image digest pinned, OTLP gRPC ingest green, trace query API green"
@@ -147,6 +229,10 @@ drills:
   - drill_id: oss_drill__clickhouse
     oss_id: clickhouse
     ecosystem: container
+    # lifecycle_class: 監査ログシンクの標準コンポーネントのため v1_l3_generic を指定する
+    lifecycle_class: v1_l3_generic
+    # version: 現行採用バージョン（semver 表記）
+    version: "24.12.0"
     # ClickHouse audit table insert と window function aggregation dry-run を実施した
     drill_state: green
     notes: "clickhouse:24.x image digest pinned, audit event INSERT green, window function query green"

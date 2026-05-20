@@ -29,3 +29,11 @@ packages:
   - "packages/attachments"
   # 帳票テンプレートラッパー（PDF / Excel 生成 / ダウンロード管理）
   - "packages/reports"
+  # 発注 tier3 SPA（調達ドメイン UI: 発注 / 検収 / 受注 / 出荷指示）
+  - "apps/procurement"
+  # 検査 tier3 SPA（検査ドメイン UI: 品質検査 / 不良票 / 図面 review / 在庫）
+  - "apps/inspection"
+  # FA tier3 SPA（FA ドメイン UI: 設備リモート操作 / ライン監視 / 生産指示 / SCADA / 計量）
+  - "apps/fa"
+  # Legacy 連携 tier3 SPA（ERP 並行運用: レガシー .NET Framework 連携 entry point）
+  - "apps/legacy_integration"

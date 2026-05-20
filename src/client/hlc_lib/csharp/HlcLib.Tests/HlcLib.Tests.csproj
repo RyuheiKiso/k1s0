@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- k1s0-hlc C# テストプロジェクト定義 -->
+  <!-- HlcTimestamp / HlcClock の xUnit テストを格納する。 -->
+  <PropertyGroup>
+    <!-- ターゲットフレームワーク: .NET 8.0 を使用する（LTS 版） -->
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Nullable: nullable reference types を有効化する -->
+    <Nullable>enable</Nullable>
+    <!-- ImplicitUsings: using ディレクティブの暗黙的インポートを有効化する -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- IsPackable: テストプロジェクトはパッケージ化しない -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- xUnit テストフレームワークへの参照 -->
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <!-- xUnit テストランナーへの参照 -->
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- Microsoft.NET.Test.Sdk: dotnet test コマンドのサポートに使用する -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- テスト対象の HlcLib プロジェクトへの参照 -->
+    <ProjectReference Include="..\HlcLib\HlcLib.csproj" />
+  </ItemGroup>
+</Project>

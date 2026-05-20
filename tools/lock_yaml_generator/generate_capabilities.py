@@ -101,8 +101,14 @@ class CapabilitiesGenerator(BaseGenerator):
             str(c.get("cell_id", "")): str(c.get("status", "pending"))
             for c in raw_cells
         }
+        # assertion_run_result_id を cell_id → 値のマップに変換する
+        # 各 cell に対して scenario assertion runner の実行結果 id を記録する（CI 整合 2 の物理化）
+        assertion_run_result_map: dict[str, str] = {
+            str(c.get("cell_id", "")): str(c.get("assertion_run_result_id", "pending"))
+            for c in raw_cells
+        }
 
-        cells = self._build_cells(status_map)
+        cells = self._build_cells(status_map, assertion_run_result_map)
         applicable = [c for c in cells if c["status"] != "not_applicable"]
 
         # catalog SoT のパスを解決する
@@ -187,24 +193,44 @@ class CapabilitiesGenerator(BaseGenerator):
         }
 
     @classmethod
-    def _build_cells(cls, status_map: dict[str, str]) -> list[dict[str, Any]]:
+    def _build_cells(
+        cls,
+        status_map: dict[str, str],
+        assertion_run_result_map: dict[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
         """spec の supports 行列から全 40 cell を構築する。
 
         applicable cell は status_map に status があればそれを使用、無ければ pending。
         not_applicable cell は _SUPPORTS から自動決定。
+        assertion_run_result_map が渡された場合は assertion_run_result_id を cell に追加する。
         """
+        # assertion_run_result_map が None の場合は空辞書で初期化する
+        if assertion_run_result_map is None:
+            assertion_run_result_map = {}
         result: list[dict[str, Any]] = []
         for cc in _CONFORMANCE_CLASSES:
             for adapter in _ADAPTERS:
                 cell_id = f"{cc}__{adapter}"
                 if cc in _SUPPORTS.get(adapter, set()):
+                    # applicable cell: status_map から status を取得し、無ければ pending とする
                     status = status_map.get(cell_id, "pending")
+                    # assertion_run_result_id を assertion_run_result_map から取得する
+                    # 値が無い場合は "pending" とする（assertion runner 未実行を示す）
+                    assertion_run_result_id = assertion_run_result_map.get(cell_id, "pending")
+                    result.append({
+                        "cell_id":                 cell_id,
+                        "conformance_class":       cc,
+                        "adapter":                 adapter,
+                        "status":                  status,
+                        "assertion_run_result_id": assertion_run_result_id,
+                    })
                 else:
-                    status = "not_applicable"
-                result.append({
-                    "cell_id":           cell_id,
-                    "conformance_class": cc,
-                    "adapter":           adapter,
-                    "status":            status,
-                })
+                    # not_applicable cell: _SUPPORTS から自動決定（assertion_run_result_id は n/a）
+                    result.append({
+                        "cell_id":                 cell_id,
+                        "conformance_class":       cc,
+                        "adapter":                 adapter,
+                        "status":                  "not_applicable",
+                        "assertion_run_result_id": "n/a",
+                    })
         return result

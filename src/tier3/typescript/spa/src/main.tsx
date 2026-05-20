@@ -35,12 +35,7 @@ import type { ClientState } from "../../packages/state/src/index.js";
 // OTel Browser SDK をインポートする（ページロードスパン生成）
 import { initOtelBrowser } from "./observability/otel_browser.js";
 
-// Vite の import.meta.env.MODE から環境を判定する（process.env は SPA では使用しない）
-// import.meta.env は Vite が型定義を提供する（vite/client を tsconfig の lib に追加すると解決する）
-// unknown 経由でキャストして型安全にアクセスする
-const _IS_PRODUCTION: boolean =
-  ((import.meta as unknown) as { env?: { MODE?: string } }).env?.MODE === "production";
-
+// production/development 分岐禁止規約: 環境によって動作が変わるコードは禁止する
 // OTel Browser SDK を初期化する（main.tsx 最初期に実行する）
 initOtelBrowser({
   // サービス名を設定する
@@ -51,24 +46,11 @@ initOtelBrowser({
   collectorUrl: "/api/otel/v1/traces",
   // テナント slug は初期化時点では不明（auth 後に更新する）
   tenantSlug: "unknown",
-  // 環境名を設定する（Vite の import.meta.env.MODE を使用する）
-  environment: _IS_PRODUCTION ? "production" : "development",
-  // サンプリングレート（本番: 10%, 開発: 100%）
-  samplingRate: _IS_PRODUCTION ? 0.1 : 1.0,
+  // 環境名は "production" 固定（production/development 分岐禁止規約）
+  environment: "production",
+  // サンプリングレート（production 固定: 10%）
+  samplingRate: 0.1,
 });
-
-// 開発環境のみ axe-core a11y 自動検査を有効化する
-// production build では tree-shake される（dynamic import で遅延ロード）
-if (!_IS_PRODUCTION) {
-  // 非同期で axe-core を動的インポートする（production bundle に含まない）
-  void import("@axe-core/react").then((axe: { default: (react: typeof React, options: Record<string, unknown>, timeout: number) => Promise<void> }) => {
-    // axe-core を初期化する（開発環境のみ）
-    void axe.default(React, {}, 1000);
-  }).catch(() => {
-    // axe-core が利用できない場合は警告のみ（CI 環境では @axe-core/react が存在しない可能性がある）
-    console.warn("[a11y] @axe-core/react is not available. Install it for development a11y checking.");
-  });
-}
 
 // locale の初期値を navigator.language から決定する
 function detectInitialLocale(): SupportedLocale {

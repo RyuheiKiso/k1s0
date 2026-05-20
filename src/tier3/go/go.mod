@@ -3,3 +3,10 @@ module github.com/k1s0/tier3/go
 
 // Go バージョン
 go 1.22
+
+// require: k1s0-hlc Go lib（wall-clock TTL 禁止規律に従い HLC を使用する）
+// src/CLAUDE.md §wall-clock TTL 禁止: deadline 計算は HLC ベース必須
+require github.com/k1s0/hlc-lib-go v0.0.0
+
+// replace: ローカル path 依存（モノレポ内の hlc_lib を参照する）
+replace github.com/k1s0/hlc-lib-go => ../../client/hlc_lib/go

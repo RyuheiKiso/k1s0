@@ -1,0 +1,14 @@
+# k1s0 FA tier3 SPA — Helm Chart メタデータ
+# FA ドメイン UI（設備リモート操作 / ライン監視 / 生産指示 / SCADA / 計量）の Helm Chart を定義する
+# Argo Rollouts canary 4 step（5/25/50/100%）と組み合わせてデプロイする
+apiVersion: v2
+# Chart 名を設定する
+name: tier3-fa
+# Chart の説明を設定する
+description: "k1s0 FA tier3 SPA — FA ドメイン UI（設備リモート操作 / ライン監視 / 生産指示 / SCADA / 計量）"
+# Chart の種類（application: デプロイ可能な Chart）
+type: application
+# Chart バージョン
+version: 0.1.0
+# アプリケーションバージョン
+appVersion: "0.1.0"

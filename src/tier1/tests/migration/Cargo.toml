@@ -8,18 +8,30 @@ version = "0.1.0"
 # エディション: 2021（最新安定版）
 edition = "2021"
 
+# ============================================================
+# 条件付きコンパイル feature 定義
+# ============================================================
+
+[features]
+# testcontainers feature: Docker が利用可能な環境でのみ有効化する
+# `cargo test --features testcontainers` で E2E テストを実行する
+# デフォルトは無効（Docker 不要のモックテストのみ常時 pass させる）
+testcontainers = ["dep:testcontainers"]
+
 # ランタイム依存クレート（lib ターゲットが使用する依存クレートを宣言する）
 [dependencies]
 # tokio: 非同期ランタイム（async fn / join / select に使用する）
 tokio = { version = "1", features = ["full"] }
 # anyhow: エラーハンドリングの統一に使用する
 anyhow = "1"
+# testcontainers: Docker コンテナ管理（testcontainers feature が有効な場合のみリンクする）
+# WSL 環境の ring クレートビルド問題を回避するため optional とする
+# Docker socket 直接経由で動作するため ring クレート問題は発生しない
+# bollard は testcontainers が内部依存として管理するため別途宣言しない
+testcontainers = { version = "0.22", optional = true }
 
 # 開発・テスト専用依存クレート
 [dev-dependencies]
-# NOTE: testcontainers / testcontainers-modules は WSL 環境で ring クレートの C コンパイルが
-# 失敗するため dev-dependencies から除外している。Docker 実環境での E2E テスト実行は
-# docker-compose.yaml を使い、個別に cargo test --features testcontainers で実行すること。
 # serde: YAML / JSON のシリアライズ・デシリアライズ（テストマトリックス読み込みに使用する）
 serde = { version = "1", features = ["derive"] }
 # serde_yaml: YAML パース（test_matrix.yaml の読み込みに使用する）

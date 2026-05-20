@@ -9,26 +9,31 @@ cells:
     conformance_class: v1_interactive
     adapter: grpc_native
     status: green
+    assertion_run_result_id: "pending"
     notes: "tonic bidi stream: BidiSession state machine NoDoubleHandshake holds, ordering=SESSION_ORDERED, resumable=REQUIRED"
   - cell_id: v1_alert__grpc_native
     conformance_class: v1_alert
     adapter: grpc_native
     status: green
+    assertion_run_result_id: "pending"
     notes: "tonic server stream: direction=server→client, lag≤200ms, resumable=REQUIRED, NoDoubleHandshake holds"
   - cell_id: v1_event_feed__grpc_native
     conformance_class: v1_event_feed
     adapter: grpc_native
     status: green
+    assertion_run_result_id: "pending"
     notes: "tonic server stream: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED, resumable=REQUIRED"
   - cell_id: v1_live_snapshot__grpc_native
     conformance_class: v1_live_snapshot
     adapter: grpc_native
     status: green
+    assertion_run_result_id: "pending"
     notes: "tonic server stream: direction=server→client, ordering=UNORDERED, latest-wins, lag≤500ms"
   - cell_id: v1_bulk_upload__grpc_native
     conformance_class: v1_bulk_upload
     adapter: grpc_native
     status: green
+    assertion_run_result_id: "pending"
     notes: "tonic client stream: direction=client→server, ordering=UNORDERED, half_close=SUPPORTED, at-least-once"
 
   # ========= connect_bidi (supports: 全 5 class) =========
@@ -36,53 +41,71 @@ cells:
     conformance_class: v1_interactive
     adapter: connect_bidi
     status: green
+    assertion_run_result_id: "pending"
     notes: "connect-rpc bidi: fetch full-duplex streams, ua_subclass map, NoDoubleHandshake holds"
   - cell_id: v1_alert__connect_bidi
     conformance_class: v1_alert
     adapter: connect_bidi
     status: green
+    assertion_run_result_id: "pending"
     notes: "connect-rpc server stream: direction=server→client, lag≤200ms"
   - cell_id: v1_event_feed__connect_bidi
     conformance_class: v1_event_feed
     adapter: connect_bidi
     status: green
+    assertion_run_result_id: "pending"
     notes: "connect-rpc server stream: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED"
   - cell_id: v1_live_snapshot__connect_bidi
     conformance_class: v1_live_snapshot
     adapter: connect_bidi
     status: green
+    assertion_run_result_id: "pending"
     notes: "connect-rpc server stream: direction=server→client, ordering=UNORDERED, latest-wins"
   - cell_id: v1_bulk_upload__connect_bidi
     conformance_class: v1_bulk_upload
     adapter: connect_bidi
     status: green
+    assertion_run_result_id: "pending"
     notes: "connect-rpc client stream: direction=client→server, half_close=SUPPORTED"
 
   # ========= web_transport (supports: 全 5 class, requires_fallback: true) =========
+  # web_transport 5 cell は accepted_with_assumption:
+  # HTTP/3 QUIC (UDP 443) が必要。v1.0.0 では UA 検出 + requires_fallback=true で自動降格。
+  # v1.x で quinn H/3 実装を追加予定。
   - cell_id: v1_interactive__web_transport
     conformance_class: v1_interactive
     adapter: web_transport
-    status: green
+    status: accepted_with_assumption
+    assertion_run_result_id: "n/a"
+    assumption: "HTTP/3 QUIC requires UDP 443. WSL2/corp-proxy environments auto-downgrade to connect_bidi via requires_fallback=true. quinn implementation planned for v1.x."
     notes: "WebTransport bidi: HTTP/3 ALPN, requires_fallback=true, NoDoubleHandshake holds"
   - cell_id: v1_alert__web_transport
     conformance_class: v1_alert
     adapter: web_transport
-    status: green
-    notes: "WebTransport server stream: direction=server→client, lag≤200ms, requires_fallback=true"
+    status: accepted_with_assumption
+    assertion_run_result_id: "n/a"
+    assumption: "HTTP/3 QUIC requires UDP 443. Auto-downgrade to sse_paired via requires_fallback=true. quinn planned for v1.x."
+    notes: "WebTransport server stream: direction=server->client, lag<=200ms, requires_fallback=true"
   - cell_id: v1_event_feed__web_transport
     conformance_class: v1_event_feed
     adapter: web_transport
-    status: green
-    notes: "WebTransport server stream: direction=server→client, lag≤5000ms, requires_fallback=true"
+    status: accepted_with_assumption
+    assertion_run_result_id: "n/a"
+    assumption: "HTTP/3 QUIC requires UDP 443. Auto-downgrade to sse_paired via requires_fallback=true. quinn planned for v1.x."
+    notes: "WebTransport server stream: direction=server->client, lag<=5000ms, requires_fallback=true"
   - cell_id: v1_live_snapshot__web_transport
     conformance_class: v1_live_snapshot
     adapter: web_transport
-    status: green
+    status: accepted_with_assumption
+    assertion_run_result_id: "n/a"
+    assumption: "HTTP/3 QUIC requires UDP 443. Auto-downgrade to sse_paired via requires_fallback=true. quinn planned for v1.x."
     notes: "WebTransport server stream: ordering=UNORDERED, latest-wins, requires_fallback=true"
   - cell_id: v1_bulk_upload__web_transport
     conformance_class: v1_bulk_upload
     adapter: web_transport
-    status: green
+    status: accepted_with_assumption
+    assertion_run_result_id: "n/a"
+    assumption: "HTTP/3 QUIC requires UDP 443. Auto-downgrade to paired_post_sse via requires_fallback=true. quinn planned for v1.x."
     notes: "WebTransport client stream: direction=client→server, half_close=SUPPORTED, requires_fallback=true"
 
   # ========= sse_paired (supports: v1_alert, v1_event_feed, v1_live_snapshot) =========
@@ -92,16 +115,19 @@ cells:
     conformance_class: v1_alert
     adapter: sse_paired
     status: green
+    assertion_run_result_id: "pending"
     notes: "EventSource SSE: direction=server→client, lag≤200ms, resumable via Last-Event-ID"
   - cell_id: v1_event_feed__sse_paired
     conformance_class: v1_event_feed
     adapter: sse_paired
     status: green
+    assertion_run_result_id: "pending"
     notes: "EventSource SSE: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED, resumable"
   - cell_id: v1_live_snapshot__sse_paired
     conformance_class: v1_live_snapshot
     adapter: sse_paired
     status: green
+    assertion_run_result_id: "pending"
     notes: "EventSource SSE: direction=server→client, ordering=UNORDERED, latest-wins"
 
   # ========= paired_post_sse (supports: v1_interactive, v1_alert, v1_event_feed, v1_live_snapshot) =========
@@ -110,21 +136,25 @@ cells:
     conformance_class: v1_interactive
     adapter: paired_post_sse
     status: green
+    assertion_run_result_id: "pending"
     notes: "POST↔SSE pair: half-duplex emulation, _crosscutting/12_ua_aware_adapter 連携, NoDoubleHandshake holds"
   - cell_id: v1_alert__paired_post_sse
     conformance_class: v1_alert
     adapter: paired_post_sse
     status: green
+    assertion_run_result_id: "pending"
     notes: "POST↔SSE pair: direction=server→client, lag≤200ms"
   - cell_id: v1_event_feed__paired_post_sse
     conformance_class: v1_event_feed
     adapter: paired_post_sse
     status: green
+    assertion_run_result_id: "pending"
     notes: "POST↔SSE pair: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED"
   - cell_id: v1_live_snapshot__paired_post_sse
     conformance_class: v1_live_snapshot
     adapter: paired_post_sse
     status: green
+    assertion_run_result_id: "pending"
     notes: "POST↔SSE pair: direction=server→client, ordering=UNORDERED, latest-wins"
 
   # ========= long_poll (supports: v1_event_feed のみ) =========
@@ -132,6 +162,7 @@ cells:
     conformance_class: v1_event_feed
     adapter: long_poll
     status: green
+    assertion_run_result_id: "pending"
     notes: "fetch long-poll: direction=server→client, lag≤5000ms, resume_token re-issue on reconnect"
 
   # ========= webhook (supports: v1_alert, v1_event_feed, v1_live_snapshot) =========
@@ -139,16 +170,19 @@ cells:
     conformance_class: v1_alert
     adapter: webhook
     status: green
+    assertion_run_result_id: "pending"
     notes: "HMAC-SHA256 signed webhook: direction=server→client, lag≤200ms, retry-after header"
   - cell_id: v1_event_feed__webhook
     conformance_class: v1_event_feed
     adapter: webhook
     status: green
+    assertion_run_result_id: "pending"
     notes: "HMAC-SHA256 signed webhook: direction=server→client, lag≤5000ms, ordering=SESSION_ORDERED"
   - cell_id: v1_live_snapshot__webhook
     conformance_class: v1_live_snapshot
     adapter: webhook
     status: green
+    assertion_run_result_id: "pending"
     notes: "HMAC-SHA256 signed webhook: direction=server→client, ordering=UNORDERED, latest-wins"
 
   # ========= messaging_bridge (supports: v1_event_feed, v1_live_snapshot, v1_bulk_upload) =========
@@ -158,14 +192,17 @@ cells:
     conformance_class: v1_event_feed
     adapter: messaging_bridge
     status: green
+    assertion_run_result_id: "pending"
     notes: "Kafka producer: partition_key=session_id, ordering=SESSION_ORDERED per-partition, lag≤5000ms"
   - cell_id: v1_live_snapshot__messaging_bridge
     conformance_class: v1_live_snapshot
     adapter: messaging_bridge
     status: green
+    assertion_run_result_id: "pending"
     notes: "Kafka producer: partition_key=session_id, ordering=UNORDERED, latest-wins, log-compacted topic"
   - cell_id: v1_bulk_upload__messaging_bridge
     conformance_class: v1_bulk_upload
     adapter: messaging_bridge
     status: green
+    assertion_run_result_id: "pending"
     notes: "Kafka producer: direction=client→server, at-least-once, idempotent producer, partition_key=session_id"

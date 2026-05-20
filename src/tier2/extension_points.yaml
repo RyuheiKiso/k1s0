@@ -1,16 +1,88 @@
 # extension_points.yaml — 業界横断 extension_points 宣言 (SoT)
 # 06_業務資産所有権: 拡張点宣言の単一の真
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §拡張点
 version: "1.0.0"
 extension_points:
   - id: domain_event_envelope
+    # Domain Event の envelope 形式を拡張する拡張点
     description: "Domain Event の envelope 形式。pack が拡張フィールドを追加可能"
+    # ベーススキーマの完全修飾名
     base_schema: "manufacturing.common.v1.DomainEventEnvelope"
+    # pack が追加フィールドを注入する extension フィールド名
     extension_field: "pack_extensions"
+    # 適用水準: 業界共通（全 pack に適用される共通 envelope 仕様）
+    lv: cross_industry
+    # 不変条件リスト（Pact + E2E で保証する）
+    invariants:
+      # event_id は UUID v7 形式でなければならない
+      - "event_id は UUID v7 形式であること"
+      # tenant_id は AuthContext から取得し API 引数経由の上書きを禁止する
+      - "tenant_id は AuthContext から取得すること（API 引数経由禁止）"
+      # envelope の pack_extensions はスキーマ互換の拡張のみ許可する
+      - "pack_extensions は後方互換 Avro スキーマ拡張のみ許可すること"
+    # Pact contract test の参照先ファイルパス
+    contract_test: "src/tier2/test/pact/rust/domain_event_envelope.pact.json"
 
   - id: aggregate_lifecycle_hook
+    # Aggregate の create/update/delete/archive 各フェーズに割り込む hook 拡張点
     description: "Aggregate の lifecycle hook (create/update/delete/archive)"
+    # hook インターフェースの完全修飾名
     hook_interface: "tier2.lifecycle.AggregateLifecycleHook"
+    # 適用水準: 業界共通（製造業 pack を含む全 pack に適用する）
+    lv: industry_common
+    # 不変条件リスト
+    invariants:
+      # hook 処理は呼び出し元と同一 DB トランザクション内で完結しなければならない
+      - "hook は同一 DB トランザクション内で完結すること（Outbox atomic 三表書込）"
+      # hook 内で外部 I/O を直接実行することを禁止し Outbox 経由にする
+      - "hook 内での外部 I/O 直接呼び出し禁止（Outbox 経由必須）"
+    # Pact contract test の参照先ファイルパス
+    contract_test: "src/tier2/test/pact/rust/aggregate_lifecycle_hook.pact.json"
 
   - id: report_template
+    # 帳票テンプレート拡張点: pack が新テンプレートを登録する
     description: "帳票テンプレート拡張点: pack が新テンプレートを登録"
+    # テンプレートレジストリのディレクトリパス
     template_registry: "src/tier2/attachment/template_engine/"
+    # 適用水準: 業界固有（製造業 pack の帳票種別に依存する）
+    lv: industry_specific
+    # 不変条件リスト
+    invariants:
+      # 登録テンプレートは MIME allowlist に記載された形式のみ許可する
+      - "テンプレート出力 MIME は src/tier2/attachment/mime_allowlist.yaml に登録済みであること"
+      # PII フィールドはテンプレートレンダリング前に redact すること
+      - "PII フィールドはレンダリング前に redact すること（field_pii annotation 参照）"
+    # Pact contract test の参照先ファイルパス
+    contract_test: "src/tier2/test/pact/typescript/report_template.pact.json"
+
+  - id: audit_event_enricher
+    # 監査イベントにカスタムフィールドを追加する enricher 拡張点
+    description: "監査イベント拡張点: pack が audit_event にカスタムフィールドを追加可能"
+    # enricher インターフェースの完全修飾名
+    enricher_interface: "tier2.audit.AuditEventEnricher"
+    # 適用水準: テナント固有（テナント契約に応じた監査項目追加を許可する）
+    lv: tenant_specific
+    # 不変条件リスト
+    invariants:
+      # enricher が追加するフィールドは audit_event Avro スキーマの extension 領域に限定する
+      - "enricher 追加フィールドは audit_event.pack_extensions 内に収めること"
+      # enricher の実行は audit Outbox 書込と同一トランザクション内であること
+      - "enricher 実行は audit Outbox 書込と同一 DB トランザクション内であること"
+    # Pact contract test の参照先ファイルパス
+    contract_test: "src/tier2/test/pact/go/audit_event_enricher.pact.json"
+
+  - id: quota_policy_hook
+    # クォータポリシーをテナント契約に応じてカスタマイズする hook 拡張点
+    description: "クォータポリシー拡張点: テナント契約に応じたクォータルールを注入可能"
+    # ポリシーフックインターフェースの完全修飾名
+    policy_interface: "tier2.quota.QuotaPolicyHook"
+    # 適用水準: テナント固有（テナント tier・契約プランに依存する）
+    lv: tenant_specific
+    # 不変条件リスト
+    invariants:
+      # クォータポリシーは runtime に変更されず起動時設定を単一の真とする
+      - "クォータポリシーは起動時設定から取得し runtime 変更を禁止すること"
+      # 超過判定は HLC タイムスタンプを使用し wall clock を禁止する
+      - "クォータ超過判定には HLC タイムスタンプを使用すること（wall clock 禁止）"
+    # Pact contract test の参照先ファイルパス
+    contract_test: "src/tier2/test/pact/csharp/quota_policy_hook.pact.json"

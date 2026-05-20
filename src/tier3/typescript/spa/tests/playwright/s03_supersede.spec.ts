@@ -1,6 +1,7 @@
-// s03_supersede.spec.ts — supersede 競合シナリオ
+// s03_supersede.spec.ts — supersede 競合シナリオ（conflict 系 S03b）
 // @playwright/test で supersede BusinessConflict subtype の処理を検証する
 // 適合仕様: 11_クライアント状態適合仕様.md §supersede → delete_queue_entry + silent_toast
+// 命名規約: s03_25h_offline_idempotency_ttl.spec.ts（オフライン系 S03）と区別するために S03b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from '@playwright/test';
@@ -31,8 +32,8 @@ function reduce(state, event) {
 }
 `;
 
-// S03: supersede → PQ 先頭 entry 削除 + silent toast テスト
-test('S03: supersede → DELETE_PQ_ENTRY + NOTIFY_SILENT_TOAST', async ({ page }) => {
+// S03b: supersede → PQ 先頭 entry 削除 + silent toast テスト（s03_25h_offline_idempotency_ttl の S03 との重複を回避する）
+test('S03b: supersede → DELETE_PQ_ENTRY + NOTIFY_SILENT_TOAST', async ({ page }) => {
   // 空白ページを開く（SPA bundle に依存しない）
   await page.goto('about:blank');
 

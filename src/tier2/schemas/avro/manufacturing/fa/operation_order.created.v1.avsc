@@ -1,0 +1,78 @@
+{
+  "_comment": "operation_order.created.v1.avsc — FA aggregate の OperationOrder.Created ドメインイベント Avro スキーマ",
+  "_doc_ref": "docs/03_概要設計/03_tier2設計方針/10_表現手段.md §Avro スキーマ / aggregate split",
+  "type": "record",
+  "name": "OperationOrderCreated",
+  "namespace": "io.k1s0.tier2.manufacturing.fa.operation_order.v1",
+  "doc": "作業指示書（OperationOrder）が作成された（Created）ドメインイベント。FA aggregate の namespace を使用する。",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "イベント識別子（UUID v7 形式）"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "doc": "テナント識別子（RLS 境界を保証する。AuthContext から取得する）"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "作業指示書 aggregate の識別子（UUID v7 形式）"
+    },
+    {
+      "name": "aggregate_version",
+      "type": "long",
+      "doc": "楽観的ロック用 aggregate バージョン番号（単調増加）"
+    },
+    {
+      "name": "work_center_id",
+      "type": "string",
+      "doc": "作業センター識別子（UUID v7 形式。設備や生産ライン等の業界中立表現）"
+    },
+    {
+      "name": "scheduled_start_at",
+      "type": "string",
+      "doc": "予定開始日時（RFC 3339 / HLC タイムスタンプ文字列。wall clock 禁止）"
+    },
+    {
+      "name": "scheduled_end_at",
+      "type": "string",
+      "doc": "予定終了日時（RFC 3339 / HLC タイムスタンプ文字列。wall clock 禁止）"
+    },
+    {
+      "name": "operation_type",
+      "type": "string",
+      "doc": "作業種別（業界中立の汎用コード。業界 pack が解釈する）"
+    },
+    {
+      "name": "target_quantity",
+      "type": "long",
+      "doc": "目標数量（正の整数）"
+    },
+    {
+      "name": "assigned_resource_ids",
+      "type": {
+        "type": "array",
+        "items": "string"
+      },
+      "default": [],
+      "doc": "割り当てリソース識別子リスト（設備・作業者等の UUID v7 リスト）"
+    },
+    {
+      "name": "occurred_at",
+      "type": "string",
+      "doc": "発生日時（RFC 3339 / HLC タイムスタンプ文字列。wall clock 禁止）"
+    },
+    {
+      "name": "pack_extensions",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "default": {},
+      "doc": "pack が追加するカスタムフィールド（domain_event_envelope 拡張点。後方互換拡張のみ許可）"
+    }
+  ]
+}

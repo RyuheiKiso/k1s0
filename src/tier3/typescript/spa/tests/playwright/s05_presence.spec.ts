@@ -1,6 +1,7 @@
-// s05_presence.spec.ts — presence indicator シナリオ
+// s05_presence.spec.ts — presence indicator シナリオ（conflict 系 S05b）
 // @playwright/test で concurrent_edit → UPDATE_PRESENCE の処理を検証する
 // 適合仕様: 11_クライアント状態適合仕様.md §concurrent_edit → update_presence_indicator
+// 命名規約: s05_parallel_edit_lost_update_3way_merge.spec.ts（オフライン系 S05）と区別するために S05b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from '@playwright/test';
@@ -33,7 +34,8 @@ function reduce(state, event) {
 `;
 
 // S05: presence indicator → UPDATE_PRESENCE テスト
-test('S05: concurrent_edit → UPDATE_PRESENCE action が発行される', async ({ page }) => {
+// テスト名: S05b を使用して s05_parallel_edit_lost_update_3way_merge の S05 との重複を回避する
+test('S05b: concurrent_edit → UPDATE_PRESENCE action が発行される', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 
@@ -65,8 +67,8 @@ test('S05: concurrent_edit → UPDATE_PRESENCE action が発行される', async
   expect(result.nextState).toEqual(initialState);
 });
 
-// S05b: presence リストの HLC 有効期限フィルタリングテスト
-test('S05b: HLC カウンタによる有効 presence entry フィルタリング', async ({ page }) => {
+// S05c: presence リストの HLC 有効期限フィルタリングテスト（S05b との命名重複を回避する）
+test('S05c: HLC カウンタによる有効 presence entry フィルタリング', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 

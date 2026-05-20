@@ -11,7 +11,8 @@
     Language="1041"
     Version="1.0.0.0"
     Manufacturer="k1s0"
-    UpgradeCode="12345678-1234-1234-1234-123456789ABC">
+    UpgradeCode="6F3D2A41-8C5B-4E0F-9D2E-1A7B3C0F5E8D">
+    <!-- permanent UpgradeCode - DO NOT CHANGE after first release -->
 
     <!-- インストーラパッケージを定義する -->
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />

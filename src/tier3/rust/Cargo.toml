@@ -23,6 +23,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # UUID v4（Idempotency-Key 生成に使用する）
 uuid = { version = "1", features = ["v4"] }
+# k1s0-hlc: wall-clock TTL 禁止規律に従い HLC（Hybrid Logical Clock）を使用する（path 依存）
+# src/CLAUDE.md §wall-clock TTL 禁止: deadline 計算は HLC ベース必須
+k1s0-hlc = { path = "../../client/hlc_lib/rust" }
 
 [dev-dependencies]
 # テストで使用する追加クレートなし

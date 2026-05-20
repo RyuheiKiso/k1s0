@@ -1,6 +1,7 @@
-// s08_quota_exhaustion.spec.ts — quota exhaustion シナリオ
+// s08_quota_exhaustion.spec.ts — quota exhaustion シナリオ（conflict 系 S08b）
 // @playwright/test で PQ が quota 上限に達した場合の挙動を検証する
 // 適合仕様: 11_クライアント状態適合仕様.md §quota enforcement → 429 / quota_exceeded
+// 命名規約: s08_logout_full_purge_audit_emit.spec.ts（オフライン系 S08）と区別するために S08b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from '@playwright/test';
@@ -38,7 +39,8 @@ function quotaUsage(pendingQueue) {
 `;
 
 // S08: PQ quota 上限到達 → enqueue 拒否テスト
-test('S08: PQ quota 上限（50 件）到達で enqueue が拒否される', async ({ page }) => {
+// テスト名: S08b を使用して s08_logout_full_purge_audit_emit の S08 との重複を回避する
+test('S08b: PQ quota 上限（50 件）到達で enqueue が拒否される', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 
@@ -102,7 +104,8 @@ test('S08: PQ quota 上限（50 件）到達で enqueue が拒否される', asy
 });
 
 // S08b: quota 使用率の計算テスト
-test('S08b: PQ quota 使用率が正しく計算される', async ({ page }) => {
+// S08c: PQ quota 使用率テスト（S08b との重複を回避する）
+test('S08c: PQ quota 使用率が正しく計算される', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 

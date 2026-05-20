@@ -1,6 +1,7 @@
-// s07_optimistic_rollback.spec.ts — optimistic rejection + rollback シナリオ
+// s07_optimistic_rollback.spec.ts — optimistic rejection + rollback シナリオ（conflict 系 S07b）
 // @playwright/test で optimistic_rejected → ROLLBACK_OPTIMISTIC を検証する
 // 適合仕様: 11_クライアント状態適合仕様.md §optimistic_rejected → rollback_optimistic
+// 命名規約: s07_concurrent_edit_presence_conflict.spec.ts（オフライン系 S07）と区別するために S07b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from '@playwright/test';
@@ -30,7 +31,8 @@ function reduce(state, event) {
 `;
 
 // S07: optimistic_rejected → ROLLBACK_OPTIMISTIC テスト
-test('S07: optimistic_rejected → ROLLBACK_OPTIMISTIC + PRESENT_BUSINESS_ERROR', async ({ page }) => {
+// テスト名: S07b を使用して s07_concurrent_edit_presence_conflict の S07 との重複を回避する
+test('S07b: optimistic_rejected → ROLLBACK_OPTIMISTIC + PRESENT_BUSINESS_ERROR', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 
@@ -79,7 +81,8 @@ test('S07: optimistic_rejected → ROLLBACK_OPTIMISTIC + PRESENT_BUSINESS_ERROR'
 });
 
 // S07b: optimistic_rejected with conflictSubtype → DISPATCH_CONFLICT_SUBTYPE テスト
-test('S07b: optimistic_rejected with stale_write → DISPATCH_CONFLICT_SUBTYPE', async ({ page }) => {
+// S07c: S07b に続く stale_write テスト（S07b との重複を回避する）
+test('S07c: optimistic_rejected with stale_write → DISPATCH_CONFLICT_SUBTYPE', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 

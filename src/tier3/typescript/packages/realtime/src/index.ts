@@ -27,3 +27,12 @@ export { SseAdapter, createSseAdapter } from "./sse_adapter.js";
 // UA aware route selector を公開する
 export type { AdapterName, SelectTransportResult } from "./route_selector.js";
 export { selectTransport } from "./route_selector.js";
+
+// PresenceTracker / PresenceEntry を公開する（C-7 realtime 完全化）
+// PresenceTracker は PresenceClient の canonical 別名（spec 11 §presence indicator）
+export type { PresenceEntry } from "./presence.js";
+export { PresenceTracker, PresenceClient } from "./presence.js";
+
+// long-poll アダプターを公開する（C-7 long-poll adapter 実装）
+// SSE + long-poll フォールバック / corp_proxy 対応
+export { createLongPollAdapter, LongPollAdapter, detectCorpProxy } from "./long_poll_adapter.js";

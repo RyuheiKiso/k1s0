@@ -1,0 +1,65 @@
+# cross_region_failover.yaml — クロスリージョンフェイルオーバー カオス実験
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §信頼性 / DR
+# docs 参照: docs/04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md §RTO/RPO / 広域DR
+# プライマリリージョンへのネットワーク切断を模倣し
+# セカンダリリージョンへの自動フェイルオーバーと RTO/RPO 達成を検証する
+apiVersion: litmuschaos.io/v1alpha1
+# 実験定義リソース種別: ChaosEngine（複数ステップを協調実行する）
+kind: ChaosEngine
+metadata:
+  # 実験エンジンリソース名
+  name: tier2-cross-region-failover-engine
+  # 実験対象の Namespace
+  namespace: k1s0-tier2
+  # 実験メタデータラベル
+  labels:
+    # 実験種別ラベル
+    experiment.type: cross-region-failover
+    # 対象サービスラベル
+    app.kubernetes.io/component: tier2
+    # DR 系カオス実験ラベル
+    chaos.category: disaster-recovery
+spec:
+  # 実験対象アプリケーションの識別情報
+  appinfo:
+    # 対象ポッドの Namespace
+    appns: k1s0-tier2
+    # 対象ポッドのラベルセレクタ
+    applabel: "app=tier2-api"
+    # 対象リソース種別
+    appkind: deployment
+  # Chaos Service Account（実験の実行権限）
+  chaosServiceAccount: litmus-admin
+  # 実験エンジンの状態
+  engineState: active
+  # 実験リスト（複数の実験を順に実行する）
+  experiments:
+    # Step 1: プライマリリージョンのネットワークを遮断する
+    - name: network-loss
+      spec:
+        components:
+          env:
+            # ネットワーク遮断対象のポッドラベル（プライマリリージョンノード）
+            - name: TARGET_POD_LABEL
+              value: "region=primary"
+            # パケットロス率（100% にしてリージョン遮断を模倣する）
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: "100"
+            # 遮断継続時間（秒単位。RTO 計測に使用する）
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            # フェイルオーバー完了後の検証を有効にする
+            - name: VERIFY_FAILOVER_COMPLETION
+              value: "true"
+            # RTO 閾値（秒単位。14400 = 4 時間 = spec 要件）
+            - name: RTO_THRESHOLD_SECONDS
+              value: "14400"
+            # RPO 閾値（秒単位。3600 = 1 時間 = spec 要件）
+            - name: RPO_THRESHOLD_SECONDS
+              value: "3600"
+            # テナントデータ整合性を検証する（RLS 境界が維持されることを確認する）
+            - name: VERIFY_TENANT_DATA_INTEGRITY
+              value: "true"
+            # フェイルオーバー後に audit hash chain が連続していることを確認する
+            - name: VERIFY_AUDIT_CHAIN_CONTINUITY
+              value: "true"

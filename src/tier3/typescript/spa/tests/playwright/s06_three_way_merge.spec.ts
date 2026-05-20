@@ -1,6 +1,7 @@
-// s06_three_way_merge.spec.ts — 3way merge UI シナリオ
+// s06_three_way_merge.spec.ts — 3way merge UI シナリオ（conflict 系 S06b）
 // @playwright/test で lost_update → ThreeWayMergeUi のレンダリングと操作を検証する
 // 適合仕様: 11_クライアント状態適合仕様.md §lost_update → present_3way_merge_ui
+// 命名規約: s06_same_actor_supersede_silent.spec.ts（オフライン系 S06）と区別するために S06b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from '@playwright/test';
@@ -32,7 +33,8 @@ function acceptRemote(versions) {
 `;
 
 // S06: 3way merge UI → 競合フィールド検出テスト
-test('S06: 3way merge の競合フィールドを正しく検出する', async ({ page }) => {
+// テスト名: S06b を使用して s06_same_actor_supersede_silent の S06 との重複を回避する
+test('S06b: 3way merge の競合フィールドを正しく検出する', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 
@@ -67,7 +69,8 @@ test('S06: 3way merge の競合フィールドを正しく検出する', async (
 });
 
 // S06b: local 採用 → 解決結果テスト
-test('S06b: accept_local で local バージョンが採用される', async ({ page }) => {
+// S06c: accept_local テスト（S06b との重複を回避する）
+test('S06c: accept_local で local バージョンが採用される', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 
@@ -96,7 +99,8 @@ test('S06b: accept_local で local バージョンが採用される', async ({ 
 });
 
 // S06c: remote 採用 → 解決結果テスト
-test('S06c: accept_remote で remote バージョンが採用される', async ({ page }) => {
+// S06d: accept_remote テスト（S06b・S06c との重複を回避する）
+test('S06d: accept_remote で remote バージョンが採用される', async ({ page }) => {
   // 空白ページを開く
   await page.goto('about:blank');
 

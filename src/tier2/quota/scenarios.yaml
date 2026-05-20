@@ -1,11 +1,13 @@
-# k1s0 tier2 テナント容量シナリオ定義
-# テナント容量適合仕様 09 の容量シナリオを物理化する
-# 各 quota_class のシナリオを定義して enforcement の基準にする
+# scenarios.yaml — k1s0 tier2 quota シナリオ定義（次元軸）
+# docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md §scenarios の SoT
+# シナリオは quota_class（次元軸）× Litmus chaos scenario × assertion_id の 3 元で宣言する。
+# CI 整合 1: classes.yaml の全 quota_class がこのファイルの Litmus chaos scenario でカバーされること。
+# CI 整合 2: noisy neighbor isolation property assertion が green であること。
 
 # シナリオ定義バージョン
 apiVersion: k1s0/v1
 
-# リソース種別: quota_scenario_catalog
+# リソース種別: quota_scenario_catalog（次元軸シナリオ定義）
 kind: QuotaScenarioCatalog
 
 # メタデータ
@@ -14,97 +16,130 @@ metadata:
   name: k1s0-tier2-quota-scenarios
   # 適合仕様のリファレンス
   spec_reference: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
+  # quota_class 次元軸の参照先
+  class_ref: src/tier2/quota/classes.yaml
+  # per-action threshold の参照先（サブスクリプション tier）
+  tier_ref: src/tier2/quota/quota_tier.yaml
 
-# テナント容量シナリオ一覧
-# 各シナリオは quota_class と組み合わせて enforcement_points に渡される
+# 6 主要シナリオ（spec §scenarios §製造業 pack stress test に準拠する）
 scenarios:
-  # v1_lite の正常系シナリオ: API リクエストが上限内に収まる場合
-  - id: v1_lite_normal
-    # 対応する quota_class
-    quota_class: v1_lite
-    # シナリオの説明
-    description: v1_lite クラスで API リクエストが上限内に収まる正常系シナリオ
-    # 期待する結果: 全リクエストが通過する
-    expected_outcome: pass
-    # テスト用リクエスト量（1 時間あたり）
-    test_api_requests_per_hour: 800
-    # テスト用 DB コネクション数
-    test_db_connections: 4
 
-  # v1_lite の異常系シナリオ: API リクエストが上限を超過する場合
-  - id: v1_lite_throttle
-    # 対応する quota_class
-    quota_class: v1_lite
+  # シナリオ 1: noisy_neighbor_burst_does_not_break_neighbor_slo
+  # spec §1.0.0 ship blocker: 「1 テナントの burst が他テナントの SLO を破らない」
+  - id: noisy_neighbor_burst_does_not_break_neighbor_slo
+    # 対応する quota_class（QPS burst が隣接テナントに影響を与えないことを検証する）
+    quota_class: v1_per_tenant_qps
     # シナリオの説明
-    description: v1_lite クラスで API リクエストが上限を超過するスロットリングシナリオ
-    # 期待する結果: 超過リクエストが拒否される
-    expected_outcome: throttle
-    # テスト用リクエスト量（上限 1000 を超過する）
-    test_api_requests_per_hour: 1200
-    # テスト用 DB コネクション数
-    test_db_connections: 4
+    description: "テナント A の QPS burst 中に隣接テナント B の SLO が維持されることを検証する"
+    # Litmus chaos scenario の参照先（src/tier2/reliability/litmus/ に定義する）
+    litmus_scenario_ref: src/tier2/reliability/litmus/chaos_experiments/noisy_neighbor.yaml
+    # Litmus assertion ID（noisy neighbor isolation の機械証跡）
+    assertion_id: "qa_noisy_neighbor_slo_isolation_001"
+    # 期待する結果
+    expected_outcome:
+      # テナント A の burst 中にテナント B の P99 レイテンシが SLO 内に収まること
+      neighbor_p99_within_slo: true
+      # テナント A の burst リクエストが 429 で制限されること
+      burst_tenant_throttled: true
+    # 製造業 pack stress test §6: 隣接テナント burst 中の自テナント SLO 維持
+    pack_stress_test_ref: "manufacturing_pack_stress_6"
 
-  # v1_standard の正常系シナリオ: 標準的な業務負荷
-  - id: v1_standard_normal
+  # シナリオ 2: qps_burst_returns_429
+  # v1_per_tenant_qps の exhaustion_response: reject_429 を検証する
+  - id: qps_burst_returns_429
     # 対応する quota_class
-    quota_class: v1_standard
+    quota_class: v1_per_tenant_qps
     # シナリオの説明
-    description: v1_standard クラスの標準業務負荷シナリオ
-    # 期待する結果: 全リクエストが通過する
-    expected_outcome: pass
-    # テスト用リクエスト量
-    test_api_requests_per_hour: 8000
-    # テスト用 DB コネクション数
-    test_db_connections: 15
+    description: "v1_per_tenant_qps 上限を超過したリクエストが 429 + Retry-After で拒否されることを検証する"
+    # Litmus chaos scenario の参照先
+    litmus_scenario_ref: src/tier2/quota/litmus/scenarios/qps_burst.yaml
+    # Litmus assertion ID
+    assertion_id: "qa_qps_burst_429_001"
+    # 期待する結果
+    expected_outcome:
+      # 上限超過リクエストが HTTP 429 で拒否されること
+      http_status_on_excess: 429
+      # Retry-After ヘッダが設定されること
+      retry_after_header_present: true
+    # 製造業 pack stress test §1: 業務担当 SPA の API burst
+    pack_stress_test_ref: "manufacturing_pack_stress_1"
 
-  # v1_standard の DB コネクション超過シナリオ
-  - id: v1_standard_db_limit
+  # シナリオ 3: concurrency_queue_drains_under_deadline
+  # v1_per_tenant_concurrency の exhaustion_response: queue_with_timeout を検証する
+  - id: concurrency_queue_drains_under_deadline
     # 対応する quota_class
-    quota_class: v1_standard
+    quota_class: v1_per_tenant_concurrency
     # シナリオの説明
-    description: v1_standard クラスで DB コネクション数が上限を超過するシナリオ
-    # 期待する結果: 超過コネクションが拒否される
-    expected_outcome: reject
-    # テスト用リクエスト量（制限内）
-    test_api_requests_per_hour: 5000
-    # テスト用 DB コネクション数（上限 20 を超過する）
-    test_db_connections: 25
+    description: "v1_per_tenant_concurrency 上限到達時に queue に積まれたリクエストが deadline 内に処理されることを検証する"
+    # Litmus chaos scenario の参照先
+    litmus_scenario_ref: src/tier2/quota/litmus/scenarios/concurrency_queue.yaml
+    # Litmus assertion ID
+    assertion_id: "qa_concurrency_queue_deadline_001"
+    # 期待する結果
+    expected_outcome:
+      # queue 内のリクエストが deadline 内（medium_1m = 60 秒以内）に処理されること
+      queue_drain_within_deadline_ms: 60000
+      # deadline 超過リクエストが適切なエラーで返却されること
+      deadline_exceeded_handled: true
+    # 製造業 pack stress test §2: 注文一括投入（concurrency queue）
+    pack_stress_test_ref: "manufacturing_pack_stress_2"
 
-  # v1_professional の高負荷シナリオ
-  - id: v1_professional_high_load
+  # シナリオ 4: volume_overflow_to_cold_succeeds
+  # v1_per_tenant_volume の exhaustion_response: overflow_to_cold を検証する
+  - id: volume_overflow_to_cold_succeeds
     # 対応する quota_class
-    quota_class: v1_professional
+    quota_class: v1_per_tenant_volume
     # シナリオの説明
-    description: v1_professional クラスの高負荷シナリオ
-    # 期待する結果: 全リクエストが通過する
-    expected_outcome: pass
-    # テスト用リクエスト量
-    test_api_requests_per_hour: 80000
-    # テスト用 DB コネクション数
-    test_db_connections: 40
+    description: "v1_per_tenant_volume 上限到達時に hot SSD → cold Ceph RGW へのオーバーフローが正常に動作することを検証する"
+    # Litmus chaos scenario の参照先
+    litmus_scenario_ref: src/tier2/quota/litmus/scenarios/volume_overflow.yaml
+    # Litmus assertion ID
+    assertion_id: "qa_volume_overflow_cold_001"
+    # 期待する結果
+    expected_outcome:
+      # hot ストレージ上限到達後に cold へのオーバーフローが発生すること
+      cold_overflow_triggered: true
+      # オーバーフロー後もデータが正常に読み書きできること
+      data_accessible_after_overflow: true
+    # 製造業 pack stress test §3: 図面アップロード（volume overflow to cold）
+    pack_stress_test_ref: "manufacturing_pack_stress_3"
 
-  # v1_enterprise の大規模シナリオ
-  - id: v1_enterprise_large_scale
+  # シナリオ 5: compute_priority_shed_correct_order
+  # v1_per_tenant_compute の exhaustion_response: shed_by_priority を検証する
+  - id: compute_priority_shed_correct_order
     # 対応する quota_class
-    quota_class: v1_enterprise
+    quota_class: v1_per_tenant_compute
     # シナリオの説明
-    description: v1_enterprise クラスの大規模業務シナリオ
-    # 期待する結果: 全リクエストが通過する
-    expected_outcome: pass
-    # テスト用リクエスト量
-    test_api_requests_per_hour: 900000
-    # テスト用 DB コネクション数
-    test_db_connections: 150
+    description: "v1_per_tenant_compute 上限到達時に priority_class の低いタスクから正しい順序で shed されることを検証する"
+    # Litmus chaos scenario の参照先
+    litmus_scenario_ref: src/tier2/quota/litmus/scenarios/compute_shed.yaml
+    # Litmus assertion ID
+    assertion_id: "qa_compute_shed_priority_001"
+    # 期待する結果
+    expected_outcome:
+      # priority_class の低いタスクが先に shed されること
+      shed_order_by_priority: true
+      # 高 priority タスクが継続して実行されること
+      high_priority_continues: true
+    # 製造業 pack stress test §4: 在庫予測 ML inference 集中（shed_by_priority）
+    pack_stress_test_ref: "manufacturing_pack_stress_4"
 
-  # v1_dedicated の専有シナリオ
-  - id: v1_dedicated_exclusive
+  # シナリオ 6: kafka_partition_rebalance_under_global_share
+  # v1_global_fair_queue の exhaustion_response: partition_rebalance を検証する
+  - id: kafka_partition_rebalance_under_global_share
     # 対応する quota_class
-    quota_class: v1_dedicated
+    quota_class: v1_global_fair_queue
     # シナリオの説明
-    description: v1_dedicated クラスの専有インスタンスシナリオ（上限なし）
-    # 期待する結果: 制限なく通過する
-    expected_outcome: pass
-    # テスト用リクエスト量（上限なしのため任意の値）
-    test_api_requests_per_hour: 5000000
-    # テスト用 DB コネクション数（専有のため任意の値）
-    test_db_connections: 1000
+    description: "全テナント横断 Kafka traffic burst 時に partition rebalance が公平に実施されることを検証する"
+    # Litmus chaos scenario の参照先
+    litmus_scenario_ref: src/tier2/reliability/litmus/chaos_experiments/partition_rebalance.yaml
+    # Litmus assertion ID
+    assertion_id: "qa_kafka_global_fair_queue_001"
+    # 期待する結果
+    expected_outcome:
+      # partition rebalance 後に全テナントの throughput が均等に分配されること
+      global_fair_distribution: true
+      # rebalance 中の message loss がゼロであること
+      no_message_loss_during_rebalance: true
+    # 製造業 pack stress test §5: Domain Event burst（global_fair_queue partition_rebalance）
+    pack_stress_test_ref: "manufacturing_pack_stress_5"

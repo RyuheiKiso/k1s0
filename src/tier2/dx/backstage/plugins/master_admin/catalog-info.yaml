@@ -1,0 +1,38 @@
+# master_admin/catalog-info.yaml — 業務マスタ管理 Backstage plugin のカタログエントリ
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §開発者体験 / Backstage plugin
+# Backstage API バージョン
+apiVersion: backstage.io/v1alpha1
+# リソース種別: Plugin（Backstage の UI plugin を登録する）
+kind: Component
+metadata:
+  # plugin のコンポーネント名（Backstage catalog の一意識別子）
+  name: k1s0-tier2-master-admin-plugin
+  # plugin の説明
+  description: "k1s0 tier2 業務マスタ管理 plugin — 品目・取引先・コードマスタの参照・更新 UI を提供する"
+  # ラベル（Backstage のフィルタリングと整合性チェックに使用する）
+  labels:
+    # 所属軸ラベル
+    k1s0.axis: tier2
+    # 実装 Phase ラベル
+    k1s0.phase: P10
+    # plugin 種別ラベル
+    k1s0.plugin.type: master-admin
+  # アノテーション（外部システムとの連携設定）
+  annotations:
+    # GitHub リポジトリリンク
+    github.com/project-slug: "RyuheiKiso/k1s0"
+    # techdocs 生成対象パス
+    backstage.io/techdocs-ref: "dir:."
+spec:
+  # コンポーネント種別（website: UI plugin）
+  type: website
+  # ライフサイクルステージ
+  lifecycle: experimental
+  # オーナーチームの参照
+  owner: "team:k1s0-core"
+  # 所属システム
+  system: "k1s0-platform"
+  # この plugin が依存するコンポーネント
+  dependsOn:
+    # tier2 REST API への依存（マスタデータは tier2 API 経由で取得する）
+    - "component:k1s0-tier2"

@@ -3,7 +3,7 @@ conformance_classes: 5
 adapters: 8
 total_cells: 40
 applicable_cells: 29
-generated_at: '2026-05-19T15:56:53Z'
+generated_at: '2026-05-20T10:18:11Z'
 metadata:
   catalog_validation_status: passed
   catalog_sot_hash: sha256:fd2f9c68412c131548dec562662b6eab654be14232ea4b4e7b2bf2f1032d3a9a
@@ -14,159 +14,199 @@ cells:
   conformance_class: v1_interactive
   adapter: grpc_native
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_interactive__connect_bidi
   conformance_class: v1_interactive
   adapter: connect_bidi
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_interactive__web_transport
   conformance_class: v1_interactive
   adapter: web_transport
-  status: green
+  status: accepted_with_assumption
+  assertion_run_result_id: n/a
 - cell_id: v1_interactive__sse_paired
   conformance_class: v1_interactive
   adapter: sse_paired
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_interactive__paired_post_sse
   conformance_class: v1_interactive
   adapter: paired_post_sse
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_interactive__long_poll
   conformance_class: v1_interactive
   adapter: long_poll
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_interactive__webhook
   conformance_class: v1_interactive
   adapter: webhook
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_interactive__messaging_bridge
   conformance_class: v1_interactive
   adapter: messaging_bridge
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_alert__grpc_native
   conformance_class: v1_alert
   adapter: grpc_native
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_alert__connect_bidi
   conformance_class: v1_alert
   adapter: connect_bidi
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_alert__web_transport
   conformance_class: v1_alert
   adapter: web_transport
-  status: green
+  status: accepted_with_assumption
+  assertion_run_result_id: n/a
 - cell_id: v1_alert__sse_paired
   conformance_class: v1_alert
   adapter: sse_paired
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_alert__paired_post_sse
   conformance_class: v1_alert
   adapter: paired_post_sse
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_alert__long_poll
   conformance_class: v1_alert
   adapter: long_poll
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_alert__webhook
   conformance_class: v1_alert
   adapter: webhook
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_alert__messaging_bridge
   conformance_class: v1_alert
   adapter: messaging_bridge
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_event_feed__grpc_native
   conformance_class: v1_event_feed
   adapter: grpc_native
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_event_feed__connect_bidi
   conformance_class: v1_event_feed
   adapter: connect_bidi
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_event_feed__web_transport
   conformance_class: v1_event_feed
   adapter: web_transport
-  status: green
+  status: accepted_with_assumption
+  assertion_run_result_id: n/a
 - cell_id: v1_event_feed__sse_paired
   conformance_class: v1_event_feed
   adapter: sse_paired
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_event_feed__paired_post_sse
   conformance_class: v1_event_feed
   adapter: paired_post_sse
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_event_feed__long_poll
   conformance_class: v1_event_feed
   adapter: long_poll
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_event_feed__webhook
   conformance_class: v1_event_feed
   adapter: webhook
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_event_feed__messaging_bridge
   conformance_class: v1_event_feed
   adapter: messaging_bridge
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_live_snapshot__grpc_native
   conformance_class: v1_live_snapshot
   adapter: grpc_native
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_live_snapshot__connect_bidi
   conformance_class: v1_live_snapshot
   adapter: connect_bidi
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_live_snapshot__web_transport
   conformance_class: v1_live_snapshot
   adapter: web_transport
-  status: green
+  status: accepted_with_assumption
+  assertion_run_result_id: n/a
 - cell_id: v1_live_snapshot__sse_paired
   conformance_class: v1_live_snapshot
   adapter: sse_paired
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_live_snapshot__paired_post_sse
   conformance_class: v1_live_snapshot
   adapter: paired_post_sse
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_live_snapshot__long_poll
   conformance_class: v1_live_snapshot
   adapter: long_poll
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_live_snapshot__webhook
   conformance_class: v1_live_snapshot
   adapter: webhook
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_live_snapshot__messaging_bridge
   conformance_class: v1_live_snapshot
   adapter: messaging_bridge
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_bulk_upload__grpc_native
   conformance_class: v1_bulk_upload
   adapter: grpc_native
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_bulk_upload__connect_bidi
   conformance_class: v1_bulk_upload
   adapter: connect_bidi
   status: green
+  assertion_run_result_id: pending
 - cell_id: v1_bulk_upload__web_transport
   conformance_class: v1_bulk_upload
   adapter: web_transport
-  status: green
+  status: accepted_with_assumption
+  assertion_run_result_id: n/a
 - cell_id: v1_bulk_upload__sse_paired
   conformance_class: v1_bulk_upload
   adapter: sse_paired
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_bulk_upload__paired_post_sse
   conformance_class: v1_bulk_upload
   adapter: paired_post_sse
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_bulk_upload__long_poll
   conformance_class: v1_bulk_upload
   adapter: long_poll
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_bulk_upload__webhook
   conformance_class: v1_bulk_upload
   adapter: webhook
   status: not_applicable
+  assertion_run_result_id: n/a
 - cell_id: v1_bulk_upload__messaging_bridge
   conformance_class: v1_bulk_upload
   adapter: messaging_bridge
   status: green
+  assertion_run_result_id: pending

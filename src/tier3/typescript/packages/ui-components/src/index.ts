@@ -58,3 +58,40 @@ export type { PermissionGateProps, Permission } from "./PermissionGate";
 export { RequireRole } from "./RequireRole";
 // RequireRole プロパティ型 / ロール型を export する
 export type { RequireRoleProps, Role } from "./RequireRole";
+
+// AutoResendBadge コンポーネントと型を export する（C-7 補完）
+export { AutoResendBadge } from "./AutoResendBadge";
+// AutoResendBadge プロパティ型 / ステータス型を export する
+export type { AutoResendBadgeProps, AutoResendStatus } from "./AutoResendBadge";
+
+// AsyncProgressIndicator コンポーネントを export する（C-7 補完）
+// プロパティ型 AsyncProgressIndicatorProps は同ファイル内で private 定義されているため export しない
+export { AsyncProgressIndicator } from "./AsyncProgressIndicator";
+
+// ConcurrentEditDialog コンポーネントと型を export する（C-7 補完）
+export { ConcurrentEditDialog } from "./ConcurrentEditDialog";
+// ConcurrentEditDialog プロパティ型 / 競合情報型を export する
+export type {
+  ConcurrentEditDialogProps,
+  ConcurrentEditConflictInfo,
+} from "./ConcurrentEditDialog";
+
+// PresenceIndicator コンポーネントと型を export する（C-7 補完）
+// spa/src/ui/PresenceIndicator.tsx を削除してこちらを canonical 実装とする
+export { PresenceIndicator } from "./PresenceIndicator";
+// PresenceIndicator プロパティ型 / エントリ型 / HLC カウンタ型を export する
+export type {
+  PresenceIndicatorProps,
+  PresenceEntry,
+  HlcCounter,
+} from "./PresenceIndicator";
+
+// ThreeWayMergeUi コンポーネントと型を export する（C-7 補完）
+// spa/src/screens/conflicts/ThreeWayMergeDialog.tsx を削除してこちらを canonical 実装とする
+export { ThreeWayMergeUi } from "./ThreeWayMergeUi";
+// ThreeWayMergeUi プロパティ型 / バージョン型 / コールバック型を export する
+export type {
+  ThreeWayMergeUiProps,
+  ThreeWayMergeVersions,
+  ThreeWayMergeCallbacks,
+} from "./ThreeWayMergeUi";

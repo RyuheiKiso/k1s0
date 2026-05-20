@@ -1,6 +1,7 @@
-// s02_lost_update.spec.ts — lost_update 競合シナリオ
+// s02_lost_update.spec.ts — lost_update 競合シナリオ（conflict 系 S02b）
 // @playwright/test で lost_update BusinessConflict subtype の処理を検証する
 // 適合仕様: 11_クライアント状態適合仕様.md §lost_update → present_3way_merge_ui + hold_queue
+// 命名規約: s02_factory_offline_5_items_pq_resume.spec.ts（オフライン系 S02）と区別するために S02b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from '@playwright/test';
@@ -45,7 +46,8 @@ function reduce(state, event) {
 `;
 
 // S02: lost_update 競合 → 3way merge UI 表示 → 解決テスト
-test('S02: lost_update conflict → PRESENT_3WAY_MERGE_UI + HOLD_QUEUE', async ({ page }) => {
+// テスト名: S02b を使用して s02_factory_offline_5_items_pq_resume の S02 との重複を回避する
+test('S02b: lost_update conflict → PRESENT_3WAY_MERGE_UI + HOLD_QUEUE', async ({ page }) => {
   // 空白ページを開く（SPA bundle に依存しない）
   await page.goto('about:blank');
 

@@ -1,0 +1,65 @@
+# partition_rebalance.yaml — Kafka パーティションリバランス カオス実験
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §信頼性 / Kafka
+# docs 参照: docs/04_詳細設計/02_強制機構/02_tier2強制機構.md §Outbox/Kafka 保証
+# Kafka コンシューマグループのリバランスを人工的にトリガーし
+# Outbox メッセージの at-least-once 配信保証を検証する
+apiVersion: litmuschaos.io/v1alpha1
+# 実験定義リソース種別: ChaosExperiment
+kind: ChaosExperiment
+metadata:
+  # 実験リソース名
+  name: tier2-kafka-partition-rebalance
+  # 実験対象の Namespace
+  namespace: k1s0-tier2
+  # 実験メタデータラベル
+  labels:
+    # 実験種別ラベル
+    experiment.type: kafka-partition-rebalance
+    # 対象サービスラベル
+    app.kubernetes.io/component: tier2
+    # メッセージング系カオス実験ラベル
+    chaos.category: messaging
+spec:
+  # 定義するカスタム実験の仕様
+  definition:
+    # スコープ（Namespaced に限定する）
+    scope: Namespaced
+    # 実験コンテナの権限設定
+    permissions:
+      # Kafka broker pod の削除権限が必要
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "delete"]
+    # 実験イメージ（LitmusChaos ランナー）
+    image: "litmuschaos/go-runner:3.0.0"
+    # 実験コマンド
+    command:
+      - /bin/bash
+    # Kafka ブローカーポッドを削除してリバランスをトリガーするスクリプト
+    args:
+      - -c
+      - "./experiments/kafka-partition-rebalance"
+    # 実験環境変数
+    env:
+      # Kafka コンシューマグループ名（tier2 Outbox リレーのコンシューマグループ）
+      - name: CONSUMER_GROUP_NAME
+        value: "k1s0-tier2-outbox-relay"
+      # リバランスをトリガーするブローカーポッドのラベルセレクタ
+      - name: BROKER_POD_LABEL
+        value: "app=kafka-broker"
+      # 削除するブローカー数（リバランスを強制する）
+      - name: BROKER_DELETE_COUNT
+        # 1 台のブローカーを削除してリバランスをトリガーする
+        value: "1"
+      # 実験継続時間（秒単位）
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      # リバランス完了後の検証: Outbox メッセージが全件配信されること（at-least-once 保証）
+      - name: VERIFY_AT_LEAST_ONCE_DELIVERY
+        value: "true"
+      # 重複検知検証: idempotency key で重複を排除できること
+      - name: VERIFY_IDEMPOTENT_CONSUMPTION
+        value: "true"
+      # リバランス完了までの最大待機時間（秒単位）
+      - name: REBALANCE_COMPLETION_TIMEOUT_SECONDS
+        value: "120"

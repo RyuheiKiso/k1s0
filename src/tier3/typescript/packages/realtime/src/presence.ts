@@ -66,3 +66,7 @@ export class PresenceClient {
       .map(([actorId, expiresAtMs]) => ({ actorId, expiresAtMs }));
   }
 }
+
+// PresenceTracker は PresenceClient の canonical 別名（C-7 public API 統一）
+// spec 11 §presence indicator での呼称が PresenceTracker のため alias を提供する
+export { PresenceClient as PresenceTracker };

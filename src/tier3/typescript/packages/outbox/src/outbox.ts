@@ -70,37 +70,46 @@ export type OverTtlPolicy =
   // 新 key で再送する
   | "new_key_resend";
 
-// Idempotency-Key を生成する（ULID + aggregateId prefix + method hash）
-// wall-clock TTL 禁止規約に従い HLC を使用する
+// Idempotency-Key を生成する（tenantId prefix + ULID + method hash）
+// フォーマット: "{tenantId}_{ulidHex}_{methodHash}" — docs §idempotency_key 準拠
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
+// wall-clock TTL 禁止規約に従い HLC を使用する（Math.random() 禁止）
 export function generateIdempotencyKey(
+  tenantId: string,
   aggregateId: string,
   rpcMethod: string,
 ): string {
-  // HLC タイムスタンプの先頭 16 進数部分をランダム識別子の基底として使用する
+  // HLC タイムスタンプの先頭 16 進数部分を ULID の時刻部分として使用する
   const hlcBase = hlcNow().split("-")[0];
-  // ランダム部分を生成する（Math.random を使用してエントリ固有性を確保する）
-  const random = Math.random().toString(36).slice(2, 10);
-  // aggregateId の先頭 8 文字 + method の先頭 4 文字を prefix に使用する
-  const prefix = `${aggregateId.slice(0, 8)}_${rpcMethod.slice(0, 4)}`;
-  // prefix + HLC ベース + random で Idempotency-Key を組み立てる
-  return `${prefix}_${hlcBase}_${random}`;
+  // crypto.randomUUID() でランダム部分を生成する（暗号論的に安全）
+  const randomPart = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  // ULID 相当: HLC タイムスタンプ hex + random で識別子を生成する
+  const ulidHex = `${hlcBase}${randomPart}`;
+  // rpcMethod の先頭 4 文字を method hash として使用する（短縮識別子）
+  const methodHash = rpcMethod.slice(0, 4);
+  // tenantId prefix + ulid + method hash の形式で Idempotency-Key を組み立てる
+  return `${tenantId}_${ulidHex}_${methodHash}`;
 }
 
 // chain された新 Idempotency-Key を生成する（rebase 後再送）
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
 export function chainIdempotencyKey(
   original: string,
+  tenantId: string,
   aggregateId: string,
   rpcMethod: string,
 ): { newKey: string; chainedFrom: string } {
   // 新しい key を生成して chain 親子関係を記録する
-  const newKey = generateIdempotencyKey(aggregateId, rpcMethod);
+  const newKey = generateIdempotencyKey(tenantId, aggregateId, rpcMethod);
   // chain 元と新 key の組を返す
   return { newKey, chainedFrom: original };
 }
 
 // Outbox エントリのメタデータを生成する（PII strip 済み payload と一緒に使用）
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
 // wall-clock TTL 禁止規約に従い HLC ベースのタイムスタンプを使用する
 export function createOutboxMeta(
+  tenantId: string,
   aggregateId: string,
   rpcMethod: string,
   chainedFrom?: string,
@@ -111,8 +120,8 @@ export function createOutboxMeta(
   const enqueuedMs = extractMsFromHlc(nowHlc);
   // chain がある場合は chain された新 key を生成する
   const key = chainedFrom
-    ? chainIdempotencyKey(chainedFrom, aggregateId, rpcMethod).newKey
-    : generateIdempotencyKey(aggregateId, rpcMethod);
+    ? chainIdempotencyKey(chainedFrom, tenantId, aggregateId, rpcMethod).newKey
+    : generateIdempotencyKey(tenantId, aggregateId, rpcMethod);
   // backward compat 用の expiresAtMs は HLC ミリ秒から計算する
   const expiresAtMs = enqueuedMs + IDEMPOTENCY_KEY_TTL_MS;
   // メタデータオブジェクトを組み立てて返す

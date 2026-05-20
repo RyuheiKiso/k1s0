@@ -86,6 +86,7 @@ pub mod backend;
 
 // frontend モジュール: frontend 向け thin wrapper モジュール群
 // FrontendAuthClient / FrontendConfigClient / FrontendRpcClient 等を提供する
+// TransportNegotiationClient / BidiChannel / ClientCapabilities 等も提供する
 pub mod frontend;
 
 // ---- 後方互換: 既存 3 モジュールを維持する ----

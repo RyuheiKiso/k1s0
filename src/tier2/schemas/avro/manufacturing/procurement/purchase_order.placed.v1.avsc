@@ -1,0 +1,93 @@
+{
+  "_comment": "purchase_order.placed.v1.avsc — 発注 aggregate の PurchaseOrder.Placed ドメインイベント Avro スキーマ",
+  "_doc_ref": "docs/03_概要設計/03_tier2設計方針/10_表現手段.md §Avro スキーマ / aggregate split",
+  "type": "record",
+  "name": "PurchaseOrderPlaced",
+  "namespace": "io.k1s0.tier2.manufacturing.procurement.purchase_order.v1",
+  "doc": "発注書（PurchaseOrder）が発注された（Placed）ドメインイベント。aggregate_qualified_name を namespace に使用する。",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "イベント識別子（UUID v7 形式）"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "doc": "テナント識別子（RLS 境界を保証する。AuthContext から取得する）"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "発注書 aggregate の識別子（UUID v7 形式）"
+    },
+    {
+      "name": "aggregate_version",
+      "type": "long",
+      "doc": "楽観的ロック用 aggregate バージョン番号（単調増加）"
+    },
+    {
+      "name": "order_number",
+      "type": "string",
+      "doc": "発注書番号（人間可読のビジネスキー）"
+    },
+    {
+      "name": "supplier_id",
+      "type": "string",
+      "doc": "仕入先識別子（UUID v7 形式）"
+    },
+    {
+      "name": "line_items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "PurchaseOrderLineItem",
+          "doc": "発注明細行（品目・数量・単価を保持する）",
+          "fields": [
+            {
+              "name": "item_id",
+              "type": "string",
+              "doc": "品目識別子（UUID v7 形式）"
+            },
+            {
+              "name": "quantity",
+              "type": "long",
+              "doc": "発注数量（正の整数）"
+            },
+            {
+              "name": "unit_price_milli",
+              "type": "long",
+              "doc": "単価（ミリ通貨単位、整数演算で小数誤差を排除する）"
+            },
+            {
+              "name": "currency_code",
+              "type": "string",
+              "doc": "通貨コード（ISO 4217 形式、例: JPY / USD）"
+            }
+          ]
+        }
+      },
+      "doc": "発注明細行リスト（1 件以上が必須）"
+    },
+    {
+      "name": "requested_delivery_date",
+      "type": "string",
+      "doc": "希望納期（ISO 8601 日付文字列）"
+    },
+    {
+      "name": "occurred_at",
+      "type": "string",
+      "doc": "発生日時（RFC 3339 / HLC タイムスタンプ文字列。wall clock 禁止）"
+    },
+    {
+      "name": "pack_extensions",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "default": {},
+      "doc": "pack が追加するカスタムフィールド（domain_event_envelope 拡張点。後方互換拡張のみ許可）"
+    }
+  ]
+}

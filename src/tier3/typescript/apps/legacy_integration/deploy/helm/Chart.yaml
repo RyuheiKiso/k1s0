@@ -1,0 +1,14 @@
+# k1s0 Legacy 連携 tier3 SPA — Helm Chart メタデータ
+# ERP 並行運用エントリポイント（レガシー .NET Framework 連携）の Helm Chart を定義する
+# Argo Rollouts canary 4 step（5/25/50/100%）と組み合わせてデプロイする
+apiVersion: v2
+# Chart 名を設定する
+name: tier3-legacy-integration
+# Chart の説明を設定する
+description: "k1s0 Legacy 連携 tier3 SPA — ERP 並行運用エントリポイント（レガシー .NET Framework 連携）"
+# Chart の種類（application: デプロイ可能な Chart）
+type: application
+# Chart バージョン
+version: 0.1.0
+# アプリケーションバージョン
+appVersion: "0.1.0"

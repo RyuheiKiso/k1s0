@@ -1,0 +1,42 @@
+{
+  "name": "@k1s0/tier3-procurement",
+  "version": "0.1.0",
+  "description": "k1s0 発注 tier3 SPA — 調達ドメイン UI（発注 / 検収 / 受注 / 出荷指示）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "test:playwright": "playwright test"
+  },
+  "dependencies": {
+    "@k1s0/tier3-pack": "workspace:*",
+    "@k1s0/tier3-state": "workspace:*",
+    "@k1s0/tier3-outbox": "workspace:*",
+    "@k1s0/tier3-auth": "workspace:*",
+    "@k1s0/tier3-realtime": "workspace:*",
+    "@k1s0/tier3-forms": "workspace:*",
+    "@k1s0/tier3-notifications": "workspace:*",
+    "@k1s0/tier3-ui-components": "workspace:*",
+    "@k1s0/tier3-i18n": "workspace:*",
+    "@k1s0/tier3-design-tokens": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.23.1"
+  },
+  "devDependencies": {
+    "@axe-core/react": "^4.11.3",
+    "@opentelemetry/api": "^1.9.1",
+    "@playwright/test": "^1.45.0",
+    "@testing-library/react": "^16",
+    "@types/axe-core": "^3.0.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "axe-core": "^4.9.1",
+    "msw": "^2.3.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.3.1"
+  }
+}

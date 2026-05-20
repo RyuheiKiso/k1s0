@@ -234,4 +234,70 @@ public class ReducerTests
             result.Actions.OfType<UpdatePresenceAction>().Any(),
             "UpdatePresence が含まれること");
     }
+
+    // ---------------------------------------------------------
+    // TestStaleWrite_RebaseClean_AutoResendWithChainedKey
+    // ---------------------------------------------------------
+    [TestMethod]
+    public void TestStaleWrite_RebaseClean_AutoResendWithChainedKey()
+    {
+        // OL key を持つ state で stale_write + disjoint FieldDiff を受け取る
+        var state = ClientState.Initial() with
+        {
+            // OL の idempotency key を設定する
+            OptimisticLocalKey = "idem-stale-001",
+        };
+        // 完全 disjoint な FieldDiff を構築する（client と server が異なるフィールドを変更）
+        var fieldDiff = new K1s0.Tier3.Legacy.FieldDiff(
+            // client が変更したフィールド
+            new System.Collections.Generic.List<string> { "title" }.AsReadOnly(),
+            // server が変更したフィールド（client と重複しない）
+            new System.Collections.Generic.List<string> { "description" }.AsReadOnly()
+        );
+        // BusinessConflictReceived(StaleWrite, disjoint FieldDiff) event を発行する
+        var result = K1s0.Tier3.Legacy.ClientStateReducer.Reduce(
+            state,
+            new K1s0.Tier3.Legacy.BusinessConflictReceivedEvent(
+                K1s0.Tier3.Legacy.BusinessConflictSubtype.StaleWrite,
+                "agg-stale-001",
+                fieldDiff
+            )
+        );
+        // AutoResendWithChainedKeyReducerAction が含まれることを確認する
+        var chainedAction = result.Actions.OfType<K1s0.Tier3.Legacy.AutoResendWithChainedKeyReducerAction>().FirstOrDefault();
+        // chainedAction が null でないことを確認する（typed action が生成されること）
+        Assert.IsNotNull(chainedAction, "AutoResendWithChainedKeyReducerAction が含まれること（string-formatted action ではなく型付きアクション）");
+        // chainedFrom フィールドが元の OL key と一致することを確認する
+        Assert.AreEqual(
+            "idem-stale-001",
+            chainedAction.ChainedFrom,
+            "chained_from が元の OL key (idem-stale-001) と一致すること"
+        );
+        // new_key フィールドが非空かつ元の key と異なることを確認する
+        Assert.IsFalse(
+            string.IsNullOrEmpty(chainedAction.NewKey),
+            "new_key が空でないこと"
+        );
+        // chain 後の新しい key は元の key と異なることを確認する
+        Assert.AreNotEqual(
+            "idem-stale-001",
+            chainedAction.NewKey,
+            "new_key が chainedFrom と異なること（新規 key が生成されること）"
+        );
+        // RollbackOptimistic action が含まれることを確認する（4 layer state machine ルーティング）
+        Assert.IsTrue(
+            result.Actions.OfType<K1s0.Tier3.Legacy.RollbackOptimisticAction>().Any(),
+            "RollbackOptimistic が含まれること（rebase_clean パスでの 4 layer ルーティング）"
+        );
+        // SendQueueInOrder action が含まれることを確認する（rebase 後の auto resend）
+        Assert.IsTrue(
+            result.Actions.OfType<K1s0.Tier3.Legacy.SendQueueInOrderAction>().Any(),
+            "SendQueueInOrder が含まれること（auto resend が実行されること）"
+        );
+        // NotifySilentToastAction が含まれないことを確認する（string-formatted action が排除されていること）
+        Assert.IsFalse(
+            result.Actions.OfType<K1s0.Tier3.Legacy.NotifySilentToastAction>().Any(),
+            "NotifySilentToastAction が含まれないこと（string-formatted action は AutoResendWithChainedKeyReducerAction に置換済み）"
+        );
+    }
 }

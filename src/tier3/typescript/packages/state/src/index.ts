@@ -30,5 +30,11 @@ export type {
 export { resolveSubtypeActions } from "./subtypes.js";
 
 // 4 layer reducer と helper を公開する
-export type { ClientState, ReducerResult, ReducerAction } from "./reducer.js";
+// AutoResendWithChainedKeyAction を追加で export する（T3-4 typed action 公開）
+export type {
+  ClientState,
+  ReducerResult,
+  ReducerAction,
+  AutoResendWithChainedKeyAction,
+} from "./reducer.js";
 export { createInitialState, reducePurge, reduce } from "./reducer.js";

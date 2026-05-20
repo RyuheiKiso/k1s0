@@ -1,0 +1,211 @@
+# demote_to_shared_workflow.yaml — SLO 連続下振れによる shared tier 降格 CronWorkflow
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §SLO ライフサイクル
+# docs 参照: docs/04_詳細設計/03_クロスカッティング適合仕様/05_SLO_protection_layers.md §自動降格
+# SLO が 30 日連続で v1_silver 以下のテナントを dedicated から shared tier に降格する
+apiVersion: argoproj.io/v1alpha1
+# CronWorkflow: 毎日 0 時に評価を実行する定期 workflow
+kind: CronWorkflow
+metadata:
+  # CronWorkflow リソース名
+  name: tier2-demote-to-shared
+  # 実行 Namespace
+  namespace: k1s0-tier2
+  # CronWorkflow ラベル
+  labels:
+    # ワークフロー種別ラベル
+    workflow.type: slo-demotion
+    # 対象軸ラベル
+    app.kubernetes.io/component: tier2
+spec:
+  # 実行スケジュール（毎日 0 時 0 分 UTC に評価する）
+  schedule: "0 0 * * *"
+  # タイムゾーン（UTC で実行する）
+  timezone: "UTC"
+  # 並行実行を禁止する（前回実行が完了していない場合はスキップする）
+  concurrencyPolicy: Forbid
+  # 実行履歴の保存件数（成功）
+  successfulJobsHistoryLimit: 7
+  # 実行履歴の保存件数（失敗）
+  failedJobsHistoryLimit: 3
+  # ワークフロー本体の定義
+  workflowSpec:
+    # ワークフローのエントリポイント
+    entrypoint: demote-evaluation-steps
+    # ワークフロー全体のタイムアウト（6 時間以内に完了しなければ失敗とする）
+    activeDeadlineSeconds: 21600
+    # ワークフロー引数（評価パラメータを宣言する）
+    arguments:
+      parameters:
+        # 降格判定の連続下振れ日数閾値（30 日）
+        - name: downgrade_threshold_days
+          # 30 日連続で v1_silver 以下の場合に降格する
+          value: "30"
+        # 降格対象 SLO クラス上限（v1_silver 以下を降格対象とする）
+        - name: slo_class_ceiling
+          # v1_silver 以下のテナントを shared tier 降格の対象とする
+          value: "v1_silver"
+
+    templates:
+      # 降格評価ステップ定義（scan → evaluate → demote_batch → audit の順で実行する）
+      - name: demote-evaluation-steps
+        steps:
+          # ステップ 1: 降格候補テナントのスキャン（SLO 30 日連続下振れテナントを列挙する）
+          - - name: scan-candidates
+              template: scan-candidates-tpl
+              arguments:
+                parameters:
+                  # 連続下振れ日数の閾値
+                  - name: downgrade_threshold_days
+                    value: "{{workflow.parameters.downgrade_threshold_days}}"
+                  # SLO クラス上限
+                  - name: slo_class_ceiling
+                    value: "{{workflow.parameters.slo_class_ceiling}}"
+          # ステップ 2: 降格候補テナントが存在する場合のみ降格処理を実行する
+          - - name: demote-batch
+              template: demote-batch-tpl
+              arguments:
+                parameters:
+                  # scan-candidates の出力（降格候補テナント ID の JSON 配列）を渡す
+                  - name: candidate_tenant_ids
+                    value: "{{steps.scan-candidates.outputs.parameters.candidate_tenant_ids}}"
+                  # SLO クラス上限（audit 記録に使用する）
+                  - name: slo_class_ceiling
+                    value: "{{workflow.parameters.slo_class_ceiling}}"
+              # 降格候補が 0 件の場合はスキップする
+              when: "{{steps.scan-candidates.outputs.parameters.candidate_count}} > 0"
+          # ステップ 3: 降格評価結果を audit ログに記録する（0 件評価も記録する）
+          - - name: record-evaluation-audit
+              template: record-evaluation-audit-tpl
+              arguments:
+                parameters:
+                  # 評価した候補数
+                  - name: candidate_count
+                    value: "{{steps.scan-candidates.outputs.parameters.candidate_count}}"
+                  # 実際に降格した件数
+                  - name: demoted_count
+                    value: "{{steps.demote-batch.outputs.parameters.demoted_count}}"
+
+      # 降格候補スキャンテンプレート
+      # Prometheus API を呼び出して 30 日連続 v1_silver 以下のテナントを列挙する
+      - name: scan-candidates-tpl
+        inputs:
+          parameters:
+            # 連続下振れ日数の閾値パラメータ
+            - name: downgrade_threshold_days
+            # SLO クラス上限パラメータ
+            - name: slo_class_ceiling
+        outputs:
+          # 降格候補テナント ID リスト（JSON 配列文字列）
+          parameters:
+            - name: candidate_tenant_ids
+              valueFrom:
+                # コンテナの標準出力から取得する（lifecycle-worker が JSON を出力する）
+                path: /tmp/candidate_tenant_ids.json
+            # 降格候補件数
+            - name: candidate_count
+              valueFrom:
+                path: /tmp/candidate_count.txt
+        container:
+          # ライフサイクルワーカーイメージ（Prometheus クライアントを内包する）
+          image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+          # 降格候補スキャンコマンド（SLO 連続下振れテナントを検索する）
+          command:
+            - /app/lifecycle-worker
+            - scan-demote-candidates
+            # 連続下振れ日数の閾値（日単位）
+            - --threshold-days
+            - "{{inputs.parameters.downgrade_threshold_days}}"
+            # 降格対象 SLO クラス上限
+            - --slo-ceiling
+            - "{{inputs.parameters.slo_class_ceiling}}"
+            # 候補テナント ID リストを /tmp に出力する
+            - --output-file
+            - /tmp/candidate_tenant_ids.json
+            # 候補件数を /tmp に出力する
+            - --count-file
+            - /tmp/candidate_count.txt
+          resources:
+            requests:
+              # スキャンは Prometheus クエリのみのため軽量にする
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      # 降格バッチ処理テンプレート
+      # 降格候補テナントの Envoy ルーティングを shared tier へ切り替える
+      - name: demote-batch-tpl
+        inputs:
+          parameters:
+            # 降格候補テナント ID リスト（JSON 配列文字列）
+            - name: candidate_tenant_ids
+            # SLO クラス上限（audit 記録に使用する）
+            - name: slo_class_ceiling
+        outputs:
+          # 実際に降格した件数
+          parameters:
+            - name: demoted_count
+              valueFrom:
+                path: /tmp/demoted_count.txt
+        container:
+          # ライフサイクルワーカーイメージ（kubectl / Envoy 設定変更を内包する）
+          image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+          # 降格バッチ処理コマンド（各テナントの Envoy ルーティングを shared へ変更する）
+          command:
+            - /app/lifecycle-worker
+            - demote-tenants-to-shared
+            # 降格候補テナント ID リスト（JSON 配列）
+            - --tenant-ids
+            - "{{inputs.parameters.candidate_tenant_ids}}"
+            # 降格後の backend クラス（shared: 共有インフラに戻す）
+            - --backend-class
+            - "shared"
+            # SLO クラス上限（audit イベントの記録に使用する）
+            - --slo-ceiling
+            - "{{inputs.parameters.slo_class_ceiling}}"
+            # 降格完了件数を /tmp に出力する
+            - --demoted-count-file
+            - /tmp/demoted_count.txt
+          resources:
+            requests:
+              # バッチ降格は kubectl ConfigMap patch のみのため軽量にする
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+      # 評価結果 audit 記録テンプレート
+      # 降格評価の実施記録を audit_event（atomic_triple_write 経由）に INSERT する
+      - name: record-evaluation-audit-tpl
+        inputs:
+          parameters:
+            # 評価した候補数パラメータ
+            - name: candidate_count
+            # 実際に降格した件数パラメータ
+            - name: demoted_count
+        container:
+          # ライフサイクルワーカーイメージ（atomic_triple_write を内包する）
+          image: harbor.k1s0.internal/k1s0/lifecycle-worker:latest
+          # 評価結果 audit 記録コマンド（daily 評価の結果を audit_event に INSERT する）
+          command:
+            - /app/lifecycle-worker
+            - record-demote-audit
+            # 評価した候補数
+            - --candidate-count
+            - "{{inputs.parameters.candidate_count}}"
+            # 実際に降格した件数
+            - --demoted-count
+            - "{{inputs.parameters.demoted_count}}"
+            # audit event 種別: SLO 降格評価完了イベントを明示する
+            - --event-kind
+            - "SloDemotionEvaluationCompleted"
+          resources:
+            requests:
+              # audit 記録は 1 INSERT のみのため軽量にする
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"

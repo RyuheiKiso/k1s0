@@ -145,24 +145,36 @@ fn dpop_sign(method: &str, uri: &str) -> Result<String, String> {
     let key_pair = EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &wrapper.pkcs8_bytes, &rng)
         // 鍵ペア再生成失敗時はエラー文字列を返す
         .map_err(|e| format!("DPoP 鍵ペア再生成失敗: {:?}", e))?;
-    // DPoP JWK（公開鍵）を base64url エンコードする
-    let public_key_b64 = URL_SAFE_NO_PAD.encode(&wrapper.public_key_bytes);
+    // 公開鍵バイト列を参照する（uncompressed point 形式: 0x04 || x(32B) || y(32B)）
+    let pubkey_bytes = &wrapper.public_key_bytes;
+    // uncompressed point の先頭バイトが 0x04 であることを確認する
+    // pubkey_bytes[0] == 0x04: uncompressed point を示すプレフィックス
+    // x 座標: bytes[1..33]（32 バイト）
+    // y 座標: bytes[33..65]（32 バイト）
+    if pubkey_bytes.len() < 65 {
+        // 公開鍵のバイト長が不正な場合はエラーを返す
+        return Err("DPoP 公開鍵のバイト長が不正です（65 バイト必要: 0x04 + x(32) + y(32)）".to_string());
+    }
+    // x 座標を base64url エンコードする（bytes[1..33]）
+    let x_b64 = URL_SAFE_NO_PAD.encode(&pubkey_bytes[1..33]);
+    // y 座標を base64url エンコードする（bytes[33..65]）
+    let y_b64 = URL_SAFE_NO_PAD.encode(&pubkey_bytes[33..65]);
     // DPoP ヘッダ（JWT header 部）を JSON で生成する
     let header = serde_json::json!({
         // JWT タイプ: DPoP
         "typ": "dpop+jwt",
         // 署名アルゴリズム: ES256
         "alg": "ES256",
-        // JWK（公開鍵）を埋め込む
+        // JWK（公開鍵）を埋め込む（x/y 座標を正規化して設定する）
         "jwk": {
             // キータイプ: EC
             "kty": "EC",
             // 曲線: P-256
             "crv": "P-256",
-            // 公開鍵（base64url）
-            "x": &public_key_b64[..public_key_b64.len().min(43)],
-            // y 座標（簡略化: 本実装では x の一部を使用する）
-            "y": &public_key_b64[public_key_b64.len().saturating_sub(43)..]
+            // x 座標（bytes[1..33] を base64url エンコード）
+            "x": x_b64,
+            // y 座標（bytes[33..65] を base64url エンコード）
+            "y": y_b64
         }
     });
     // HLC タイムスタンプを jti として使用する（wall-clock 禁止規約に従い HLC を使用する）

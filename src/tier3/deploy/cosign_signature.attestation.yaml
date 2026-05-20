@@ -71,8 +71,13 @@ spec:
   # --- 検証ポリシー設定 ---
   verificationPolicy:
     # Harbor admission webhook が検証する際に要求する条件
-    # 署名者が GitHub Actions OIDC である必要がある
-    requiredSignerIdentity: "https://github.com/k1s0-io/k1s0/.github/workflows/release.yml@refs/heads/main"
+    # 署名者が GitHub Actions OIDC であり、refs/heads/main または refs/tags/v* から発行されている必要がある
+    # refs/tags/v* を追加することで semver タグによるリリースビルドの attestation も許容する
+    requiredSignerIdentity:
+      # main ブランチからのビルドを許容する（CI/CD の通常ビルド）
+      - "https://github.com/k1s0-io/k1s0/.github/workflows/release.yml@refs/heads/main"
+      # semver タグからのビルドを許容する（正式リリースビルド: refs/tags/v* に対応する）
+      - "https://github.com/k1s0-io/k1s0/.github/workflows/release.yml@refs/tags/v*"
     # SLSA Build Level 3 以上を要求する
     minimumSlsaLevel: 3
     # 透明性ログへの記録を必須とする（Rekor lookup 必須）

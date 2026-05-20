@@ -30,12 +30,13 @@ migration_pairs:
     # 5 フェーズをすべて実行する（docs 指定の phase 名に reconcile 済み）
     phases: [schema_diff, state_replicate, dual_write_ramp, cutover, rollback]
 
-  # workflow_engine: Temporal → 自製ワークフローエンジンの移行ペア
-  - pair_id: workflow_engine
+  # workflow_pair: Temporal → Cadence の移行ペア（旧 pair_id workflow_engine から修正済み）
+  # docs/04_詳細設計/01_適合仕様/02_移行Pair適合仕様.md §pair_id に準拠する
+  - pair_id: workflow_pair
     # 移行元: Temporal ワークフローエンジン
     from: temporal
-    # 移行先: k1s0 内製ワークフローエンジン
-    to: internal_workflow
+    # 移行先: Cadence ワークフローエンジン
+    to: cadence
     # 5 フェーズをすべて実行する（docs 指定の phase 名に reconcile 済み）
     phases: [schema_diff, state_replicate, dual_write_ramp, cutover, rollback]
 
