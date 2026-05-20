@@ -15,7 +15,6 @@ pub struct k1s0_tier2::tenant_context::TenantContext
 # --- atomic_triple_write ---
 pub enum k1s0_tier2::atomic_triple_write::AtomicWriteError
 pub enum k1s0_tier2::atomic_triple_write::TableClass
-pub fn k1s0_tier2::atomic_triple_write::AtomicTripleWrite::build_triple_write_sql(&self, change: &StateChange) -> Result<String, AtomicWriteError>
 pub fn k1s0_tier2::atomic_triple_write::AtomicTripleWrite::execute(&self, change: &StateChange, tx: &mut sqlx::Transaction<'_, Postgres>) -> ExecuteResult
 pub fn k1s0_tier2::atomic_triple_write::AtomicTripleWrite::new(context: TenantContext, pool: sqlx::PgPool) -> Self
 pub fn k1s0_tier2::atomic_triple_write::AtomicTripleWrite::execute_triple_write(&self, change: &StateChange) -> ExecuteResult

@@ -43,6 +43,57 @@ covered_by:
 - 共有運用での hysteresis なき自動昇格（flapping 抑止が必須）
 - 手動 Provision での専用 Pod 切替（Backstage + ArgoCD 自動化前提）
 
+## Operator reconcile loop 仕様
+
+`K1s0ServiceReconciler` は `K1s0Service` CRD を監視し、以下の順序で 6 種類の Kubernetes リソースを同期する。
+
+### 観測対象（Observe）
+
+| 観測リソース | 確認内容 |
+|---|---|
+| `K1s0Service` CRD | `spec.tenantId` / `spec.quotaClass` / `spec.featureFlags` の変化 |
+| `Deployment` | レプリカ数・コンテナリソース制限が `quotaClass` 相当か |
+| `HorizontalPodAutoscaler` | `minReplicas` / `maxReplicas` / CPU utilization threshold が `quotaClass` 相当か |
+| `Ingress` | tenant サブドメイン（`{tenantId}.tier2.k1s0.internal`）・TLS Secret が一致するか |
+| `ServiceAccount` | `{name}-sa` が存在するか |
+| `NetworkPolicy` | `{name}-netpol` — 同一 Namespace 内 Pod からの Ingress のみ許可しているか |
+
+### 変更内容（Actuate）
+
+| ステップ | 変更操作 | 変更条件 |
+|---|---|---|
+| 1 | Status を `Provisioning` に更新 | Reconcile 開始時（常に実行） |
+| 2 | ServiceAccount `{name}-sa` を Create | 存在しない場合 |
+| 3 | Deployment を Create / Update | 存在しない場合は Create。存在する場合は `spec.replicas` と containers[0].resources を quotaClass 相当に Update |
+| 4 | Service（ClusterIP）を Create | 存在しない場合 |
+| 5 | NetworkPolicy `{name}-netpol` を Create | 存在しない場合 |
+| 6 | HPA `{name}-hpa` を Create / Update | 存在しない場合は Create。存在する場合は `minReplicas` / `maxReplicas` / `metrics` を Update |
+| 7 | Ingress `{name}-ingress` を Create / Update | 存在しない場合は Create。存在する場合は `rules` と `tls` を Update |
+| 8 | Status を `Active` に更新 | 全ステップ成功後 |
+
+### quotaClass → リソースマッピング
+
+| quotaClass | CPU req/limit | Memory req/limit | min replicas | max replicas |
+|---|---|---|---|---|
+| `standard` | 100m / 500m | 128Mi / 512Mi | 2 | 5 |
+| `enterprise` | 250m / 2 | 512Mi / 2Gi | 3 | 10 |
+| `unlimited` | 500m / 4 | 1Gi / 4Gi | 3 | 50 |
+| （不明） | 100m / 500m | 128Mi / 512Mi | 2 | 5 |
+
+HPA CPU utilization threshold は全 quotaClass 共通 70%。
+
+### reconcile 間隔と requeue 条件
+
+| 条件 | 動作 |
+|---|---|
+| 全ステップ成功 | `RequeueAfter: 5 minutes`（定期状態チェック） |
+| `tenantId` 未設定 | `RequeueAfter: 10 minutes`（警告ログ後スキップ） |
+| `quotaClass` 未設定 | `RequeueAfter: 10 minutes`（警告ログ後スキップ） |
+| いずれかのステップでエラー | 即時リトライ（controller-runtime の exponential backoff に委ねる） |
+| `K1s0Service` リソースが存在しない | 正常終了（削除済みとみなす） |
+
+全リソースに `OwnerReference（controller=true, blockOwnerDeletion=true）` を付与し、`K1s0Service` 削除時にカスケード GC される。
+
 ## 関連参照
 - [tier2 設計方針 index](README.md)
 - [マルチテナント方針](05_マルチテナント方針.md)

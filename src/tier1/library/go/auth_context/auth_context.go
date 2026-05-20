@@ -18,6 +18,11 @@ import (
 	"fmt"
 	// strings: strings.Join で scopes を結合する
 	"strings"
+	// time: step_up_proven_at タイムスタンプ型に使用する
+	"time"
+
+	// uuid: session_id の UUID v4 生成に使用する（device attest / federated exchange）
+	"github.com/google/uuid"
 )
 
 // AuthClass は 04_認証適合仕様.md §v1 auth_class セット（5 class）を宣言する型。
@@ -67,9 +72,13 @@ type AuthContext struct {
 	// dpopJkt: DPoP key thumbprint（dpop_bound_jwt のみ設定される）
 	dpopJkt string
 	// attestationLevel: device attestation level（jwt_attested のみ設定される）
-	attestationLevel string
-	// stepUpProven: 最終 step_up challenge 済みフラグ
-	stepUpProven bool
+	attestationLevel *string
+	// issuedVia: token 発行経路（v1_federated_exchange では "rfc8693_token_exchange"）
+	// 空文字列 = 通常発行（human / workload / device / emergency）
+	issuedVia string
+	// stepUpProvenAt: 最終 step_up challenge 時刻（04_認証適合仕様.md §AuthContext スキーマ SoT 準拠）
+	// nil = 未証明（workload / federated 等 step_up 不要クラス）、non-nil = challenge 完了時刻
+	stepUpProvenAt *time.Time
 	// isValid: token 検証が成功したかどうか（false の場合は GUC setter を空にする）
 	isValid bool
 }
@@ -144,22 +153,25 @@ func NewHumanSessionContext(
 	sessionID string,
 	scopes []string,
 	dpopJkt string,
-	stepUpProven bool,
+	// stepUpProvenAt: step_up challenge 完了時刻（未証明の場合は nil）
+	stepUpProvenAt *time.Time,
 ) *AuthContext {
 	// v1_human_session の固定属性を適用する（dimension override 禁止）
 	return &AuthContext{
 		authClass: AuthClassV1HumanSession,
 		subjectID: subjectID,
 		// human session の subject_kind は常に "human"（spec §各 class の不変条件）
-		subjectKind:      "human",
-		tokenID:          tokenID,
-		sessionID:        sessionID,
-		tenantID:         tenantID,
-		audience:         "",
-		scopes:           scopes,
-		dpopJkt:          dpopJkt,
-		attestationLevel: "",
-		stepUpProven:     stepUpProven,
+		subjectKind: "human",
+		tokenID:     tokenID,
+		sessionID:   sessionID,
+		tenantID:    tenantID,
+		audience:    "",
+		scopes:      scopes,
+		dpopJkt:     dpopJkt,
+		// human session には attestationLevel は不要
+		attestationLevel: nil,
+		issuedVia:        "",
+		stepUpProvenAt:   stepUpProvenAt,
 		isValid:          true,
 	}
 }
@@ -177,16 +189,87 @@ func NewWorkloadJwtContext(
 		authClass: AuthClassV1WorkloadJwt,
 		subjectID: subjectID,
 		// workload JWT の subject_kind は常に "workload"
-		subjectKind:      "workload",
-		tokenID:          tokenID,
-		sessionID:        "",
-		tenantID:         tenantID,
-		audience:         audience,
-		scopes:           []string{"service.api"},
-		dpopJkt:          "",
-		attestationLevel: "",
-		stepUpProven:     false,
+		subjectKind: "workload",
+		tokenID:     tokenID,
+		sessionID:   "",
+		tenantID:    tenantID,
+		audience:    audience,
+		scopes:      []string{"service.api"},
+		dpopJkt:     "",
+		// workload には attestationLevel は不要
+		attestationLevel: nil,
+		issuedVia:        "",
+		// workload は step_up が不要（never ポリシー）。stepUpProvenAt は nil
+		stepUpProvenAt: nil,
+		isValid:        true,
+	}
+}
+
+// NewDeviceAttestContext は v1_device_attest AuthContext を構築するファクトリ関数。
+// 工場端末・KIOSK・現場ハンドヘルド（device cert、長 TTL、one_shot refresh）に対応する。
+// Rust の new_device_attest と等価な 4 言語等価強度実装。
+func NewDeviceAttestContext(
+	subjectID string,
+	tenantID string,
+	tokenID string,
+	attestationLevel string,
+	// stepUpProvenAt: step_up challenge 完了時刻（未証明の場合は nil）
+	stepUpProvenAt *time.Time,
+) *AuthContext {
+	// v1_device_attest の固定属性を適用する（dimension override 禁止）
+	return &AuthContext{
+		authClass: AuthClassV1DeviceAttest,
+		subjectID: subjectID,
+		// device attest の subject_kind は常に "device"（spec §各 class の不変条件）
+		subjectKind: "device",
+		tokenID:     tokenID,
+		// device は session を持つ（device registration session ID を UUID v4 で生成する）
+		sessionID: uuid.New().String(),
+		tenantID:  tenantID,
+		// device attest では audience は空文字列（resource server は token_id で管理する）
+		audience: "",
+		// device のデフォルトスコープ（device.api のみ）
+		scopes:  []string{"device.api"},
+		dpopJkt: "",
+		// attestationLevel: TPM / HSM / WebAuthn platform authenticator の種別
+		attestationLevel: &attestationLevel,
+		issuedVia:        "",
+		stepUpProvenAt:   stepUpProvenAt,
 		isValid:          true,
+	}
+}
+
+// NewFederatedExchangeContext は v1_federated_exchange AuthContext を構築するファクトリ関数。
+// 外部 IdP からの RFC 8693 token exchange（audience-restricted JWT）に対応する。
+// Rust の new_federated_exchange と等価な 4 言語等価強度実装。
+func NewFederatedExchangeContext(
+	subjectID string,
+	tenantID string,
+	tokenID string,
+	audience string,
+) *AuthContext {
+	// v1_federated_exchange の固定属性を適用する（dimension override 禁止）
+	return &AuthContext{
+		authClass: AuthClassV1FederatedExchange,
+		subjectID: subjectID,
+		// federated exchange の subject_kind は "external_subject"
+		subjectKind: "external_subject",
+		tokenID:     tokenID,
+		// federated exchange は session を持たない（短命 JWT で session 管理不要）
+		sessionID: "",
+		tenantID:  tenantID,
+		// audience は federated exchange で必須（resource server を audience claim で絞る）
+		audience: audience,
+		// federated exchange のデフォルトスコープ（federated.api のみ）
+		scopes:  []string{"federated.api"},
+		dpopJkt: "",
+		// federated には attestationLevel は不要
+		attestationLevel: nil,
+		// RFC 8693 token exchange 経由で発行されたことを記録する
+		issuedVia: "rfc8693_token_exchange",
+		// federated exchange は step_up 不要（never ポリシー）。stepUpProvenAt は nil
+		stepUpProvenAt: nil,
+		isValid:        true,
 	}
 }
 
@@ -198,23 +281,27 @@ func NewEmergencyStepUpContext(
 	tokenID string,
 	sessionID string,
 	dpopJkt string,
+	// stepUpProvenAt: emergency factory では必須（always step_up ポリシーのため non-nil 必須）
+	stepUpProvenAt time.Time,
 ) *AuthContext {
 	// v1_emergency_step_up の固定属性を適用する（always step_up + purpose=emergency 強制）
 	return &AuthContext{
 		authClass: AuthClassV1EmergencyStepUp,
 		subjectID: subjectID,
 		// emergency の subject_kind は常に "human"（workload による break-glass 禁止）
-		subjectKind:      "human",
-		tokenID:          tokenID,
-		sessionID:        sessionID,
-		tenantID:         tenantID,
-		audience:         "",
-		scopes:           []string{"emergency.break_glass"},
-		dpopJkt:          dpopJkt,
-		attestationLevel: "",
-		// v1_emergency_step_up は常に step_up 済みとして発行される（always ポリシー）
-		stepUpProven: true,
-		isValid:      true,
+		subjectKind: "human",
+		tokenID:     tokenID,
+		sessionID:   sessionID,
+		tenantID:    tenantID,
+		audience:    "",
+		scopes:      []string{"emergency.break_glass"},
+		dpopJkt:     dpopJkt,
+		// emergency には attestationLevel は不要
+		attestationLevel: nil,
+		issuedVia:        "",
+		// v1_emergency_step_up は常に step_up 済みとして発行される（always ポリシー）。ポインタを設定する
+		stepUpProvenAt: &stepUpProvenAt,
+		isValid:        true,
 	}
 }
 
@@ -226,6 +313,23 @@ func (a *AuthContext) ToGucSetters() []string {
 		return []string{}
 	}
 	// 04_認証適合仕様.md §AuthContext スキーマの全 GUC 対応フィールドを SET LOCAL 文にする
+	// step_up_proven_at: nil の場合は空文字列、non-nil の場合は RFC 3339 形式で emit する
+	stepUpProvenAtStr := ""
+	// stepUpProvenAt が non-nil の場合は RFC 3339 形式にフォーマットする
+	if a.stepUpProvenAt != nil {
+		// RFC 3339 形式（ISO 8601）で emit する
+		stepUpProvenAtStr = a.stepUpProvenAt.UTC().Format(time.RFC3339)
+	}
+	// scopes を PostgreSQL native array literal に変換する（spec: app.scopes は text[] 型）
+	// 各 scope を二重引用符で囲み、{...} でラップする（例: {"service.api","device.api"}）
+	quotedScopes := make([]string, len(a.scopes))
+	// 各 scope を二重引用符でクォートして配列要素にする
+	for i, s := range a.scopes {
+		// PostgreSQL array literal の要素は二重引用符でクォートする
+		quotedScopes[i] = `"` + strings.ReplaceAll(s, `"`, `\"`) + `"`
+	}
+	// {scope1,scope2,...} 形式の PostgreSQL array literal を生成する
+	scopesArrayLiteral := fmt.Sprintf("{%s}", strings.Join(quotedScopes, ","))
 	setters := []string{
 		// auth_class GUC を設定する
 		fmt.Sprintf("SET LOCAL app.auth_class = '%s';", string(a.authClass)),
@@ -239,16 +343,18 @@ func (a *AuthContext) ToGucSetters() []string {
 		fmt.Sprintf("SET LOCAL app.session_id = '%s';", a.sessionID),
 		// audience GUC を設定する
 		fmt.Sprintf("SET LOCAL app.audience = '%s';", strings.ReplaceAll(a.audience, "'", "''")),
-		// step_up_proven GUC を設定する（bool を文字列に変換する）
-		fmt.Sprintf("SET LOCAL app.step_up_proven = '%v';", a.stepUpProven),
+		// scopes GUC を PostgreSQL array literal 形式で設定する（spec: text[] 型）
+		fmt.Sprintf("SET LOCAL app.scopes = '%s';", scopesArrayLiteral),
+		// step_up_proven_at GUC を設定する（GUC 名を app.step_up_proven_at に変更）
+		fmt.Sprintf("SET LOCAL app.step_up_proven_at = '%s';", stepUpProvenAtStr),
 	}
 	// dpop_jkt が空でない場合のみ GUC を設定する（dpop_bound_jwt のみ）
 	if a.dpopJkt != "" {
 		setters = append(setters, fmt.Sprintf("SET LOCAL app.dpop_jkt = '%s';", strings.ReplaceAll(a.dpopJkt, "'", "''")))
 	}
-	// attestation_level が空でない場合のみ GUC を設定する（jwt_attested のみ）
-	if a.attestationLevel != "" {
-		setters = append(setters, fmt.Sprintf("SET LOCAL app.attestation_level = '%s';", strings.ReplaceAll(a.attestationLevel, "'", "''")))
+	// attestation_level が non-nil の場合のみ GUC を設定する（jwt_attested のみ）
+	if a.attestationLevel != nil {
+		setters = append(setters, fmt.Sprintf("SET LOCAL app.attestation_level = '%s';", strings.ReplaceAll(*a.attestationLevel, "'", "''")))
 	}
 	// 生成した GUC setter スライスを返す
 	return setters

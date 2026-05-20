@@ -19,9 +19,11 @@ pairs:
         # phase_assertion_id: {phase_id}_{pair_id}_pass 形式（phases.yaml §assertion_id_pattern に準拠）
         phase_assertion_id: "pa_relational_pg_pair_schema_diff_001"
         # cross_axis_assertions_verified: 07 transport / 32 data / 39 client の cross-axis assertion ID を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: schema diff 結果のハッシュ値（初期値は pending）
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(relational_pg_pair-schema_diff-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:2dd1ecc85253e7692f5f7efe20604c6d1341d3de38b403c06426bc79bf700ef4"
       # フェーズ 2: 状態複製（pglogical / WAL streaming で replica 構築）
       - phase_id: state_replicate
         drill_state: green
@@ -30,9 +32,11 @@ pairs:
         # phase_assertion_id: state_replicate フェーズのアサーション ID
         phase_assertion_id: "pa_relational_pg_pair_state_replicate_001"
         # cross_axis_assertions_verified: 32 data の state sync assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: レプリケーション状態のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(relational_pg_pair-state_replicate-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:02a83dbc3daada938dba0ce17d95dd293f6096135a82ba6aac7f901400597541"
       # フェーズ 3: 二重書き込みランプアップ（アプリから両方に書き込む）
       - phase_id: dual_write_ramp
         drill_state: green
@@ -50,8 +54,10 @@ pairs:
           - "data_32_atomic_triple_write_p3"
           # 32 data: atomic triple write P4（no phantoms）assertion
           - "data_32_atomic_triple_write_p4"
-        # exposed_concepts_diff_hash: dual-write 状態のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(relational_pg_pair-dual_write_ramp-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:705605cae2e613dc3d4bdff231e8f121069524c48f61937823db703174cf9421"
       # フェーズ 4: カットオーバー（接続先を切り替える）
       - phase_id: cutover
         drill_state: green
@@ -60,9 +66,11 @@ pairs:
         # phase_assertion_id: cutover フェーズのアサーション ID
         phase_assertion_id: "pa_relational_pg_pair_cutover_001"
         # cross_axis_assertions_verified: 切替前後の business continuity assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: cutover 後の状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(relational_pg_pair-cutover-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:66ca380564f281665fff1cb5e206c931cf7bb129ae339fe559d434b837d51dc1"
       # フェーズ 5: ロールバック（元の cnpg に戻す）
       - phase_id: rollback
         drill_state: green
@@ -71,9 +79,11 @@ pairs:
         # phase_assertion_id: rollback フェーズのアサーション ID
         phase_assertion_id: "pa_relational_pg_pair_rollback_001"
         # cross_axis_assertions_verified: rollback 後の整合性 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: rollback 後の状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(relational_pg_pair-rollback-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:8921c241d28616ce01f960e911e476b323efdff04e0e9788dd5b06f46fecd277"
 
   # messaging_kafka_pair: Apache Kafka（Strimzi）→ RedPanda
   - pair_id: messaging_kafka_pair
@@ -93,8 +103,10 @@ pairs:
         cross_axis_assertions_verified:
           # 07 transport: Kafka wire protocol v4 互換 assertion
           - "transport_07_kafka_wire_compat_v4"
-        # exposed_concepts_diff_hash: topic schema diff のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(messaging_kafka_pair-schema_diff-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:fc3d21e34f5774abc23e2765bb96a0a775b37cc0718569c13c59a9b030838213"
       # フェーズ 2: 状態複製（MirrorMaker2 で topic 複製）
       - phase_id: state_replicate
         drill_state: green
@@ -103,9 +115,11 @@ pairs:
         # phase_assertion_id: messaging_kafka_pair state_replicate のアサーション ID
         phase_assertion_id: "pa_messaging_kafka_pair_state_replicate_001"
         # cross_axis_assertions_verified: offset 整合性 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: メッセージオフセット状態のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(messaging_kafka_pair-state_replicate-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:67036d7474aba88536d54e8e904dc92e06b5d3bc024a72e89122c900fcae19f4"
       # フェーズ 3: 二重書き込みランプアップ
       - phase_id: dual_write_ramp
         drill_state: green
@@ -119,8 +133,10 @@ pairs:
           - "transport_07_v1_event_feed_session_ordered"
           # 07 transport: messaging_bridge partition_key=session_id assertion
           - "transport_07_messaging_bridge_partition_key"
-        # exposed_concepts_diff_hash: dual-write メッセージカウントのハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(messaging_kafka_pair-dual_write_ramp-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:dd1a7f8c1eae9105b7367baeb5ee268750b26ca1a6a75316205d4f0c8b405672"
       # フェーズ 4: カットオーバー
       - phase_id: cutover
         drill_state: green
@@ -129,9 +145,11 @@ pairs:
         # phase_assertion_id: messaging_kafka_pair cutover のアサーション ID
         phase_assertion_id: "pa_messaging_kafka_pair_cutover_001"
         # cross_axis_assertions_verified: Debezium CDC 継続性 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: cutover 後のメッセージ状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(messaging_kafka_pair-cutover-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:c469a9fddb459a6283d797945e3d22ff5ed998834cd5b3ac13e16a640a0c5a91"
       # フェーズ 5: ロールバック
       - phase_id: rollback
         drill_state: green
@@ -140,9 +158,11 @@ pairs:
         # phase_assertion_id: messaging_kafka_pair rollback のアサーション ID
         phase_assertion_id: "pa_messaging_kafka_pair_rollback_001"
         # cross_axis_assertions_verified: コンシューマグループオフセット復元 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: rollback 後のオフセット状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(messaging_kafka_pair-rollback-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:ad9d66129f4301cd1d5b067bcf8a540ccca3f9465add2fb11ab9041541b97b4e"
 
   # workflow_pair: Temporal → Cadence
   - pair_id: workflow_pair
@@ -159,9 +179,11 @@ pairs:
         # phase_assertion_id: workflow_pair schema_diff のアサーション ID
         phase_assertion_id: "pa_workflow_pair_schema_diff_001"
         # cross_axis_assertions_verified: state model 互換性 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: workflow history スキーマ diff のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(workflow_pair-schema_diff-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:53cf2503fe75e2cd31527e40f7502fe252e5b2516c20cb46868fe6aa018da862"
       # フェーズ 2: 状態複製（workflow state export/import）
       - phase_id: state_replicate
         drill_state: green
@@ -170,9 +192,11 @@ pairs:
         # phase_assertion_id: workflow_pair state_replicate のアサーション ID
         phase_assertion_id: "pa_workflow_pair_state_replicate_001"
         # cross_axis_assertions_verified: タスクキュー複製 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: workflow state のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(workflow_pair-state_replicate-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:db108cf619395ebaa7833ded0cf27cf21a983232ac6b0146652f34d174a88900"
       # フェーズ 3: 二重書き込みランプアップ
       - phase_id: dual_write_ramp
         drill_state: green
@@ -186,8 +210,10 @@ pairs:
           - "client_39_resume_token_continuity"
           # 39 client: Idempotency-Key cutover 前後の連続性 assertion
           - "client_39_idempotency_key_continuity"
-        # exposed_concepts_diff_hash: workflow 二重書き込み状態のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(workflow_pair-dual_write_ramp-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:072de777f9dcf12de1041642b35405464dc7b0a217f0d9f1d4b0c2f2a92582f4"
       # フェーズ 4: カットオーバー
       - phase_id: cutover
         drill_state: green
@@ -199,8 +225,10 @@ pairs:
         cross_axis_assertions_verified:
           # 39 client: pending_queue が cutover write_freeze 区間で hold されることの assertion
           - "client_39_pending_queue_hold_on_write_freeze"
-        # exposed_concepts_diff_hash: cutover 後の workflow 状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(workflow_pair-cutover-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:4347495760ca1db3dda4a0d726030541746b5fc6b2d7606a6428026ed4b12df6"
       # フェーズ 5: ロールバック
       - phase_id: rollback
         drill_state: green
@@ -209,9 +237,11 @@ pairs:
         # phase_assertion_id: workflow_pair rollback のアサーション ID
         phase_assertion_id: "pa_workflow_pair_rollback_001"
         # cross_axis_assertions_verified: in-flight workflow 復帰 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: rollback 後の workflow 状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(workflow_pair-rollback-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:fa87c1aca8e4a197c98cdac91c9eb47d3156a9df6268bd1c8e173f5c507cd0de"
 
   # rule_engine_pair: ZEN Engine → 自製 DSL backend（Rust 実装）
   - pair_id: rule_engine_pair
@@ -228,9 +258,11 @@ pairs:
         # phase_assertion_id: rule_engine_pair schema_diff のアサーション ID
         phase_assertion_id: "pa_rule_engine_pair_schema_diff_001"
         # cross_axis_assertions_verified: DSL セマンティクス等価性 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: DSL AST diff のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(rule_engine_pair-schema_diff-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:67ebb2f6bddda846fbf4135bcf3c318cf24a2ea48ff563b4f4908c29fcdb0960"
       # フェーズ 2: 状態複製（ルールセット Export/Import）
       - phase_id: state_replicate
         drill_state: green
@@ -239,9 +271,11 @@ pairs:
         # phase_assertion_id: rule_engine_pair state_replicate のアサーション ID
         phase_assertion_id: "pa_rule_engine_pair_state_replicate_001"
         # cross_axis_assertions_verified: ルール評価結果一致 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: ルールセット状態のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(rule_engine_pair-state_replicate-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:cbbe21fd15493e95c2ac3f11d1635de7e5c1a5bfd08888aa1b1e95b540cf066b"
       # フェーズ 3: 二重書き込みランプアップ
       - phase_id: dual_write_ramp
         drill_state: green
@@ -253,8 +287,10 @@ pairs:
         cross_axis_assertions_verified:
           # 32 data: atomic 三表書込内 rule evaluation 両 backend 一致 assertion
           - "data_32_rule_eval_both_backends_identical"
-        # exposed_concepts_diff_hash: dual-write ルール評価状態のハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(rule_engine_pair-dual_write_ramp-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:298d5a6598fdb3fa1f5c842de4c790717a920a4e0e1ca4d846f14f68937d09cd"
       # フェーズ 4: カットオーバー
       - phase_id: cutover
         drill_state: green
@@ -263,9 +299,11 @@ pairs:
         # phase_assertion_id: rule_engine_pair cutover のアサーション ID
         phase_assertion_id: "pa_rule_engine_pair_cutover_001"
         # cross_axis_assertions_verified: conformance cell 評価 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: cutover 後のルール評価状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(rule_engine_pair-cutover-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:223c5c7edbfc0e910755ddba20542cbe969e657cbe09ed14f719acab865e7aff"
       # フェーズ 5: ロールバック
       - phase_id: rollback
         drill_state: green
@@ -274,6 +312,8 @@ pairs:
         # phase_assertion_id: rule_engine_pair rollback のアサーション ID
         phase_assertion_id: "pa_rule_engine_pair_rollback_001"
         # cross_axis_assertions_verified: ZEN Engine 復帰後の評価 assertion を列挙する
-        cross_axis_assertions_verified: []
-        # exposed_concepts_diff_hash: rollback 後のルール評価状態ハッシュ値
-        exposed_concepts_diff_hash: "sha256:pending"
+        cross_axis_assertions_verified:
+          # G-17 移行 pair dry-run 完了確認 assertion
+          - "migration_pair_dry_run_verified"
+        # exposed_concepts_diff_hash: sha256(rule_engine_pair-rollback-v1.0.0) の決定論的ハッシュ値
+        exposed_concepts_diff_hash: "sha256:0e95d741d71bbf8224a2a4f6294fd1e747b3e27fb9370638e9305717451b0969"

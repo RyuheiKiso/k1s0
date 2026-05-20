@@ -1494,9 +1494,11 @@ dependencies = [
  "anyhow",
  "axum 0.8.9",
  "base64 0.22.1",
+ "chrono",
  "http",
  "hyper-util",
  "jsonwebtoken",
+ "k1s0-tier1-library",
  "prost",
  "prost-types",
  "reqwest",
@@ -1546,6 +1548,7 @@ dependencies = [
  "hex",
  "hmac",
  "k1s0-hlc",
+ "k1s0-tier1-library",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -1564,6 +1567,23 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
+name = "k1s0-tier1-library"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
  "uuid",
  "zeroize",
 ]

@@ -310,16 +310,19 @@ def check_published_spec_completeness(items: list[tuple[Path, dict]], body_by_pa
             fails.append(f"{rel}: status: published だが version が SemVer でない: {version!r}")
         # lock_artifacts の物理存在検査（axis サブディレクトリ配下を参照）
         axis = fm.get("axis", "")
+        # _meta / _crosscutting は src/ 直下でアンダースコア prefix を持つ
+        _UNDERSCORE_AXES = {"meta", "crosscutting"}
+        axis_dir = f"_{axis}" if axis in _UNDERSCORE_AXES else axis
         locks = fm.get("lock_artifacts") or []
         for lock in (locks if isinstance(locks, list) else []):
             # lock_artifacts の各要素が str であることを確認
             if not isinstance(lock, str):
                 continue
-            # src/<axis>/lock/<lock> の物理パスを構築
-            lock_path = REPO_ROOT / "src" / axis / "lock" / lock
+            # src/<axis_dir>/lock/<lock> の物理パスを構築
+            lock_path = REPO_ROOT / "src" / axis_dir / "lock" / lock
             # 物理ファイルが存在しない場合は失敗として記録
             if not lock_path.exists():
-                fails.append(f"{rel}: lock_artifacts 物理欠落: src/{axis}/lock/{lock}")
+                fails.append(f"{rel}: lock_artifacts 物理欠落: src/{axis_dir}/lock/{lock}")
     return fails
 
 
@@ -359,11 +362,11 @@ def check_test_matrix_implementation_paths() -> list[str]:
 
 
 def check_policy_mapping_bidirectional(items: list[tuple[Path, dict]]) -> list[str]:
-    """src/tier1/policy_mapping.yaml が存在する場合のみ: spec frontmatter と双方向参照を検査。"""
+    """src/tier1/schema/policy_mapping.yaml が存在する場合のみ: spec frontmatter と双方向参照を検査。"""
     # 失敗メッセージ蓄積リスト
     fails = []
-    # policy_mapping.yaml の物理パスを構築
-    pm_path = REPO_ROOT / "src/tier1/policy_mapping.yaml"
+    # policy_mapping.yaml の物理パスを構築（src/tier1/schema/ に移動済み）
+    pm_path = REPO_ROOT / "src/tier1/schema/policy_mapping.yaml"
     # ファイルが存在しない場合はスキップ（非破壊）
     if not pm_path.exists():
         return fails

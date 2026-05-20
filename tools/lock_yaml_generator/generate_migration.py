@@ -106,12 +106,21 @@ class MigrationGenerator(BaseGenerator):
             audit_required = entry.get("audit_required", False)
             outbox_required = entry.get("outbox_required", False)
             pgaudit_required = entry.get("pgaudit_required", False)
+            # tenant_id_required: テナント ID 列の要否（spec 10 §purpose_check の前提条件）
+            tenant_id_required = entry.get("tenant_id_required", False)
+            # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧
+            allowed_purpose: list[str] = list(entry.get("allowed_purpose", []))
+            # purpose_check: pii_segregated のみ true（RLS が app.purpose の値で挙動を変える）
+            purpose_check = entry.get("purpose_check", False)
             result.append({
-                "class_id":        str(entry.get("class_id", "")),
-                "rls_enabled":     "true" if rls_enabled else "false",
-                "audit_required":  "true" if audit_required else "false",
-                "outbox_required": "true" if outbox_required else "false",
-                "pgaudit_required":"true" if pgaudit_required else "false",
-                "description":     str(entry.get("description", "")),
+                "class_id":           str(entry.get("class_id", "")),
+                "rls_enabled":        "true" if rls_enabled else "false",
+                "audit_required":     "true" if audit_required else "false",
+                "outbox_required":    "true" if outbox_required else "false",
+                "pgaudit_required":   "true" if pgaudit_required else "false",
+                "tenant_id_required": bool(tenant_id_required),
+                "allowed_purpose":    allowed_purpose,
+                "purpose_check":      bool(purpose_check),
+                "description":        str(entry.get("description", "")),
             })
         return result

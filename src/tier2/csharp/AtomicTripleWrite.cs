@@ -10,13 +10,13 @@
 
 // Guid / Exception / InvalidOperationException 等の基本型
 using System;
-// StringBuilder を使用する
-using System.Text;
 // 非同期処理に使用する
 using System.Threading;
 using System.Threading.Tasks;
 // Npgsql: PostgreSQL クライアント（NpgsqlTransaction による実 transaction に使用する）
 using Npgsql;
+// HLC wrapper: wall-clock TTL 禁止規約 (src/CLAUDE.md §wall-clock TTL 禁止) に従い HLC を使用する
+using K1s0.HlcLib;
 
 // k1s0 tier2 名前空間
 namespace K1s0.Tier2;
@@ -78,9 +78,6 @@ public interface IAtomicTripleWrite
     /// <summary>P4: pii_segregated アクセスが audit_event 必須かを返す</summary>
     bool VerifyPiiAuditRequired(StateChange change);
 
-    /// <summary>P1: 三表書込に必要な SQL 文字列を生成する（デバッグ用）</summary>
-    string BuildTripleWriteSQL(StateChange change);
-
     /// <summary>P1-P4: atomic 三表書込を実行する非同期メソッド（NpgsqlTransaction を使用する）</summary>
     Task<TripleWriteResult> ExecuteAsync(
         StateChange change,
@@ -137,54 +134,6 @@ public sealed class AtomicTripleWrite : IAtomicTripleWrite
     }
 
     /// <summary>
-    /// P1: 三表書込に必要な SQL 文字列を生成する（デバッグ・テスト用）
-    /// 実際の DB 実行は ExecuteAsync() が NpgsqlTransaction 経由で行う
-    /// </summary>
-    public string BuildTripleWriteSQL(StateChange change)
-    {
-        // null チェック
-        ArgumentNullException.ThrowIfNull(change);
-        // P3: tenant_id 一致を事前検証する
-        VerifyTenantId(change);
-        // outbox エントリの ID を生成する
-        var outboxId = Guid.NewGuid();
-        // audit_event の ID を生成する
-        var auditId = Guid.NewGuid();
-        // 現在時刻を ISO 8601 形式で取得する
-        var now = DateTimeOffset.UtcNow.ToString("o");
-        // SET LOCAL GUC 注入 SQL を取得する（4 GUC 全て）
-        var setGuc = _context.ToSetLocalSql();
-        // payload の single quote をエスケープする（SQL injection 対策）
-        var escapedPayload = change.Payload.Replace("'", "''");
-        // テーブルクラスを文字列に変換する
-        var tableClassStr = change.TableClass.ToString();
-        // P1: state_change + outbox + audit_event を BEGIN 〜 COMMIT の間に書く
-        var sb = new StringBuilder();
-        sb.AppendLine("BEGIN;");
-        sb.AppendLine(setGuc);
-        sb.AppendLine();
-        // P1: state_change (aggregate テーブルへの書込)
-        sb.AppendLine("-- P1: state_change (aggregate テーブルへの書込)");
-        sb.AppendLine($"INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)");
-        sb.AppendLine($"VALUES ('{auditId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, 'StateChange', '{escapedPayload}'::jsonb, {change.Version}, '{now}');");
-        sb.AppendLine();
-        // P1: outbox_message (Debezium CDC 経由で Kafka に転送される)
-        sb.AppendLine("-- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)");
-        // outbox_message テーブルに INSERT する（migration SoT: k1s0.outbox_message）
-        sb.AppendLine($"INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)");
-        sb.AppendLine($"VALUES ('{outboxId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '{escapedPayload}'::jsonb, '{now}');");
-        sb.AppendLine();
-        // P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
-        sb.AppendLine("-- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)");
-        sb.AppendLine($"INSERT INTO k1s0.audit_event (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)");
-        sb.AppendLine($"VALUES ('{auditId:D}', '{change.AggregateId:D}', current_setting('app.tenant_id')::uuid, current_setting('app.actor_id'), current_setting('app.purpose'), '{tableClassStr}', '{escapedPayload}'::jsonb, '{now}');");
-        sb.AppendLine();
-        sb.AppendLine("COMMIT;");
-        // 生成した SQL 文字列を返す
-        return sb.ToString();
-    }
-
-    /// <summary>
     /// P1-P4: atomic 三表書込を実行する非同期メソッド（NpgsqlTransaction を使用する）
     /// transaction: 呼び出し元が BEGIN した NpgsqlTransaction を受け取る
     /// 呼び出し元は Ok 返却後に transaction.CommitAsync() を呼ぶ。例外時は RollbackAsync() を呼ぶ。
@@ -222,8 +171,10 @@ public sealed class AtomicTripleWrite : IAtomicTripleWrite
         var outboxId = Guid.NewGuid();
         // audit_event の ID を生成する（domain_event と audit_event で共有する）
         var auditEventId = Guid.NewGuid();
-        // 書込完了日時を記録する（3 INSERT で統一した timestamp を使用する）
-        var committedAt = DateTimeOffset.UtcNow;
+        // HLC タイムスタンプを取得する（wall-clock TTL 禁止規約 src/CLAUDE.md §wall-clock TTL 禁止 に従う）
+        var hlcNow = HlcClock.FromEnv().Now();
+        // HLC の WallMs（UNIX ミリ秒）を DateTimeOffset に変換する（3 INSERT で統一した timestamp を使用する）
+        var committedAt = DateTimeOffset.FromUnixTimeMilliseconds((long)hlcNow.WallMs);
 
         // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
         // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する

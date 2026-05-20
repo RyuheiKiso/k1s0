@@ -47,16 +47,16 @@ _CATALOG_SCENARIOS_PATH = "src/tier1/schema/oss_lifecycle/scenarios.yaml"
 _VALID_LIFECYCLE_CLASSES = frozenset({
     # v1_l1plus_primary: 最重要 OSS
     "v1_l1plus_primary",
-    # v1_l2star_alt: 重要 OSS
-    "v1_l2star_alt",
-    # v1_l3_generic: 標準 OSS
-    "v1_l3_generic",
-    # v1_l4_dev_tool: 開発支援ツール
-    "v1_l4_dev_tool",
-    # v1_l5_sandbox: サンドボックス
-    "v1_l5_sandbox",
-    # v1_l6_deprecated: 非推奨
-    "v1_l6_deprecated",
+    # v1_l1plus_pair_target: L1+ ペアターゲット OSS
+    "v1_l1plus_pair_target",
+    # v1_l2star_member: L2* ファミリーメンバー OSS
+    "v1_l2star_member",
+    # v1_l3_runtime: L3 コンパニオン・ランタイム OSS
+    "v1_l3_runtime",
+    # v1_reserved_category: 予約カテゴリ
+    "v1_reserved_category",
+    # v1_inhouse_authoritative: 内製権威コンポーネント
+    "v1_inhouse_authoritative",
 })
 
 # 主要 OSS 依存関係のスケルトン定義（input がない場合のフォールバック）

@@ -60,9 +60,9 @@ describe("tier2 cross-tenant integration tests", () => {
     );
   });
 
-  // P1: 同一テナントの atomic triple write が成功することを確認する（SQL 生成レベル）
-  // TEST_DATABASE_URL が設定されていない場合でも SQL 生成は検証できる
-  test("P1: buildTripleWriteSql generates SQL with all three tables", () => {
+  // P1: 同一テナントの StateChange が P3 事前検証を通過することを確認する
+  // (buildTripleWriteSql は raw SQL concat 禁止規律により削除済み)
+  test("P1: same-tenant StateChange passes verifyTenantId", () => {
     // テスト用テナントの TenantContext を生成する
     const tenantId = "550e8400-e29b-41d4-a716-446655440010";
     const ctx = TenantContext.fromAuth(tenantId, "test-actor", "business_op");
@@ -82,17 +82,10 @@ describe("tier2 cross-tenant integration tests", () => {
       version: 1,
     };
 
-    // SQL を生成する
-    const sql = writer.buildTripleWriteSql(change);
-    // BEGIN と COMMIT の間に 3 つの INSERT が含まれることを確認する
-    expect(sql).toContain("BEGIN");
-    expect(sql).toContain("domain_event");
-    // outbox_message テーブル名が SQL に含まれることを確認する（migration SoT: k1s0.outbox_message）
-    expect(sql).toContain("outbox_message");
-    expect(sql).toContain("audit_event");
-    expect(sql).toContain("COMMIT");
-    // GUC 注入が含まれることを確認する
-    expect(sql).toContain("app.tenant_id");
+    // P1: verifyTenantId が例外をスローしないことを確認する
+    expect(() => writer.verifyTenantId(change)).not.toThrow();
+    // P1: TenantScoped は pii_audit_required が false であることを確認する（P4 invariant）
+    expect(writer.verifyPiiAuditRequired(change)).toBe(false);
   });
 
   // P4: pii_segregated テーブルへのアクセスが audit 必須であることを確認する

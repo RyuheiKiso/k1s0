@@ -71,6 +71,9 @@ governor = { version = "0.6", features = ["std", "quanta"] }
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 # base64: OpenBao Transit API の input/plaintext フィールド用に Base64 エンコードする
 base64 = "0.22"
+# k1s0-tier1-library: tier1 canonical 型（KeyHandle / KeyClass / AuthContext 等）の共有ライブラリ
+# gateway / bfl が独自定義を持たず canonical 型を参照するために追加する（重複実装 drift 防止）
+k1s0-tier1-library = { path = "../library/rust" }
 # jsonwebtoken: JWT 検証（RS256 / ES256 / HS256 / JWKS リモート取得に使用する）
 jsonwebtoken = "9"
 # web_transport は QUIC/HTTP3 が必要。pure Rust の quinn crate を使用する。

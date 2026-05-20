@@ -24,6 +24,8 @@ tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 # uuid: AuthContext の相関 ID 生成に使用する
 uuid = { workspace = true }
+# chrono: step_up_proven_at の DateTime<Utc> 型に使用する（canonical AuthContext 準拠）
+chrono = { workspace = true }
 # jsonwebtoken: JWT 検証（RS256 / ES256 / HS256 + JWKS リモート取得に使用する）
 jsonwebtoken = { workspace = true }
 # reqwest: HTTP クライアント（JWKS endpoint フェッチ / SPIRE bundle endpoint に使用する; TLS なし = envoy が終端する）
@@ -44,3 +46,6 @@ tower = { workspace = true }
 hyper-util = { version = "0.1", features = ["tokio"] }
 # http: URI 型（tonic Endpoint の connect_with_connector で使用する）
 http = "1"
+# k1s0-tier1-library: tier1 canonical 型（AuthContext / AuthClass 等）の共有ライブラリ
+# bfl 独自の AuthContext 定義を削除し canonical 実装を参照するために追加する（重複実装 drift 防止）
+k1s0-tier1-library = { workspace = true }

@@ -1,5 +1,7 @@
 // k1s0 tier3 Go outbox プロパティテスト
 // outbox.go の各関数が期待通りの性質を持つことを検証する
+// wall-clock TTL 禁止規約（src/CLAUDE.md §wall-clock TTL 禁止）に従い、
+// time.Now() は HLC lib 内部のみ許可されるため、テストでも HLC lib を経由する
 package outbox
 
 import (
@@ -9,6 +11,8 @@ import (
 	"testing"
 	// time パッケージ（スリープ等に使用）
 	"time"
+	// k1s0-hlc: HLC クロック操作（wall-clock TTL 禁止規律に従い HLC 経由で時刻を取得する）
+	hlc "github.com/k1s0/hlc-lib-go"
 )
 
 // TestHlcNowFormat は HlcNow() が正しいフォーマットを返すことを確認する
@@ -130,8 +134,13 @@ func TestIsExpiredFalseForFreshEntry(t *testing.T) {
 
 // TestIsExpiredTrueForOldEntry は 25h 前のエントリが TTL 超過であることを確認する
 func TestIsExpiredTrueForOldEntry(t *testing.T) {
-	// 25h 前の HLC タイムスタンプを生成する（TTL=24h を超過させる）
-	pastMs := time.Now().UnixMilli() - (25 * 60 * 60 * 1000)
+	// 一時的な HLC クロックを生成して現在の wall_ms を取得する（time.Now() 直接呼び出しを禁止する）
+	// wall-clock TTL 禁止規約に従い HLC lib 経由で現在時刻を取得する
+	tmpClock := hlc.NewHlcClock(0)
+	// HLC クロックから現在のタイムスタンプを取得する
+	nowTs := tmpClock.Now()
+	// 25h 前の WallMs を計算する（HLC の wall_ms フィールドから計算する）
+	pastMs := int64(nowTs.WallMs) - (25 * 60 * 60 * 1000)
 	// 過去のタイムスタンプを HLC フォーマットに変換する
 	pastHlc := hlcFromMs(pastMs)
 	// 古いエントリのメタデータを手動で組み立てる

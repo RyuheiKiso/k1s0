@@ -7,22 +7,45 @@ classes:
   audit_required: 'true'
   outbox_required: 'true'
   pgaudit_required: 'false'
+  tenant_id_required: true
+  allowed_purpose:
+  - business_op
+  - export
+  - migration
+  purpose_check: false
   description: 業務 entity / aggregate / Read Model
 - class_id: tenant_master
   rls_enabled: 'true'
   audit_required: 'true'
   outbox_required: 'false'
   pgaudit_required: 'false'
+  tenant_id_required: true
+  allowed_purpose:
+  - business_op
+  - migration
+  purpose_check: false
   description: テナント所有マスタ（通貨レート・製品カタログ等）
 - class_id: platform_global
   rls_enabled: 'false'
   audit_required: 'true'
   outbox_required: 'true'
   pgaudit_required: 'false'
+  tenant_id_required: false
+  allowed_purpose:
+  - export
+  - migration
+  - emergency
+  purpose_check: false
   description: 通貨 / 国 / 業界共通分類（全 tenant 参照可能）
 - class_id: pii_segregated
   rls_enabled: 'true'
   audit_required: 'true'
   outbox_required: 'true'
   pgaudit_required: 'true'
+  tenant_id_required: true
+  allowed_purpose:
+  - support
+  - export
+  - emergency
+  purpose_check: true
   description: PII を含む user / partner（個人情報保護法・GDPR 対象）

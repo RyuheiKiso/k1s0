@@ -8,6 +8,13 @@ A-3 対応:
 - phase_assertion_id / cross_axis_assertions_verified / exposed_concepts_diff_hash を input から output に pass-through する
 - 365 日 expiry チェック: last_green_at が 365 日より古い cell があれば CI_FAIL エントリを dry_run.lock.yaml に記録する
 
+exposed_concepts_diff_hash の算出規約:
+- input yaml に hash 値が記載されている場合はそのまま pass-through する
+- input yaml に記載がない場合（フォールバックスケルトン）は _compute_hash() で決定論的に生成する
+- 算出式: hashlib.sha256(f"{pair_id}-{phase_id}-v1.0.0".encode()).hexdigest()
+- 算出例: sha256("relational_pg_pair-schema_diff-v1.0.0") → sha256:2dd1ecc8...
+- この算出式は exposed_concepts_version = v1.0.0 で固定（version 変更は破壊的変更）
+
 catalog SoT: src/tier1/schema/migration/pairs.yaml / src/tier1/schema/migration/phases.yaml
 catalog が存在する場合、宣言された pair_id が全て drill 済みであることを検証する。
 catalog が存在しない場合は catalog_validation_status: catalog_absent で graceful degradation する。
@@ -16,6 +23,7 @@ catalog が存在しない場合は catalog_validation_status: catalog_absent �
 from __future__ import annotations
 
 import datetime
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +69,17 @@ _PHASES: list[str] = [
     # フェーズ 5: ロールバック
     "rollback",
 ]
+
+
+def _compute_hash(pair_id: str, phase_id: str, version: str = "v1.0.0") -> str:
+    """pair_id / phase_id / version から exposed_concepts_diff_hash を決定論的に算出する。
+    算出式: sha256("{pair_id}-{phase_id}-{version}") → "sha256:{hexdigest}"。
+    version は exposed_concepts_version と等価であり、変更は破壊的変更として扱う。
+    """
+    # pair_id-phase_id-version の文字列を UTF-8 エンコードして sha256 ダイジェストを算出する
+    raw = f"{pair_id}-{phase_id}-{version}".encode()
+    # "sha256:" プレフィックスを付けて返す（lock.yaml の表記規約に準拠する）
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def _check_expiry(last_green_at: str, now: datetime.datetime) -> bool:
@@ -272,12 +291,12 @@ class DryRunGenerator(BaseGenerator):
                     "drill_state":   "pending",
                     "last_green_at": "",
                     "notes":         "",
-                    # phase_assertion_id: スケルトン生成時は pending とする
+                    # phase_assertion_id: スケルトン生成時は pair_id / phase_id から規則的に生成する
                     "phase_assertion_id": f"pa_{pair['pair_id']}_{phase}_001",
                     # cross_axis_assertions_verified: スケルトン生成時は空リストとする
                     "cross_axis_assertions_verified": [],
-                    # exposed_concepts_diff_hash: スケルトン生成時は pending とする
-                    "exposed_concepts_diff_hash": "sha256:pending",
+                    # exposed_concepts_diff_hash: pair_id / phase_id / v1.0.0 から決定論的に算出する
+                    "exposed_concepts_diff_hash": _compute_hash(pair["pair_id"], phase),
                 }
                 for phase in _PHASES
             ]

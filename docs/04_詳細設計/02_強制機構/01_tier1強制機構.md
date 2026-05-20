@@ -3,7 +3,8 @@ id: detail.tier1.tier1_enforcement
 axis: tier1
 phase: detail
 kind: enforcement
-status: draft
+status: published
+version: "1.0.0"
 depends_on:
   - arch.tier1.tier1_index
   - arch.tier1.feature_categories

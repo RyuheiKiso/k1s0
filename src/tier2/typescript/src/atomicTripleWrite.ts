@@ -14,6 +14,8 @@
 import { TenantContext } from "./tenantContext.js";
 // pg PoolClient を import する（実 transaction を実行する接続クライアント）
 import type { PoolClient } from "pg";
+// HlcClock / HlcTimestamp を import する（wall-clock TTL 禁止規律: new Date() の代替）
+import { HlcClock, HlcTimestamp } from "@k1s0/hlc-lib";
 
 /**
  * 書込対象テーブルクラス（10_テナント分離適合仕様.md の 4 class と一致する）
@@ -57,8 +59,8 @@ export interface TripleWriteResult {
   readonly outboxId: string;
   // 書込んだ audit_event の ID
   readonly auditEventId: string;
-  // 書込完了日時（ISO 8601 文字列）
-  readonly committedAt: string;
+  // 書込完了 HLC タイムスタンプ（wall-clock TTL 禁止規律に従い HlcTimestamp を使用する）
+  readonly committedAt: HlcTimestamp;
 }
 
 /**
@@ -137,46 +139,6 @@ export class AtomicTripleWrite {
   }
 
   /**
-   * P1: 三表書込に必要な SQL 文字列を生成する（デバッグ・テスト用）
-   * 実際の DB 実行は execute() が pg.PoolClient 経由で行う
-   */
-  // buildTripleWriteSql メソッド（SQL 生成のみ、実際の DB 実行は execute() が担う）
-  buildTripleWriteSql(change: StateChange): string {
-    // P3: tenant_id 一致を事前検証する
-    this.verifyTenantId(change);
-    // outbox エントリの ID を生成する（crypto.randomUUID を使用する）
-    const outboxId = crypto.randomUUID();
-    // audit_event の ID を生成する
-    const auditId = crypto.randomUUID();
-    // 現在時刻を ISO 8601 形式で取得する
-    const now = new Date().toISOString();
-    // SET LOCAL GUC 注入 SQL を取得する（4 GUC 全て）
-    const setGuc = this.#context.toSetLocalSql();
-    // payload の single quote をエスケープする（SQL injection 対策）
-    const escapedPayload = change.payload.replace(/'/g, "''");
-    // P1: state_change + outbox + audit_event を BEGIN 〜 COMMIT の間に書く
-    return [
-      "BEGIN;",
-      setGuc,
-      "",
-      "-- P1: state_change (aggregate テーブルへの書込)",
-      `INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)`,
-      `VALUES ('${auditId}', '${change.aggregateId}', current_setting('app.tenant_id')::uuid, 'StateChange', '${escapedPayload}'::jsonb, ${change.version}, '${now}');`,
-      "",
-      "-- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)",
-      // outbox_message テーブルに INSERT する（migration SoT: k1s0.outbox_message）
-      `INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)`,
-      `VALUES ('${outboxId}', '${change.aggregateId}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '${escapedPayload}'::jsonb, '${now}');`,
-      "",
-      "-- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)",
-      `INSERT INTO k1s0.audit_event (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)`,
-      `VALUES ('${auditId}', '${change.aggregateId}', current_setting('app.tenant_id')::uuid, current_setting('app.actor_id'), current_setting('app.purpose'), '${change.tableClass}', '${escapedPayload}'::jsonb, '${now}');`,
-      "",
-      "COMMIT;",
-    ].join("\n");
-  }
-
-  /**
    * P1-P4: atomic 三表書込を実行する非同期メソッド（pg.PoolClient を使用する）
    * client: 呼び出し元が BEGIN した pg.PoolClient を受け取る
    * 呼び出し元は Ok 返却後に client.query('COMMIT') を呼ぶ。例外時は ROLLBACK を呼ぶ。
@@ -201,8 +163,12 @@ export class AtomicTripleWrite {
     const outboxId = crypto.randomUUID();
     // audit_event の ID を生成する（domain_event と audit_event で共有する）
     const auditEventId = crypto.randomUUID();
-    // 書込完了日時を ISO 8601 形式で記録する（3 INSERT で統一した timestamp を使用する）
-    const committedAt = new Date().toISOString();
+    // HLC クロックを生成する（wall-clock TTL 禁止規律: new Date() の代替）
+    const hlcClock = HlcClock.fromEnv();
+    // HLC タイムスタンプを取得する（3 INSERT で統一した論理時刻を使用する）
+    const committedAt: HlcTimestamp = hlcClock.now();
+    // DB への bind 用に HLC の wall_ms から ISO 8601 文字列を生成する（DB 列型は TIMESTAMPTZ）
+    const committedAtDb = new Date(Number(committedAt.wall_ms)).toISOString();
 
     // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
     // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
@@ -221,8 +187,8 @@ export class AtomicTripleWrite {
         change.payload,
         // aggregate バージョンをバインドする（楽観的ロックに使用する）
         change.version,
-        // 書込完了日時をバインドする
-        committedAt,
+        // HLC wall_ms から変換した ISO 8601 文字列をバインドする
+        committedAtDb,
       ],
     );
 
@@ -243,8 +209,8 @@ export class AtomicTripleWrite {
           change.aggregateId,
           // ペイロードを jsonb 文字列としてバインドする（PII は redact 済みのみ含む）
           change.payload,
-          // 書込完了日時をバインドする
-          committedAt,
+          // HLC wall_ms から変換した ISO 8601 文字列をバインドする
+          committedAtDb,
         ],
       );
     } catch (err) {
@@ -274,8 +240,8 @@ export class AtomicTripleWrite {
         change.tableClass,
         // ペイロードを jsonb 文字列としてバインドする
         change.payload,
-        // 書込完了日時をバインドする
-        committedAt,
+        // HLC wall_ms から変換した ISO 8601 文字列をバインドする
+        committedAtDb,
       ],
     );
 
@@ -287,7 +253,7 @@ export class AtomicTripleWrite {
       outboxId,
       // 書込んだ audit_event の ID を返す
       auditEventId,
-      // 書込完了日時を返す
+      // 書込完了 HLC タイムスタンプを返す
       committedAt,
     };
   }

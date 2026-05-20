@@ -18,12 +18,18 @@ use ring::hmac;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 // futures: WebSocket ストリームの送受信に使用する
 use futures_util::{SinkExt, StreamExt};
-// 標準ライブラリの時刻型（HLC の物理クロック基底に使用する）
-use std::time::{SystemTime, UNIX_EPOCH};
+// k1s0_hlc: HLC クロック（wall-clock TTL 禁止規律に従い SystemTime::now() は本 crate 内部のみ許可）
+// src/CLAUDE.md §wall-clock TTL 禁止: companion は k1s0_hlc を経由して HLC タイムスタンプを取得する
+use k1s0_hlc::HlcClock;
 // Arc / Mutex: アプリ起動時に生成した鍵ペアをスレッドセーフに共有する
 use std::sync::{Arc, Mutex};
 // tokio: 非同期ランタイム
 use tokio;
+
+// グローバル HLC クロック: Tauri companion プロセス全体で共有する（スレッドセーフ）
+// wall-clock TTL 禁止規律に従い SystemTime::now() は k1s0_hlc 内部のみ許可されるため、
+// companion は必ず本クロックを経由して HLC タイムスタンプを取得する
+static HLC_CLOCK: std::sync::LazyLock<HlcClock> = std::sync::LazyLock::new(HlcClock::from_env);
 
 // DPoP 鍵ペアをアプリ起動時に 1 度だけ生成してグローバルに保持する
 // Tauri の state 管理ではなくグローバルで保持する（Tauri v2 の state 機構を使うのが望ましいが暫定実装）
@@ -75,25 +81,14 @@ impl<T> IpcResponse<T> {
     }
 }
 
-/// hlc_now は HLC タイムスタンプ文字列を返す
-/// フォーマット: "{timestamp_ms_hex}-{logical_counter}-{node_id}"
-/// monotonic timestamp: SystemTime::now() の UNIX_EPOCH からのオフセット（ミリ秒）を使用する
-/// wall-clock 禁止規約のコメント: Tauri companion は単一プロセスの HLC として物理クロック基底を UNIX ミリ秒で使用する
+/// hlc_now は k1s0_hlc のグローバルクロックから現在の HLC タイムスタンプを取得して compact 文字列に返す
+/// wall-clock TTL 禁止規約（src/CLAUDE.md §wall-clock TTL 禁止）に従い、
+/// SystemTime::now() は k1s0_hlc 内部のみ許可されるため、companion は HLC_CLOCK 経由で取得する
 fn hlc_now() -> String {
-    // UNIX_EPOCH からの経過時間（ミリ秒）で monotonic ベースのタイムスタンプを取得する
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        // UNIX_EPOCH より前の時刻は panic する（実環境では発生しない）
-        .expect("SystemTime before UNIX_EPOCH")
-        .as_millis() as u64;
-    // ミリ秒を 16 桁 hex 文字列にフォーマットする
-    let timestamp_hex = format!("{:016x}", ms);
-    // logical_counter は本実装では 0000 固定（同一ミリ秒内の複数イベントが不要なため）
-    let logical_counter = "0000";
-    // node_id は本実装では 0000 固定（Tauri companion は単一ノード想定）
-    let node_id = "0000";
-    // HLC タイムスタンプ文字列を組み立てて返す
-    format!("{}-{}-{}", timestamp_hex, logical_counter, node_id)
+    // HLC_CLOCK.now()（tick の alias）で現在の HLC タイムスタンプを生成する
+    let ts = HLC_CLOCK.now();
+    // format_compact で "{wall_ms_hex_16}-{logical_04x}-{node_04x}" 形式の文字列を返す
+    ts.format_compact()
 }
 
 /// dpop_init は起動時に DPoP 用 ES256 鍵ペアを生成して DPOP_KEY_PAIR に格納する
@@ -187,8 +182,8 @@ fn dpop_sign(method: &str, uri: &str) -> Result<String, String> {
         "htm": method,
         // HTTP URI
         "htu": uri,
-        // 発行時刻（HLC ミリ秒を秒に変換する）
-        "iat": SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+        // 発行時刻（HLC の wall_ms ミリ秒を秒に変換する — wall-clock 禁止規律に従い HLC 経由で取得する）
+        "iat": HLC_CLOCK.now().wall_ms / 1000
     });
     // header と payload を base64url エンコードする（compact JWT の signing input）
     let header_b64 = URL_SAFE_NO_PAD.encode(header.to_string().as_bytes());

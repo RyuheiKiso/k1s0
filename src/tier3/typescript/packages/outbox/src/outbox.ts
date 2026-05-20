@@ -1,29 +1,40 @@
 // k1s0 tier3 IndexedDB encrypted outbox
 // PQ（PendingQueue）を IndexedDB + WebCrypto AES-GCM で encrypted at rest にする
 // PII strip on enqueue / Idempotency-Key 24h TTL を強制する
+// wall-clock TTL 禁止規約（src/CLAUDE.md §wall-clock TTL 禁止）に従い、
+// Date.now() を直接使用せず @k1s0/hlc-lib の HlcClock / HlcTimestamp を経由する
+
+// @k1s0/hlc-lib: HLC クロックおよびタイムスタンプ操作 API（wall-clock 禁止規律準拠）
+import { HlcTimestamp, HlcClock } from '@k1s0/hlc-lib';
 
 // Idempotency-Key の 24h TTL（ミリ秒）
 export const IDEMPOTENCY_KEY_TTL_MS = 24 * 60 * 60 * 1000;
 
-// HLC フォーマット: {timestamp_ms_hex}-{logical_counter}-{node_id}
-// wall clock を TTL/deadline 計算に使うことを禁止するため HLC でラップする
-// logical_counter と node_id は本実装では固定値（0000）を使用する
+// モジュールレベルのグローバル HLC クロック（環境変数 HLC_NODE_ID から node_id を取得する）
+// wall-clock TTL 禁止規約に従い @k1s0/hlc-lib の HlcClock のみが Date.now() を呼ぶ
+const _globalHlcClock = HlcClock.fromEnv();
+
+// hlcNow は @k1s0/hlc-lib のグローバルクロックから現在の HLC タイムスタンプを取得して compact 文字列に変換する
+// 旧実装の手書き Date.now() を @k1s0/hlc-lib 経由に置換する（wall-clock 禁止規律準拠）
 export function hlcNow(): string {
-  // Date.now() を HLC の物理クロック基底として使用する（TS HLC: monotonic 担保はアプリ層で行う）
-  const timestampMsHex = Date.now().toString(16).padStart(16, "0");
-  // logical_counter は現実装では 0000 固定（同一ミリ秒内の複数イベントが不要なため）
-  const logicalCounter = "0000";
-  // node_id は現実装では 0000 固定（単一ノード想定）
-  const nodeId = "0000";
-  // HLC タイムスタンプ文字列を組み立てて返す
-  return `${timestampMsHex}-${logicalCounter}-${nodeId}`;
+  // HlcClock.now()（tick の alias）で現在の HLC タイムスタンプを生成する
+  const ts = _globalHlcClock.now();
+  // formatCompact で "{wall_ms_hex_16}-{logical_04x}-{node_04x}" 形式の文字列を返す
+  return ts.formatCompact();
 }
 
-// HLC タイムスタンプからミリ秒を抽出する
+// extractMsFromHlc は HLC compact 文字列からミリ秒値を number として抽出する
 // hlcTimestamp: "{timestamp_ms_hex}-{logical_counter}-{node_id}" 形式
+// @k1s0/hlc-lib の HlcTimestamp.parseCompact を使用してパースする（手書き parseInt 禁止）
 function extractMsFromHlc(hlcTimestamp: string): number {
-  // ハイフン区切りの先頭部分が 16 進数ミリ秒タイムスタンプ（undefined の場合は "0" にフォールバック）
-  return parseInt(hlcTimestamp.split("-")[0] ?? "0", 16);
+  // HlcTimestamp.parseCompact で HlcTimestamp にパースする（失敗時は null）
+  const ts = HlcTimestamp.parseCompact(hlcTimestamp);
+  // パース失敗時は 0 を返す（safe 側フォールバック）
+  if (ts === null) {
+    return 0;
+  }
+  // wall_ms（bigint）を number に変換して返す（2^53 未満の値であれば精度ロスなし）
+  return Number(ts.wall_ms);
 }
 
 // PII strip の結果を保持する型（PII フィールドを除去した payload）

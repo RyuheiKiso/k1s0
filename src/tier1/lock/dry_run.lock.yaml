@@ -20,15 +20,17 @@ pairs:
     last_green_at: '2026-05-17T13:00:00Z'
     notes: 'kind cluster: pg_dump --schema-only on cnpg cluster, diff with stackgres schema, 0 breaking differences detected'
     phase_assertion_id: pa_relational_pg_pair_schema_diff_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:2dd1ecc85253e7692f5f7efe20604c6d1341d3de38b403c06426bc79bf700ef4
   - phase_id: state_replicate
     drill_state: green
     last_green_at: '2026-05-17T13:01:00Z'
     notes: 'kind cluster: WAL streaming from cnpg to stackgres replica, row count matched (3 rows), lag=0'
     phase_assertion_id: pa_relational_pg_pair_state_replicate_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:02a83dbc3daada938dba0ce17d95dd293f6096135a82ba6aac7f901400597541
   - phase_id: dual_write_ramp
     drill_state: green
     last_green_at: '2026-05-17T13:02:00Z'
@@ -39,21 +41,24 @@ pairs:
     - data_32_atomic_triple_write_p2
     - data_32_atomic_triple_write_p3
     - data_32_atomic_triple_write_p4
-    exposed_concepts_diff_hash: sha256:pending
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:705605cae2e613dc3d4bdff231e8f121069524c48f61937823db703174cf9421
   - phase_id: cutover
     drill_state: green
     last_green_at: '2026-05-17T13:03:00Z'
     notes: 'kind cluster: connection string switched to stackgres-sim endpoint, application reads/writes successful'
     phase_assertion_id: pa_relational_pg_pair_cutover_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:66ca380564f281665fff1cb5e206c931cf7bb129ae339fe559d434b837d51dc1
   - phase_id: rollback
     drill_state: green
     last_green_at: '2026-05-17T13:04:00Z'
     notes: 'kind cluster: rollback to cnpg connection string, data integrity verified, no data loss'
     phase_assertion_id: pa_relational_pg_pair_rollback_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:8921c241d28616ce01f960e911e476b323efdff04e0e9788dd5b06f46fecd277
 - pair_id: messaging_kafka_pair
   from_oss: strimzi_kafka
   to_oss: redpanda
@@ -67,14 +72,16 @@ pairs:
     phase_assertion_id: pa_messaging_kafka_pair_schema_diff_001
     cross_axis_assertions_verified:
     - transport_07_kafka_wire_compat_v4
-    exposed_concepts_diff_hash: sha256:pending
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:fc3d21e34f5774abc23e2765bb96a0a775b37cc0718569c13c59a9b030838213
   - phase_id: state_replicate
     drill_state: green
     last_green_at: '2026-05-17T13:06:00Z'
     notes: 'kind cluster: MirrorMaker2 replication simulation, messages replicated to redpanda-sim, offset verified'
     phase_assertion_id: pa_messaging_kafka_pair_state_replicate_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:67036d7474aba88536d54e8e904dc92e06b5d3bc024a72e89122c900fcae19f4
   - phase_id: dual_write_ramp
     drill_state: green
     last_green_at: '2026-05-17T13:07:00Z'
@@ -83,21 +90,24 @@ pairs:
     cross_axis_assertions_verified:
     - transport_07_v1_event_feed_session_ordered
     - transport_07_messaging_bridge_partition_key
-    exposed_concepts_diff_hash: sha256:pending
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:dd1a7f8c1eae9105b7367baeb5ee268750b26ca1a6a75316205d4f0c8b405672
   - phase_id: cutover
     drill_state: green
     last_green_at: '2026-05-17T13:08:00Z'
     notes: 'kind cluster: bootstrap.servers switched to redpanda-sim, Debezium CDC events received successfully'
     phase_assertion_id: pa_messaging_kafka_pair_cutover_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:c469a9fddb459a6283d797945e3d22ff5ed998834cd5b3ac13e16a640a0c5a91
   - phase_id: rollback
     drill_state: green
     last_green_at: '2026-05-17T13:09:00Z'
     notes: 'kind cluster: rollback to strimzi bootstrap, consumer group offsets restored, no message loss'
     phase_assertion_id: pa_messaging_kafka_pair_rollback_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:ad9d66129f4301cd1d5b067bcf8a540ccca3f9465add2fb11ab9041541b97b4e
 - pair_id: workflow_pair
   from_oss: temporal
   to_oss: cadence
@@ -109,15 +119,17 @@ pairs:
     last_green_at: '2026-05-17T13:10:00Z'
     notes: 'kind cluster: temporal workflow history JSON export, compared with cadence-sim schema, state model partial compatibility verified'
     phase_assertion_id: pa_workflow_pair_schema_diff_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:53cf2503fe75e2cd31527e40f7502fe252e5b2516c20cb46868fe6aa018da862
   - phase_id: state_replicate
     drill_state: green
     last_green_at: '2026-05-17T13:11:00Z'
     notes: 'kind cluster: temporal workflow state serialized and imported to cadence-sim, activity task queue replicated'
     phase_assertion_id: pa_workflow_pair_state_replicate_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:db108cf619395ebaa7833ded0cf27cf21a983232ac6b0146652f34d174a88900
   - phase_id: dual_write_ramp
     drill_state: green
     last_green_at: '2026-05-17T13:12:00Z'
@@ -126,7 +138,8 @@ pairs:
     cross_axis_assertions_verified:
     - client_39_resume_token_continuity
     - client_39_idempotency_key_continuity
-    exposed_concepts_diff_hash: sha256:pending
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:072de777f9dcf12de1041642b35405464dc7b0a217f0d9f1d4b0c2f2a92582f4
   - phase_id: cutover
     drill_state: green
     last_green_at: '2026-05-17T13:13:00Z'
@@ -134,14 +147,16 @@ pairs:
     phase_assertion_id: pa_workflow_pair_cutover_001
     cross_axis_assertions_verified:
     - client_39_pending_queue_hold_on_write_freeze
-    exposed_concepts_diff_hash: sha256:pending
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:4347495760ca1db3dda4a0d726030541746b5fc6b2d7606a6428026ed4b12df6
   - phase_id: rollback
     drill_state: green
     last_green_at: '2026-05-17T13:14:00Z'
     notes: 'kind cluster: rollback to temporal SDK endpoint, in-flight workflow resumed successfully'
     phase_assertion_id: pa_workflow_pair_rollback_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:fa87c1aca8e4a197c98cdac91c9eb47d3156a9df6268bd1c8e173f5c507cd0de
 - pair_id: rule_engine_pair
   from_oss: zen_engine
   to_oss: custom_rust_dsl
@@ -153,15 +168,17 @@ pairs:
     last_green_at: '2026-05-17T13:15:00Z'
     notes: 'kind cluster: ZEN Engine decision table DSL parsed and compared with custom Rust DSL AST, semantic equivalence verified for 5 test cases'
     phase_assertion_id: pa_rule_engine_pair_schema_diff_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:67ebb2f6bddda846fbf4135bcf3c318cf24a2ea48ff563b4f4908c29fcdb0960
   - phase_id: state_replicate
     drill_state: green
     last_green_at: '2026-05-17T13:16:00Z'
     notes: 'kind cluster: ZEN decision table JSON exported, imported to custom Rust DSL backend, 10 rule evaluations matched'
     phase_assertion_id: pa_rule_engine_pair_state_replicate_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:cbbe21fd15493e95c2ac3f11d1635de7e5c1a5bfd08888aa1b1e95b540cf066b
   - phase_id: dual_write_ramp
     drill_state: green
     last_green_at: '2026-05-17T13:17:00Z'
@@ -169,18 +186,21 @@ pairs:
     phase_assertion_id: pa_rule_engine_pair_dual_write_ramp_001
     cross_axis_assertions_verified:
     - data_32_rule_eval_both_backends_identical
-    exposed_concepts_diff_hash: sha256:pending
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:298d5a6598fdb3fa1f5c842de4c790717a920a4e0e1ca4d846f14f68937d09cd
   - phase_id: cutover
     drill_state: green
     last_green_at: '2026-05-17T13:18:00Z'
     notes: 'kind cluster: gateway control_plane switched to Rust DSL backend, 40 conformance cell evaluations passed'
     phase_assertion_id: pa_rule_engine_pair_cutover_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:223c5c7edbfc0e910755ddba20542cbe969e657cbe09ed14f719acab865e7aff
   - phase_id: rollback
     drill_state: green
     last_green_at: '2026-05-17T13:19:00Z'
     notes: 'kind cluster: rollback to ZEN Engine backend, existing rule evaluations unchanged'
     phase_assertion_id: pa_rule_engine_pair_rollback_001
-    cross_axis_assertions_verified: []
-    exposed_concepts_diff_hash: sha256:pending
+    cross_axis_assertions_verified:
+    - migration_pair_dry_run_verified
+    exposed_concepts_diff_hash: sha256:0e95d741d71bbf8224a2a4f6294fd1e747b3e27fb9370638e9305717451b0969

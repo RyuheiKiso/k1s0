@@ -19,6 +19,9 @@ edition = "2021"
 description = "k1s0 tier3 Tauri companion frontend glue（IPC bridge）"
 
 [dependencies]
+# k1s0-hlc: wall-clock TTL 禁止規律（src/CLAUDE.md §wall-clock TTL 禁止）に従い HLC を使用する
+# SystemTime::now() は k1s0-hlc 内部のみ許可されるため、companion は本 crate を経由する
+k1s0-hlc = { path = "../../../client/hlc_lib/rust" }
 # Tauri framework v2（IPC コマンド・イベント・plugin 機構を提供する）
 # Tauri CLI が管理するため、バージョン指定は Tauri CLI に従う
 tauri = { version = "2", features = [] }

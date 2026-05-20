@@ -3,6 +3,8 @@
 // §AuthContext スキーマ（32 session_context の拡張・同型）に準拠する。
 // 生 access_token / refresh_token は公開シグネチャに一切含まれない。
 
+// chrono: タイムスタンプ型（step_up_proven_at に使用する）
+use chrono::{DateTime, Utc};
 // serde: シリアライズ/デシリアライズ（derive feature を使用する）
 use serde::{Deserialize, Serialize};
 // uuid: UUID v4 生成（session_id のランダム生成に使用する）
@@ -69,8 +71,10 @@ pub struct AuthContext {
     // attestation_level: device attestation level（jwt_attested のみ設定される）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attestation_level: Option<String>,
-    // step_up_proven: 最終 step_up challenge 済みフラグ（always / on_high_risk の場合は true が必須）
-    pub step_up_proven: bool,
+    // step_up_proven_at: 最終 step_up challenge 時刻（04_認証適合仕様.md §AuthContext スキーマ SoT 準拠）
+    // None = 未証明（workload / federated 等 step_up 不要クラス）、Some(dt) = challenge 完了時刻
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_up_proven_at: Option<DateTime<Utc>>,
     // is_valid: token 検証が成功したかどうか（false の場合は GUC setter を空にする）
     pub is_valid: bool,
 }
@@ -85,7 +89,8 @@ impl AuthContext {
         token_id: String,
         scopes: Vec<String>,
         dpop_jkt: Option<String>,
-        step_up_proven: bool,
+        // step_up_proven_at: step_up challenge 完了時刻（未証明の場合は None）
+        step_up_proven_at: Option<DateTime<Utc>>,
     ) -> Self {
         // v1_human_session の固定属性を適用する（dimension override 禁止）
         Self {
@@ -103,7 +108,7 @@ impl AuthContext {
             dpop_jkt,
             // human session には attestation_level は不要
             attestation_level: None,
-            step_up_proven,
+            step_up_proven_at,
             is_valid: true,
         }
     }
@@ -132,8 +137,8 @@ impl AuthContext {
             // workload は DPoP 不要（JWT 短命で proof-of-possession 不要）
             dpop_jkt: None,
             attestation_level: None,
-            // workload は step_up が不要（never ポリシー）
-            step_up_proven: false,
+            // workload は step_up が不要（never ポリシー）。step_up_proven_at は None
+            step_up_proven_at: None,
             is_valid: true,
         }
     }
@@ -145,7 +150,8 @@ impl AuthContext {
         tenant_id: String,
         token_id: String,
         attestation_level: String,
-        step_up_proven: bool,
+        // step_up_proven_at: step_up challenge 完了時刻（未証明の場合は None）
+        step_up_proven_at: Option<DateTime<Utc>>,
     ) -> Self {
         // v1_device_attest の固定属性を適用する（dimension override 禁止）
         Self {
@@ -165,7 +171,7 @@ impl AuthContext {
             dpop_jkt: None,
             // attestation_level: TPM / HSM / WebAuthn platform authenticator の種別
             attestation_level: Some(attestation_level),
-            step_up_proven,
+            step_up_proven_at,
             is_valid: true,
         }
     }
@@ -195,19 +201,24 @@ impl AuthContext {
             // federated は DPoP 不要（短命 JWT で replay 防止）
             dpop_jkt: None,
             attestation_level: None,
-            // federated exchange は step_up 不要（never ポリシー）
-            step_up_proven: false,
+            // federated exchange は step_up 不要（never ポリシー）。step_up_proven_at は None
+            step_up_proven_at: None,
             is_valid: true,
         }
     }
 
     // new_emergency_step_up は v1_emergency_step_up AuthContext を構築する。
     // break-glass（always step_up、TTL<10m、no refresh、purpose=emergency 強制）に対応する。
+    // spec §「emergency step_up は always step_up かつ DPoP bound 必須」に従い
+    // dpop_jkt は必須引数（non-optional）とする。他 factory と異なり Option を受け付けない。
     pub fn new_emergency_step_up(
         subject_id: String,
         tenant_id: String,
         token_id: String,
-        dpop_jkt: Option<String>,
+        // dpop_jkt: emergency break-glass は DPoP bound 必須（spec §emergency step_up は always DPoP bound）
+        dpop_jkt: String,
+        // step_up_proven_at: emergency factory では必須（always step_up ポリシーのため常に Some）
+        step_up_proven_at: DateTime<Utc>,
     ) -> Self {
         // v1_emergency_step_up の固定属性を適用する（always step_up + purpose=emergency 強制）
         Self {
@@ -223,10 +234,11 @@ impl AuthContext {
             audience: String::new(),
             // emergency のスコープ（break_glass を明示する）
             scopes: vec!["emergency.break_glass".to_string()],
-            dpop_jkt,
+            // dpop_jkt は必須のため Some でラップして格納する（DPoP 必須規律の物理化）
+            dpop_jkt: Some(dpop_jkt),
             attestation_level: None,
-            // v1_emergency_step_up は常に step_up 済みとして発行される（always ポリシー）
-            step_up_proven: true,
+            // v1_emergency_step_up は常に step_up 済みとして発行される（always ポリシー）。Some でラップする
+            step_up_proven_at: Some(step_up_proven_at),
             is_valid: true,
         }
     }
@@ -240,6 +252,13 @@ impl AuthContext {
             return vec![];
         }
         // 04_認証適合仕様.md §AuthContext スキーマの全 GUC 対応フィールドを SET LOCAL 文にする
+        // step_up_proven_at: None の場合は空文字列、Some の場合は RFC 3339 形式で emit する
+        let step_up_proven_at_str = match self.step_up_proven_at {
+            // None: 未証明 → 空文字列を emit する（GUC に空文字列を設定する）
+            None => String::new(),
+            // Some(dt): RFC 3339 形式（ISO 8601）でフォーマットする
+            Some(dt) => dt.to_rfc3339(),
+        };
         let mut setters = vec![
             format!("SET LOCAL app.auth_class = '{}'", self.auth_class),
             format!("SET LOCAL app.subject_id = '{}'", self.subject_id),
@@ -247,7 +266,8 @@ impl AuthContext {
             format!("SET LOCAL app.token_id = '{}'", self.token_id),
             format!("SET LOCAL app.session_id = '{}'", self.session_id),
             format!("SET LOCAL app.audience = '{}'", self.audience),
-            format!("SET LOCAL app.step_up_proven = '{}'", self.step_up_proven),
+            // step_up_proven_at GUC を設定する（GUC 名を app.step_up_proven_at に変更）
+            format!("SET LOCAL app.step_up_proven_at = '{}'", step_up_proven_at_str),
         ];
         // dpop_jkt が Some の場合のみ GUC を設定する（dpop_bound_jwt のみ）
         if let Some(ref jkt) = self.dpop_jkt {

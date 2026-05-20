@@ -6,10 +6,12 @@
 package auth_context_test
 
 import (
-	// testing: Go テストフレームワークに使用する
-	"testing"
 	// strings: GUC setter 文字列の検証に使用する
 	"strings"
+	// testing: Go テストフレームワークに使用する
+	"testing"
+	// time: step_up_proven_at タイムスタンプ型に使用する
+	"time"
 
 	// auth_context パッケージのインポート: テスト対象パッケージ
 	authctx "github.com/k1s0-io/k1s0/tier1/library/auth_context"
@@ -18,7 +20,7 @@ import (
 // TestNewHumanSessionContext は v1_human_session AuthContext ファクトリのテスト
 // 04_認証適合仕様.md §v1_human_session の不変条件（subject_kind = "human"）を確認する
 func TestNewHumanSessionContext(t *testing.T) {
-	// テスト用パラメータを設定する
+	// テスト用パラメータを設定する（stepUpProvenAt = nil: step_up 未証明）
 	ctx := authctx.NewHumanSessionContext(
 		// subjectID: canonical subject
 		"user-001",
@@ -32,8 +34,8 @@ func TestNewHumanSessionContext(t *testing.T) {
 		[]string{"service.api"},
 		// dpopJkt: DPoP key thumbprint
 		"dpop-thumbprint-001",
-		// stepUpProven: step_up 済みフラグ
-		false,
+		// stepUpProvenAt: nil = step_up 未証明（*time.Time 型）
+		nil,
 	)
 	// v1_human_session AuthContext が生成されることを確認する
 	if ctx == nil {
@@ -55,10 +57,12 @@ func TestNewHumanSessionContext(t *testing.T) {
 // TestToGucSetters_HumanSession は v1_human_session の GUC setter が正しく生成されることを検証する
 // 04_認証適合仕様.md §AuthContext スキーマの GUC 対応フィールドに準拠する
 func TestToGucSetters_HumanSession(t *testing.T) {
+	// step_up_proven_at: non-nil のタイムスタンプを設定する（step_up 証明済み）
+	stepUpAt := time.Now().UTC()
 	// v1_human_session コンテキストを生成する
 	ctx := authctx.NewHumanSessionContext(
 		"user-001", "tenant-001", "token-001", "session-001",
-		[]string{"service.api"}, "dpop-001", true,
+		[]string{"service.api"}, "dpop-001", &stepUpAt,
 	)
 	// GUC setter スライスを取得する
 	setters := ctx.ToGucSetters()
@@ -82,6 +86,35 @@ func TestToGucSetters_HumanSession(t *testing.T) {
 	}
 }
 
+// TestToGucSetters_ScopesArrayLiteral は app.scopes が PostgreSQL array literal 形式で
+// 出力されることを検証する（spec: app.scopes は text[] 型）
+func TestToGucSetters_ScopesArrayLiteral(t *testing.T) {
+	// v1_workload_jwt コンテキストを生成する（scopes: ["service.api"]）
+	ctx := authctx.NewWorkloadJwtContext(
+		"workload-001", "tenant-001", "token-001", "k1s0-api",
+	)
+	// GUC setter スライスを取得する
+	setters := ctx.ToGucSetters()
+	// app.scopes GUC を検索する
+	var scopesSetter string
+	for _, s := range setters {
+		// app.scopes を含む SET LOCAL 文を検索する
+		if strings.Contains(s, "app.scopes") {
+			// 見つかった場合は記録する
+			scopesSetter = s
+		}
+	}
+	// app.scopes GUC が存在しない場合はテスト失敗
+	if scopesSetter == "" {
+		t.Fatal("ToGucSetters should include app.scopes GUC")
+	}
+	// PostgreSQL array literal 形式（{"service.api"} 等）であることを確認する
+	if !strings.Contains(scopesSetter, `{"service.api"}`) {
+		// 期待する array literal 形式でない場合はテスト失敗
+		t.Errorf("app.scopes should use PostgreSQL array literal format, got: %s", scopesSetter)
+	}
+}
+
 // TestToGucSetters_InvalidContext は is_valid=false の AuthContext が空スライスを返すことを検証する
 // 04_認証適合仕様.md §AuthContext スキーマ準拠: invalid context は GUC setter を設定しない
 func TestToGucSetters_InvalidContext(t *testing.T) {
@@ -93,10 +126,89 @@ func TestToGucSetters_InvalidContext(t *testing.T) {
 	)
 	// setters が空でないことを確認する
 	setters := ctx.ToGucSetters()
-	// setters の長さを確認する（最低 7 つの GUC が必要）
-	if len(setters) < 7 {
+	// setters の長さを確認する（最低 8 つの GUC が必要: app.scopes が追加されたため）
+	if len(setters) < 8 {
 		// 期待値より少ない場合はテスト失敗
-		t.Errorf("ToGucSetters should return at least 7 setters, got %d", len(setters))
+		t.Errorf("ToGucSetters should return at least 8 setters, got %d", len(setters))
+	}
+}
+
+// TestNewDeviceAttestContext は v1_device_attest AuthContext ファクトリのテスト
+// 04_認証適合仕様.md §v1_device_attest の不変条件（subject_kind = "device"）を確認する
+func TestNewDeviceAttestContext(t *testing.T) {
+	// step_up_proven_at: nil = step_up 未証明
+	ctx := authctx.NewDeviceAttestContext(
+		// subjectID: canonical subject
+		"device-001",
+		// tenantID: テナント識別子
+		"tenant-001",
+		// tokenID: JWT jti
+		"token-001",
+		// attestationLevel: TPM 2.0 attestation
+		"tpm_2_0",
+		// stepUpProvenAt: nil = step_up 未証明
+		nil,
+	)
+	// v1_device_attest AuthContext が生成されることを確認する
+	if ctx == nil {
+		// nil が返された場合はテスト失敗
+		t.Fatal("NewDeviceAttestContext returned nil")
+	}
+	// IsValid が true であることを確認する
+	if !ctx.IsValid() {
+		// IsValid が false の場合はテスト失敗
+		t.Errorf("NewDeviceAttestContext: IsValid should be true, got false")
+	}
+	// GetAuthClass が v1_device_attest であることを確認する
+	if ctx.GetAuthClass() != authctx.AuthClassV1DeviceAttest {
+		// 期待値と異なる場合はテスト失敗
+		t.Errorf("NewDeviceAttestContext: AuthClass mismatch: got %s, want v1_device_attest", ctx.GetAuthClass())
+	}
+	// GUC setter に app.attestation_level が含まれることを確認する
+	setters := ctx.ToGucSetters()
+	// attestation_level GUC を検索する
+	var hasAttestationLevel bool
+	for _, s := range setters {
+		// app.attestation_level を含む SET LOCAL 文を検索する
+		if strings.Contains(s, "app.attestation_level") && strings.Contains(s, "tpm_2_0") {
+			// 見つかった場合は記録する
+			hasAttestationLevel = true
+		}
+	}
+	// app.attestation_level GUC が存在しない場合はテスト失敗
+	if !hasAttestationLevel {
+		t.Errorf("NewDeviceAttestContext: ToGucSetters should include app.attestation_level = 'tpm_2_0'")
+	}
+}
+
+// TestNewFederatedExchangeContext は v1_federated_exchange AuthContext ファクトリのテスト
+// 04_認証適合仕様.md §v1_federated_exchange の不変条件（subject_kind = "external_subject"）を確認する
+func TestNewFederatedExchangeContext(t *testing.T) {
+	// v1_federated_exchange コンテキストを生成する
+	ctx := authctx.NewFederatedExchangeContext(
+		// subjectID: 外部 IdP の subject
+		"ext-user-001",
+		// tenantID: テナント識別子
+		"tenant-001",
+		// tokenID: JWT jti
+		"token-001",
+		// audience: resource server の audience claim
+		"k1s0-api",
+	)
+	// v1_federated_exchange AuthContext が生成されることを確認する
+	if ctx == nil {
+		// nil が返された場合はテスト失敗
+		t.Fatal("NewFederatedExchangeContext returned nil")
+	}
+	// IsValid が true であることを確認する
+	if !ctx.IsValid() {
+		// IsValid が false の場合はテスト失敗
+		t.Errorf("NewFederatedExchangeContext: IsValid should be true, got false")
+	}
+	// GetAuthClass が v1_federated_exchange であることを確認する
+	if ctx.GetAuthClass() != authctx.AuthClassV1FederatedExchange {
+		// 期待値と異なる場合はテスト失敗
+		t.Errorf("NewFederatedExchangeContext: AuthClass mismatch: got %s, want v1_federated_exchange", ctx.GetAuthClass())
 	}
 }
 

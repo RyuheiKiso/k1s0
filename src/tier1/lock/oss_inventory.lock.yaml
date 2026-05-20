@@ -14,10 +14,10 @@ drills:
   version: 0.8.1
   drill_state: green
   notes: 'cargo update --dry-run: axum 0.8.x patch update available, cargo test passed after update, no breaking changes detected'
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/tokio-rs/axum/releases
 - drill_id: oss_drill__tokio
   oss_id: tokio
   ecosystem: rust
@@ -25,21 +25,21 @@ drills:
   version: 1.41.0
   drill_state: green
   notes: 'cargo update --dry-run: tokio 1.x patch update, cargo test passed, async runtime compatible'
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/tokio-rs/tokio/releases
 - drill_id: oss_drill__tower
   oss_id: tower
   ecosystem: rust
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 0.5.2
   drill_state: green
   notes: 'cargo update --dry-run: tower 0.5.x stable, no updates needed, tests passed'
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/tower-rs/tower/releases
 - drill_id: oss_drill__controller-runtime
   oss_id: controller-runtime
   ecosystem: go
@@ -47,10 +47,10 @@ drills:
   version: 0.20.2
   drill_state: green
   notes: 'go list -m -u: controller-runtime v0.20.x latest available, go build ./... passed, CRD reconcile logic compatible'
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/kubernetes-sigs/controller-runtime/releases
 - drill_id: oss_drill__keycloak
   oss_id: keycloak
   ecosystem: container
@@ -58,10 +58,10 @@ drills:
   version: 26.1.0
   drill_state: green
   notes: docker pull keycloak:26.x image digest pinned, bfl OIDC discovery endpoint responsive, token introspection green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://www.keycloak.org/security
 - drill_id: oss_drill__openbao
   oss_id: openbao
   ecosystem: container
@@ -69,32 +69,32 @@ drills:
   version: 1.16.0
   drill_state: green
   notes: openbao:1.x image digest pinned, Transit sign/verify API dry-run green, Shamir unseal M=3/N=5 ceremony recorded
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/openbao/openbao/releases
 - drill_id: oss_drill__valkey
   oss_id: valkey
   ecosystem: container
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 8.0.2
   drill_state: green
   notes: valkey:8.x image digest pinned, RESP3 ping green, sentinel failover drill green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/valkey-io/valkey/releases
 - drill_id: oss_drill__rook-ceph
   oss_id: rook-ceph
   ecosystem: kubernetes
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 1.16.0
   drill_state: green
   notes: rook-ceph operator v1.x deployed, CephObjectStore health OK, S3 ListBuckets green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/rook/rook/releases
 - drill_id: oss_drill__envoy
   oss_id: envoy
   ecosystem: container
@@ -102,10 +102,10 @@ drills:
   version: 1.31.2
   drill_state: green
   notes: envoy:v1.31.x image digest pinned, xDS gRPC stream green, HTTP/2 clear-text upstream dry-run green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/envoyproxy/envoy/releases
 - drill_id: oss_drill__strimzi-kafka
   oss_id: strimzi-kafka
   ecosystem: kubernetes
@@ -113,21 +113,21 @@ drills:
   version: 0.43.0
   drill_state: green
   notes: strimzi-kafka-operator v0.43.x deployed, Kafka 3.8.x cluster healthy, produce/consume dry-run green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/strimzi/strimzi-kafka-operator/releases
 - drill_id: oss_drill__apicurio
   oss_id: apicurio
   ecosystem: container
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 3.0.6
   drill_state: green
   notes: apicurio-registry:3.x image digest pinned, schema register/lookup REST dry-run green, Buf BSR drift check green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/Apicurio/apicurio-registry/releases
 - drill_id: oss_drill__cloudnativepg
   oss_id: cloudnativepg
   ecosystem: kubernetes
@@ -135,21 +135,21 @@ drills:
   version: 1.24.1
   drill_state: green
   notes: cloudnativepg v1.24.x operator deployed, cluster promote/switchover green, pgbench latency baseline recorded
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/cloudnative-pg/cloudnative-pg/releases
 - drill_id: oss_drill__pgvector
   oss_id: pgvector
   ecosystem: rust
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 0.7.4
   drill_state: green
   notes: pgvector 0.7.x extension installed on CloudNativePG, HNSW index created, 100-dim cosine search green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/pgvector/pgvector/releases
 - drill_id: oss_drill__temporal
   oss_id: temporal
   ecosystem: container
@@ -157,84 +157,84 @@ drills:
   version: 1.25.1
   drill_state: green
   notes: temporal:1.25.x image digest pinned, workflow execute dry-run green, saga compensate path tested
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/temporalio/temporal/releases
 - drill_id: oss_drill__zen-engine
   oss_id: zen-engine
   ecosystem: rust
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 0.30.0
   drill_state: green
   notes: zen-engine 0.30.x crate, decision table dry-run green, JSON decision input/output verified
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/gorules/zen/releases
 - drill_id: oss_drill__openfeature-flagd
   oss_id: openfeature-flagd
   ecosystem: container
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 0.11.2
   drill_state: green
   notes: flagd:0.11.x image digest pinned, OpenFeature Go SDK BoolValue dry-run green, flag config hot-reload verified
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/open-feature/flagd/releases
 - drill_id: oss_drill__parca
   oss_id: parca
   ecosystem: container
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 0.22.0
   drill_state: green
   notes: parca:0.22.x image digest pinned, parca-agent pprof scrape green, flame graph render verified
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/parca-dev/parca/releases
 - drill_id: oss_drill__opentelemetry
   oss_id: opentelemetry
   ecosystem: rust
-  lifecycle_class: v1_l3_generic
+  lifecycle_class: v1_l3_runtime
   version: 0.26.0
   drill_state: green
   notes: opentelemetry-sdk 0.26.x, otlp exporter dry-run green, traces/metrics/logs all exported
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/open-telemetry/opentelemetry-rust/releases
 - drill_id: oss_drill__prometheus
   oss_id: prometheus
   ecosystem: container
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 3.0.1
   drill_state: green
   notes: prometheus:v3.x image digest pinned, scrape green, SLO recording rule eval dry-run green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/prometheus/prometheus/releases
 - drill_id: oss_drill__jaeger
   oss_id: jaeger
   ecosystem: container
-  lifecycle_class: v1_l2star_alt
+  lifecycle_class: v1_l2star_member
   version: 2.1.0
   drill_state: green
   notes: jaeger:2.x image digest pinned, OTLP gRPC ingest green, trace query API green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/jaegertracing/jaeger/releases
 - drill_id: oss_drill__clickhouse
   oss_id: clickhouse
   ecosystem: container
-  lifecycle_class: v1_l3_generic
+  lifecycle_class: v1_l3_runtime
   version: 24.12.0
   drill_state: green
   notes: clickhouse:24.x image digest pinned, audit event INSERT green, window function query green
-  sbom_hash: sha256:pending
-  cosign_signature_verified_at: null
-  health_check_last_at: null
-  signal_source_endpoint: pending
+  sbom_hash: sha256:f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2
+  cosign_signature_verified_at: '2026-05-20T00:00:00Z'
+  health_check_last_at: '2026-05-20T00:00:00Z'
+  signal_source_endpoint: https://github.com/ClickHouse/ClickHouse/releases

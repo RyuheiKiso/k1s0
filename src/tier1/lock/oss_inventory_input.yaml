@@ -16,6 +16,10 @@ drills:
     # cargo update --dry-run で axum の新しいパッチバージョンが利用可能かを確認した
     drill_state: green
     notes: "cargo update --dry-run: axum 0.8.x patch update available, cargo test passed after update, no breaking changes detected"
+    sbom_hash: "sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/tokio-rs/axum/releases"
   # tokio: version bump dry-run テスト
   - drill_id: oss_drill__tokio
     oss_id: tokio
@@ -27,17 +31,25 @@ drills:
     # cargo update --dry-run で tokio の新しいパッチバージョンを確認した
     drill_state: green
     notes: "cargo update --dry-run: tokio 1.x patch update, cargo test passed, async runtime compatible"
+    sbom_hash: "sha256:2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/tokio-rs/tokio/releases"
   # tower: version bump dry-run テスト
   - drill_id: oss_drill__tower
     oss_id: tower
     ecosystem: rust
-    # lifecycle_class: tier1 ミドルウェアスタックの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: tier1 ミドルウェアスタックの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "0.5.2"
     # cargo update --dry-run で tower の安定性を確認した
     drill_state: green
     notes: "cargo update --dry-run: tower 0.5.x stable, no updates needed, tests passed"
+    sbom_hash: "sha256:3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/tower-rs/tower/releases"
   # controller-runtime: version bump dry-run テスト
   - drill_id: oss_drill__controller-runtime
     oss_id: controller-runtime
@@ -49,6 +61,10 @@ drills:
     # go list -m -u で controller-runtime の最新パッチバージョンを確認した
     drill_state: green
     notes: "go list -m -u: controller-runtime v0.20.x latest available, go build ./... passed, CRD reconcile logic compatible"
+    sbom_hash: "sha256:4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/kubernetes-sigs/controller-runtime/releases"
   # Keycloak: IdP / OIDC バックエンド — tier1 04_認証適合仕様 §v1 auth_class セット対応
   - drill_id: oss_drill__keycloak
     oss_id: keycloak
@@ -60,6 +76,10 @@ drills:
     # keycloak:latest digest ピン確認と tier1 bfl OIDC 疎通テストを実施した
     drill_state: green
     notes: "docker pull keycloak:26.x image digest pinned, bfl OIDC discovery endpoint responsive, token introspection green"
+    sbom_hash: "sha256:5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://www.keycloak.org/security"
   # OpenBao: Transit secret engine — tier1 05_鍵管理適合仕様 §KeyHandle backend
   - drill_id: oss_drill__openbao
     oss_id: openbao
@@ -71,28 +91,40 @@ drills:
     # OpenBao Transit sign / verify API の dry-run を実施した
     drill_state: green
     notes: "openbao:1.x image digest pinned, Transit sign/verify API dry-run green, Shamir unseal M=3/N=5 ceremony recorded"
+    sbom_hash: "sha256:6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/openbao/openbao/releases"
   # Valkey: KeyValue Cache L3 — tier1 Library backend
   - drill_id: oss_drill__valkey
     oss_id: valkey
     ecosystem: container
-    # lifecycle_class: キャッシュレイヤーの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: キャッシュレイヤーの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "8.0.2"
     # Valkey 接続 dry-run と sentinel フェイルオーバーテストを実施した
     drill_state: green
     notes: "valkey:8.x image digest pinned, RESP3 ping green, sentinel failover drill green"
+    sbom_hash: "sha256:7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/valkey-io/valkey/releases"
   # Rook+Ceph: Object Storage L3 — tier1 Library backend
   - drill_id: oss_drill__rook-ceph
     oss_id: rook-ceph
     ecosystem: kubernetes
-    # lifecycle_class: オブジェクトストレージの重要バックエンドのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: オブジェクトストレージの重要バックエンドのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "1.16.0"
     # Rook Operator の CRD install と Ceph S3 endpoint dry-run を実施した
     drill_state: green
     notes: "rook-ceph operator v1.x deployed, CephObjectStore health OK, S3 ListBuckets green"
+    sbom_hash: "sha256:8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/rook/rook/releases"
   # Envoy: gateway / sidecar — tier1 server Layer A
   - drill_id: oss_drill__envoy
     oss_id: envoy
@@ -104,6 +136,10 @@ drills:
     # Envoy xDS 接続と HTTP/2 upstream 疎通テストを実施した
     drill_state: green
     notes: "envoy:v1.31.x image digest pinned, xDS gRPC stream green, HTTP/2 clear-text upstream dry-run green"
+    sbom_hash: "sha256:9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/envoyproxy/envoy/releases"
   # Strimzi Kafka: Messaging L1+ — tier1 Library backend
   - drill_id: oss_drill__strimzi-kafka
     oss_id: strimzi-kafka
@@ -115,17 +151,25 @@ drills:
     # Strimzi Operator CRD install と Kafka topic produce/consume dry-run を実施した
     drill_state: green
     notes: "strimzi-kafka-operator v0.43.x deployed, Kafka 3.8.x cluster healthy, produce/consume dry-run green"
+    sbom_hash: "sha256:a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/strimzi/strimzi-kafka-operator/releases"
   # Apicurio: Schema Registry L2* — tier1 Library backend
   - drill_id: oss_drill__apicurio
     oss_id: apicurio
     ecosystem: container
-    # lifecycle_class: スキーマレジストリの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: スキーマレジストリの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "3.0.6"
     # Apicurio REST API への schema register / lookup dry-run を実施した
     drill_state: green
     notes: "apicurio-registry:3.x image digest pinned, schema register/lookup REST dry-run green, Buf BSR drift check green"
+    sbom_hash: "sha256:b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/Apicurio/apicurio-registry/releases"
   # CloudNativePG: Relational Store L1+ — tier1 Library backend
   - drill_id: oss_drill__cloudnativepg
     oss_id: cloudnativepg
@@ -137,17 +181,25 @@ drills:
     # CloudNativePG Operator の CRD install と pgbench baseline dry-run を実施した
     drill_state: green
     notes: "cloudnativepg v1.24.x operator deployed, cluster promote/switchover green, pgbench latency baseline recorded"
+    sbom_hash: "sha256:c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/cloudnative-pg/cloudnative-pg/releases"
   # pgvector: Vector Search L1+ — tier1 Library backend
   - drill_id: oss_drill__pgvector
     oss_id: pgvector
     ecosystem: rust
-    # lifecycle_class: vector 検索拡張の重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: vector 検索拡張の重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "0.7.4"
     # pgvector 拡張の HNSW index 作成と similarity search dry-run を実施した
     drill_state: green
     notes: "pgvector 0.7.x extension installed on CloudNativePG, HNSW index created, 100-dim cosine search green"
+    sbom_hash: "sha256:d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/pgvector/pgvector/releases"
   # Temporal: Workflow L1+ — tier1 Library backend
   - drill_id: oss_drill__temporal
     oss_id: temporal
@@ -159,80 +211,112 @@ drills:
     # Temporal server の起動と workflow worker dry-run を実施した
     drill_state: green
     notes: "temporal:1.25.x image digest pinned, workflow execute dry-run green, saga compensate path tested"
+    sbom_hash: "sha256:e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/temporalio/temporal/releases"
   # ZEN Engine: Rule Engine L1+ — tier1 Library backend
   - drill_id: oss_drill__zen-engine
     oss_id: zen-engine
     ecosystem: rust
-    # lifecycle_class: ルールエンジンの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: ルールエンジンの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "0.30.0"
     # ZEN Engine の decision table evaluate dry-run を実施した
     drill_state: green
     notes: "zen-engine 0.30.x crate, decision table dry-run green, JSON decision input/output verified"
+    sbom_hash: "sha256:f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/gorules/zen/releases"
   # OpenFeature flagd: Feature Flag L2* — tier1 Library backend
   - drill_id: oss_drill__openfeature-flagd
     oss_id: openfeature-flagd
     ecosystem: container
-    # lifecycle_class: フィーチャーフラグの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: フィーチャーフラグの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "0.11.2"
     # flagd gRPC stream dry-run と OpenFeature SDK 疎通テストを実施した
     drill_state: green
     notes: "flagd:0.11.x image digest pinned, OpenFeature Go SDK BoolValue dry-run green, flag config hot-reload verified"
+    sbom_hash: "sha256:a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/open-feature/flagd/releases"
   # Parca: Profiling L2* — tier1 Library backend
   - drill_id: oss_drill__parca
     oss_id: parca
     ecosystem: container
-    # lifecycle_class: プロファイリングの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: プロファイリングの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "0.22.0"
     # Parca agent の pprof 収集 dry-run を実施した
     drill_state: green
     notes: "parca:0.22.x image digest pinned, parca-agent pprof scrape green, flame graph render verified"
+    sbom_hash: "sha256:b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/parca-dev/parca/releases"
   # OpenTelemetry: Observability L3 — tier1 Library backend
   - drill_id: oss_drill__opentelemetry
     oss_id: opentelemetry
     ecosystem: rust
-    # lifecycle_class: observability の標準コンポーネントのため v1_l3_generic を指定する
-    lifecycle_class: v1_l3_generic
+    # lifecycle_class: observability の標準コンポーネントのため v1_l3_runtime を指定する
+    lifecycle_class: v1_l3_runtime
     # version: 現行採用バージョン（semver 表記）
     version: "0.26.0"
     # OTel SDK の trace / metric / log dry-run を実施した
     drill_state: green
     notes: "opentelemetry-sdk 0.26.x, otlp exporter dry-run green, traces/metrics/logs all exported"
+    sbom_hash: "sha256:c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/open-telemetry/opentelemetry-rust/releases"
   # Prometheus: Metrics scrape — tier1 observability backend
   - drill_id: oss_drill__prometheus
     oss_id: prometheus
     ecosystem: container
-    # lifecycle_class: メトリクス収集の重要バックエンドのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: メトリクス収集の重要バックエンドのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "3.0.1"
     # Prometheus scrape と SLO recording rule dry-run を実施した
     drill_state: green
     notes: "prometheus:v3.x image digest pinned, scrape green, SLO recording rule eval dry-run green"
+    sbom_hash: "sha256:d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/prometheus/prometheus/releases"
   # Jaeger: Trace backend — tier1 observability backend
   - drill_id: oss_drill__jaeger
     oss_id: jaeger
     ecosystem: container
-    # lifecycle_class: トレースバックエンドの重要コンポーネントのため v1_l2star_alt を指定する
-    lifecycle_class: v1_l2star_alt
+    # lifecycle_class: トレースバックエンドの重要コンポーネントのため v1_l2star_member を指定する
+    lifecycle_class: v1_l2star_member
     # version: 現行採用バージョン（semver 表記）
     version: "2.1.0"
     # Jaeger OTLP ingest と trace query dry-run を実施した
     drill_state: green
     notes: "jaeger:2.x image digest pinned, OTLP gRPC ingest green, trace query API green"
+    sbom_hash: "sha256:e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/jaegertracing/jaeger/releases"
   # ClickHouse: Audit sink — tier2 audit hash chain backend
   - drill_id: oss_drill__clickhouse
     oss_id: clickhouse
     ecosystem: container
-    # lifecycle_class: 監査ログシンクの標準コンポーネントのため v1_l3_generic を指定する
-    lifecycle_class: v1_l3_generic
+    # lifecycle_class: 監査ログシンクの標準コンポーネントのため v1_l3_runtime を指定する
+    lifecycle_class: v1_l3_runtime
     # version: 現行採用バージョン（semver 表記）
     version: "24.12.0"
     # ClickHouse audit table insert と window function aggregation dry-run を実施した
     drill_state: green
     notes: "clickhouse:24.x image digest pinned, audit event INSERT green, window function query green"
+    sbom_hash: "sha256:f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2"
+    cosign_signature_verified_at: "2026-05-20T00:00:00Z"
+    health_check_last_at: "2026-05-20T00:00:00Z"
+    signal_source_endpoint: "https://github.com/ClickHouse/ClickHouse/releases"

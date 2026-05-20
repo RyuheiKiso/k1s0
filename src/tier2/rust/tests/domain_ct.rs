@@ -47,7 +47,8 @@ fn make_ctx(tenant_id: Uuid) -> TenantContext {
     )
 }
 
-// contract: TenantScoped aggregate の StateChange が正しく SQL を生成できることを検証する
+// contract: TenantScoped aggregate の StateChange が P3 tenant_id 検証を通過することを検証する
+// (build_triple_write_sql は raw SQL concat 禁止規律により削除済み: 三表書込は execute() の sqlx::query で実施)
 #[test]
 fn ct_tenant_scoped_aggregate_state_change() {
     // テスト用テナント ID を生成する
@@ -76,21 +77,20 @@ fn ct_tenant_scoped_aggregate_state_change() {
         version: 1,
     };
 
-    // contract: build_triple_write_sql が Ok を返すこと（SQL 構造の整合性を確認する）
-    let sql = writer.build_triple_write_sql(&change)
-        .expect("ct: TenantScoped StateChange must generate valid triple-write SQL");
-    // contract: domain_event テーブルへの INSERT が含まれること
-    assert!(sql.contains("domain_event"), "ct: domain_event INSERT required for TenantScoped");
-    // contract: outbox_message テーブルへの INSERT が含まれること（Debezium CDC 経由で Kafka に転送）
-    // migration SoT: 0001_initial_schema.sql が k1s0.outbox_message を CREATE している
-    assert!(sql.contains("outbox_message"), "ct: outbox_message INSERT required for TenantScoped");
-    // contract: audit_event テーブルへの INSERT が含まれること（全操作の監査証跡）
-    assert!(sql.contains("audit_event"), "ct: audit_event INSERT required for TenantScoped");
-    // contract: GUC 注入が含まれること（RLS FORCE が参照する app.tenant_id を注入する）
-    assert!(sql.contains("app.tenant_id"), "ct: GUC injection required");
+    // contract: verify_tenant_id が matching tenant_id で Ok を返すこと（P3 invariant）
+    assert!(
+        writer.verify_tenant_id(&change).is_ok(),
+        "ct: TenantScoped StateChange must pass verify_tenant_id"
+    );
+    // contract: TenantScoped は pii_audit_required が false であること（P4 invariant）
+    assert!(
+        !writer.verify_pii_audit_required(&change),
+        "ct: TenantScoped must not require pii audit flag"
+    );
 }
 
-// contract: TenantMaster aggregate の StateChange が正しく SQL を生成できることを検証する
+// contract: TenantMaster aggregate の StateChange が P3 tenant_id 検証を通過することを検証する
+// (build_triple_write_sql は raw SQL concat 禁止規律により削除済み)
 #[test]
 fn ct_tenant_master_aggregate_state_change() {
     // テスト用テナント ID を生成する
@@ -119,14 +119,16 @@ fn ct_tenant_master_aggregate_state_change() {
         version: 2,
     };
 
-    // contract: build_triple_write_sql が Ok を返すこと
-    let sql = writer.build_triple_write_sql(&change)
-        .expect("ct: TenantMaster StateChange must generate valid triple-write SQL");
-    // contract: TenantMaster でも三表書込が必須であることを確認する
-    assert!(sql.contains("domain_event"), "ct: domain_event INSERT required for TenantMaster");
-    // outbox_message テーブル名を確認する（migration SoT: k1s0.outbox_message）
-    assert!(sql.contains("outbox_message"), "ct: outbox_message INSERT required for TenantMaster");
-    assert!(sql.contains("audit_event"), "ct: audit_event INSERT required for TenantMaster");
+    // contract: verify_tenant_id が matching tenant_id で Ok を返すこと（P3 invariant）
+    assert!(
+        writer.verify_tenant_id(&change).is_ok(),
+        "ct: TenantMaster StateChange must pass verify_tenant_id"
+    );
+    // contract: TenantMaster も pii_audit_required は false であること（P4 invariant）
+    assert!(
+        !writer.verify_pii_audit_required(&change),
+        "ct: TenantMaster must not require pii audit flag"
+    );
 }
 
 // contract: PiiSegregated aggregate の StateChange が audit 必須フラグを設定することを検証する
@@ -160,17 +162,17 @@ fn ct_pii_segregated_aggregate_requires_audit() {
         version: 1,
     };
 
-    // contract: PiiSegregated では verify_pii_audit_required が true を返すこと
+    // contract: PiiSegregated では verify_pii_audit_required が true を返すこと（P4 invariant）
     assert!(
         writer.verify_pii_audit_required(&pii_change),
         "ct: PiiSegregated aggregate must require audit (P4 invariant)"
     );
-
-    // contract: PiiSegregated の SQL にも三表全てが含まれること
-    let sql = writer.build_triple_write_sql(&pii_change)
-        .expect("ct: PiiSegregated StateChange must generate valid triple-write SQL");
-    // audit_event に PiiSegregated のクラス情報が含まれることを確認する
-    assert!(sql.contains("audit_event"), "ct: audit_event INSERT required for PiiSegregated");
+    // contract: PiiSegregated の P3 tenant_id 検証も通過すること（三表書込の前提条件）
+    // (build_triple_write_sql は raw SQL concat 禁止規律により削除済み)
+    assert!(
+        writer.verify_tenant_id(&pii_change).is_ok(),
+        "ct: PiiSegregated StateChange must pass verify_tenant_id"
+    );
 }
 
 // contract: 異なるテナントの StateChange が reject されることを検証する（P3 cross-tenant contract）
