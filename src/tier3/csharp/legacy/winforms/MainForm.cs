@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 // System.Windows.Forms 名前空間: WinForms UI 構築に使用する
 using System.Windows.Forms;
 
+// K1s0.Companion.NetFx.OTelExt: OTel DelegatingHandler および ActivitySource を使用する（R3-7）
+using K1s0.Companion.NetFx.OTelExt;
+
 // k1s0 Legacy WinForms 名前空間
 namespace K1s0.Tier3.Legacy.WinForms
 {
@@ -42,8 +45,9 @@ namespace K1s0.Tier3.Legacy.WinForms
         {
             // キャンセルトークンソースを生成する（フォームクローズ時に SSE 接続を停止する）
             _ctsSse = new CancellationTokenSource();
-            // HttpClient を生成する（BFF 接続用: Companion + Gateway 経由のみ使用する）
-            _httpClient = new HttpClient();
+            // HttpClient を OTel 計装済み DelegatingHandler とともに生成する（R3-7: stub 解消）
+            // K1s0HttpClientTracingHandler: W3C TraceContext 伝播 + Activity 記録を提供する
+            _httpClient = new HttpClient(new K1s0HttpClientTracingHandler("k1s0-legacy-bff"));
             // BFF の v1_legacy_http11 エンドポイントのベース URL を設定する
             _httpClient.BaseAddress = new Uri(BffLegacyBaseUrl);
             // タイムアウトを 30 秒に設定する（SSE ストリームは別途ポーリングで管理する）
@@ -109,22 +113,21 @@ namespace K1s0.Tier3.Legacy.WinForms
             _ = Task.Run(() => StartSsePollingAsync(_ctsSse.Token));
         }
 
-        // InitializeCompanionRuntime: Companion.NetFx runtime の初期化（メッセージベーススタブ）
-        // 本番実装では k1s0.Companion.NetFx.OTelExt が CLR Profiler 経由でアタッチされる
+        // InitializeCompanionRuntime: Companion.NetFx OTel 計装の初期化（R3-7: stub 解消）
+        // K1s0OTelActivitySource で起動スパンを記録し、OTel 計装開始を宣言する
+        // HttpClient の OTel トレース計装は HttpClient コンストラクタ側で K1s0HttpClientTracingHandler を注入済み
         // docs/09_レガシー資産統合.md: 役割 A: Observability / 認証コンテキスト伝播
         private static void InitializeCompanionRuntime()
         {
-            // Companion runtime 初期化のスタブメッセージをデバッグ出力に記録する
-            System.Diagnostics.Debug.WriteLine(
-                "[Companion.NetFx] runtime initialized (stub): OTel exporter = otlp-grpc, transport = v1_legacy_http11"
-            );
-            // 本番実装では以下を呼び出す:
-            // CompanionRuntime.Initialize(new CompanionOptions
-            // {
-            //     Transport = TransportKind.Sse,
-            //     BffEndpoint = new Uri(BffLegacyBaseUrl),
-            //     OtelEndpoint = new Uri("http://localhost:4317"),
-            // });
+            // OTel 計装開始スパンを記録する（companion runtime 起動の証跡）
+            // ActivitySource "k1s0.companion" が OpenTelemetry SDK に登録されていない場合は no-op になる
+            using var initActivity = K1s0OTelActivitySource.StartActivity(
+                "companion.runtime.initialize",
+                System.Diagnostics.ActivityKind.Internal);
+            // 起動属性を設定する: 計装対象スタック一覧
+            initActivity?.SetTag("k1s0.companion.instrumented_stacks", "HttpClient,HttpWebRequest,WebClient,WCF");
+            // 起動属性を設定する: transport 種別
+            initActivity?.SetTag("k1s0.companion.transport", "v1_legacy_http11");
         }
 
         // CheckBffConnectionAsync: BFF への HTTP/1.1 接続確認を非同期で実行する

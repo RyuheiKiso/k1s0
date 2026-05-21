@@ -61,13 +61,13 @@ class CrossCuttingRegistryGenerator(BaseGenerator):
             "%Y-%m-%dT%H:%M:%SZ"
         )
 
-        # 13 spec エントリを生成
+        # 13 spec エントリを生成（docs/04_詳細設計/03_クロスカッティング適合仕様/*.md の published 化に伴い published）
         specs: list[dict[str, Any]] = [
             {
                 "spec_id":      spec_id,
                 "cluster_id":   cluster_id,
                 "primary_axis": primary_axis,
-                "status":       "pending",
+                "status":       "published",
             }
             for spec_id, cluster_id, primary_axis in _SPEC_CATALOG
         ]

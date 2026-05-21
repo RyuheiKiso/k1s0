@@ -26,8 +26,8 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <!-- Deterministic ビルドを有効にする -->
     <Deterministic>true</Deterministic>
-    <!-- treat warnings as errors: 品質を担保する -->
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- treat warnings as errors: 至高路線で false は規律低下のため true を強制する -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!-- 標準 .NET Framework 参照アセンブリ -->

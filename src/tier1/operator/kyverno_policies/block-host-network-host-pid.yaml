@@ -1,0 +1,105 @@
+# block-host-network-host-pid.yaml — hostNetwork / hostPID を持つ Pod を Deny する ClusterPolicy
+# docs/04_詳細設計/01_適合仕様/03_観測適合仕様.md §defense_in_depth layer E に準拠する。
+# spec.hostNetwork: true または spec.hostPID: true の Pod は
+# テナント分離（tier2）および観測の PII 隔離に違反するため admission 時に deny する。
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case）
+  name: k1s0-block-host-network-host-pid
+  # ポリシーのアノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "Block hostNetwork and hostPID"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "Tier1 Enforcement Layer E"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      spec.hostNetwork: true または spec.hostPID: true を持つ Pod を Deny する。
+      hostNetwork はノードのネットワーク名前空間を共有するため PII データの
+      横断的観測が可能になり、テナント分離を破壊する。
+      hostPID はノードの PID 名前空間を共有するため isolation boundary を破壊する
+      (03_観測適合仕様.md §defense_in_depth layer E)。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # hostNetwork: true の Pod を deny する
+    - name: deny-host-network
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system / k1s0-system は除外する
+      # NOTE: Parca agent（eBPF profiling）は hostPID が必要なため k1s0-system を除外する
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する
+              namespaces:
+                - kyverno
+                - kube-system
+                - k1s0-system
+      # 検証条件: spec.hostNetwork が true でないこと
+      validate:
+        # deny メッセージ
+        message: >
+          spec.hostNetwork: true は禁止されています。
+          ノードネットワーク名前空間の共有はテナント分離を破壊します
+          (03_観測適合仕様.md §defense_in_depth layer E)。
+        # パターン: spec.hostNetwork が true でないこと（設定なし or false が許可される）
+        pattern:
+          spec:
+            # hostNetwork: false または未設定（Kyverno の `false` は false または未設定に合致する）
+            =(hostNetwork): false
+
+    # hostPID: true の Pod を deny する
+    - name: deny-host-pid
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system / k1s0-system は除外する
+      # NOTE: Parca agent（eBPF profiling）は hostPID が必要なため k1s0-system を除外する
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する（Parca agent の例外を含む）
+              namespaces:
+                - kyverno
+                - kube-system
+                - k1s0-system
+      # 検証条件: spec.hostPID が true でないこと
+      validate:
+        # deny メッセージ
+        message: >
+          spec.hostPID: true は禁止されています。
+          ノード PID 名前空間の共有は isolation boundary を破壊します
+          (03_観測適合仕様.md §defense_in_depth layer E)。
+        # パターン: spec.hostPID が true でないこと
+        pattern:
+          spec:
+            # hostPID: false または未設定が許可される
+            =(hostPID): false

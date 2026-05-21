@@ -11,6 +11,12 @@ mod flagd_publisher;
 mod cosign_verify;
 // apicurio_client モジュール: Apicurio Schema Registry GitOps 連携クライアント
 mod apicurio_client;
+// audit_ingest_gap_monitor モジュール: spec 03 §audit signal ingest gap monitor
+mod audit_ingest_gap_monitor;
+// apicurio_gitops モジュール: spec 06 §apicurio_gitops_sot: Apicurio GitOps SoT controller
+mod apicurio_gitops;
+// cosign_verify_attestation モジュール: spec 08 §cosign attestation チェーン: cosign 署名 + SBOM attestation の検証実装
+mod cosign_verify_attestation;
 
 // axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};

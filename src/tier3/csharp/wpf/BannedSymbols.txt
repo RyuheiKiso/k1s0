@@ -1,6 +1,34 @@
 # k1s0 tier3 WPF BannedSymbols.txt
-# tier1 直接 import 禁止シンボルリスト（BannedApiAnalyzers で強制する）
+# tier1 / OSS 直接 import 禁止シンボルリスト（BannedApiAnalyzers で強制する）
+# 強制機構: docs/04_詳細設計/02_強制機構/03_tier3強制機構.md 層 1 + 層 2
 # tier3 は tier2 SDK 経由のみ tier1 にアクセス可能
 
-# tier1 直接名前空間へのアクセスを禁止する（現状 placeholder）
-# 例: T:K1s0.Tier1.Transport.DirectClient;tier3 cannot reference tier1 directly. Use tier2 SDK.
+# ---- 層 1: tier1 名前空間全体を禁止する ----
+# tier1 ルート名前空間を禁止する（全 tier1 サブ名前空間をカバー）
+N:K1s0.Tier1;tier3 cannot reference tier1 directly. Use tier2 SDK instead.
+# tier1 Transport 名前空間を禁止する（gRPC / HTTP / SSE 直接クライアント）
+N:K1s0.Tier1.Transport;Use K1s0.Tier2.Sdk.Transport facade instead.
+# tier1 Auth 名前空間を禁止する（DPoP / mTLS / SPIRE 直接クライアント）
+N:K1s0.Tier1.Auth;Use K1s0.Tier2.Sdk.Auth facade instead.
+# tier1 Key 名前空間を禁止する（KeyHandle 直接操作）
+N:K1s0.Tier1.Key;Use K1s0.Tier2.Sdk.Key facade instead.
+# tier1 Schema 名前空間を禁止する（Apicurio / Buf 直接操作）
+N:K1s0.Tier1.Schema;Use K1s0.Tier2.Sdk.Schema facade instead.
+# tier1 Slo 名前空間を禁止する（SLO 直接操作）
+N:K1s0.Tier1.Slo;Use K1s0.Tier2.Sdk.Slo facade instead.
+# tier1 OssLifecycle 名前空間を禁止する（OSS lifecycle 直接操作）
+N:K1s0.Tier1.OssLifecycle;Use K1s0.Tier2.Sdk.OssLifecycle facade instead.
+# tier1 TenantCapacity 名前空間を禁止する（Quota 直接操作）
+N:K1s0.Tier1.TenantCapacity;Use K1s0.Tier2.Sdk.Quota facade instead.
+# tier1 Observability 名前空間を禁止する（OTel 直接操作）
+N:K1s0.Tier1.Observability;Use K1s0.Tier2.Sdk.Observability facade instead.
+
+# ---- 層 2: 業務管理 API (admin) 名前空間全体を禁止する ----
+# tier2 Admin 名前空間を禁止する（業務管理 API を tier3 業務 UI から直接 import 禁止）
+N:K1s0.Tier2.Admin;tier3 business UI cannot reference tier2 admin API directly.
+
+# ---- 層 1: access_token getter を禁止する ----
+# GetAccessToken メソッドを禁止する（BFF cookie auth のみ許可、生 token 露出禁止）
+M:K1s0.*.GetAccessToken;Raw access_token exposure is prohibited. Use BFF cookie auth only.
+# get_access_token メソッドを禁止する（同上、スネークケース variant）
+M:K1s0.*.get_access_token;Raw access_token exposure is prohibited. Use BFF cookie auth only.

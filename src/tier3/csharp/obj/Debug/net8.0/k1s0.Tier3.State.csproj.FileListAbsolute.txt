@@ -166,3 +166,6 @@
 /home/ryuhei_kiso/github/remake/k1s0/src/tier3/csharp/obj/Debug/net8.0/k1s0.Tier3.State.pdb
 /home/ryuhei_kiso/github/remake/k1s0/src/tier3/csharp/obj/Debug/net8.0/k1s0.Tier3.State.genruntimeconfig.cache
 /home/ryuhei_kiso/github/remake/k1s0/src/tier3/csharp/obj/Debug/net8.0/ref/k1s0.Tier3.State.dll
+/home/ryuhei_kiso/github/remake/k1s0/src/tier3/csharp/bin/Debug/net8.0/.msCoverageSourceRootsMapping_k1s0.Tier3.State
+/home/ryuhei_kiso/github/remake/k1s0/src/tier3/csharp/bin/Debug/net8.0/K1s0.HlcLib.dll
+/home/ryuhei_kiso/github/remake/k1s0/src/tier3/csharp/bin/Debug/net8.0/K1s0.HlcLib.pdb

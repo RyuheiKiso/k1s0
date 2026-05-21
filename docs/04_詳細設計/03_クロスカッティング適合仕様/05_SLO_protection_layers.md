@@ -3,7 +3,8 @@ id: detail.cross_slo.slo_protection_layers
 axis: cross_slo
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier2.service_operation_policy
   - detail.tier2.tenant_isolation_conformance

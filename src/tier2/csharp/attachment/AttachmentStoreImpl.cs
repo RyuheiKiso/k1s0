@@ -28,6 +28,9 @@ public sealed class AttachmentStoreImpl : IAttachmentStore
     // _hlcClock: HLC タイムスタンプ取得に使用する（wall-clock 禁止のため HLC を使う）
     private readonly HlcClock _hlcClock;
 
+    // _kekClient: DEK ハンドルを取得する KEK Transit クライアント（本番は OpenBao Transit API 経由）
+    private readonly IKekTransitClient _kekClient;
+
     // _store: テナント別添付ファイルの in-memory ストア（骨格実装用 / 本番は S3/MinIO を使う）
     // key: "{tenantId}/{attachmentId}", value: (data, metadata) のペア
     private readonly Dictionary<string, (byte[] Data, AttachmentMetadata Metadata)> _store
@@ -37,21 +40,26 @@ public sealed class AttachmentStoreImpl : IAttachmentStore
     private readonly object _lock = new();
 
     /// <summary>
-    /// AttachmentStoreImpl を生成する（HlcClock を受け取る）
+    /// AttachmentStoreImpl を生成する（HlcClock と IKekTransitClient を受け取る）
     /// </summary>
-    public AttachmentStoreImpl(HlcClock hlcClock)
+    public AttachmentStoreImpl(HlcClock hlcClock, IKekTransitClient kekClient)
     {
         // HlcClock が null の場合は ArgumentNullException をスローする
         _hlcClock = hlcClock ?? throw new ArgumentNullException(nameof(hlcClock));
+        // IKekTransitClient が null の場合は ArgumentNullException をスローする
+        _kekClient = kekClient ?? throw new ArgumentNullException(nameof(kekClient));
     }
 
     /// <summary>
-    /// デフォルトコンストラクタ: HLC_NODE_ID 環境変数から HlcClock を自動生成する
+    /// デフォルトコンストラクタ: 環境変数から HlcClock を生成し、InMemoryKekTransitClient を使用する
+    /// 骨格実装の制約: 本番は OpenBaoKekTransitClient を DI コンテナから注入して使用する
     /// </summary>
     public AttachmentStoreImpl()
     {
         // 環境変数から HlcClock を生成する（HLC_NODE_ID 未設定時は nodeId=0）
         _hlcClock = HlcClock.FromEnv();
+        // 骨格 KEK Transit クライアントを使用する（本番は OpenBaoKekTransitClient を DI 注入する）
+        _kekClient = new InMemoryKekTransitClient();
     }
 
     /// <summary>
@@ -107,8 +115,8 @@ public sealed class AttachmentStoreImpl : IAttachmentStore
             ObjectKey = objectKey,
             // HLC タイムスタンプ（wall-clock 禁止 / HlcClock.Now() から取得した WallMs）
             HlcTimestamp = hlcTs.WallMs,
-            // DEK ハンドル（骨格実装では "dek-placeholder" を使用する / 本番は OpenBao Transit から取得する）
-            DekHandle = "dek-placeholder",
+            // DEK ハンドル（IKekTransitClient 経由で取得する / 本番は OpenBaoKekTransitClient が OpenBao Transit を呼ぶ）
+            DekHandle = _kekClient.GetDekHandle(tenantId),
         };
 
         // _store に排他ロックで保存する（in-memory 骨格実装）

@@ -7,3 +7,5 @@ pub mod state;
 pub mod attachments;
 // outbox モジュールを公開する（HLC ベース TTL / PII strip / Idempotency-Key 生成）
 pub mod outbox;
+// R3-5: purge モジュールを公開する（client_purge_event emit / PurgeTrigger 型）
+pub mod purge;

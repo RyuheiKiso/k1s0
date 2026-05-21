@@ -1,11 +1,139 @@
 {
   "comment": "tier2 Go API diff baseline (v1.0.0)",
-  "generated_at": "2026-05-18T00:00:00Z",
+  "generated_at": "2026-05-21T00:00:00Z",
   "module": "github.com/k1s0/tier2",
-  "exported_symbols": [
-    "TenantRepository",
-    "Projector",
-    "QuotaEnforcer",
-    "AuditLogger"
+  "packages": [
+    {
+      "package": "github.com/k1s0/tier2/tenantcontext",
+      "exported_types": [
+        "TenantContext",
+        "SessionPurpose"
+      ],
+      "exported_consts": [
+        "PurposeBusinessOp",
+        "PurposeSupport",
+        "PurposeExport",
+        "PurposeMigration",
+        "PurposeEmergency"
+      ],
+      "exported_vars": [
+        "ErrInvalidPurpose"
+      ],
+      "exported_funcs": [
+        "FromAuth(tenantID uuid.UUID, actorID string, purpose SessionPurpose) (*TenantContext, error)"
+      ],
+      "exported_methods": [
+        "(*TenantContext).WithDelegation(delegatorID string) *TenantContext",
+        "(*TenantContext).ToSetLocalSQL() string",
+        "(*TenantContext).TenantID() uuid.UUID"
+      ]
+    },
+    {
+      "package": "github.com/k1s0/tier2/repository",
+      "exported_types": [
+        "Repository",
+        "RepositoryContext",
+        "TenantScopedEntity"
+      ],
+      "exported_vars": [
+        "ErrRlsBypass",
+        "ErrNotFound"
+      ],
+      "exported_funcs": [
+        "NewRepositoryContext(tc *tenantcontext.TenantContext) (*RepositoryContext, error)",
+        "VerifySelectResult(entity *TenantScopedEntity, ctx *RepositoryContext) error"
+      ],
+      "exported_methods": [
+        "(*RepositoryContext).TenantContext() *tenantcontext.TenantContext",
+        "(*RepositoryContext).SetLocalSQL() string"
+      ]
+    },
+    {
+      "package": "github.com/k1s0/tier2/atomictriplewrite",
+      "exported_types": [
+        "AtomicTripleWrite",
+        "TableClass",
+        "StateChange",
+        "TripleWriteResult"
+      ],
+      "exported_consts": [
+        "TableClassTenantScoped",
+        "TableClassTenantMaster",
+        "TableClassPlatformGlobal",
+        "TableClassPiiSegregated"
+      ],
+      "exported_vars": [
+        "ErrTenantIdMismatch",
+        "ErrPiiAuditRequired"
+      ],
+      "exported_funcs": [
+        "New(ctx *tenantcontext.TenantContext, db *sql.DB) *AtomicTripleWrite"
+      ],
+      "exported_methods": [
+        "(*AtomicTripleWrite).VerifyTenantId(change *StateChange) error",
+        "(*AtomicTripleWrite).VerifyPiiAuditRequired(change *StateChange) bool",
+        "(*AtomicTripleWrite).Execute(ctx context.Context, change *StateChange, tx *sql.Tx) (*TripleWriteResult, error)"
+      ]
+    },
+    {
+      "package": "github.com/k1s0/tier2/outbox",
+      "exported_types": [
+        "OutboxMessage",
+        "OutboxPayload"
+      ],
+      "exported_consts": [
+        "IdempotencyKeyTTL"
+      ],
+      "exported_vars": [
+        "ErrIdempotencyConflict",
+        "ErrPayloadTooLarge"
+      ],
+      "exported_funcs": [
+        "NewOutboxMessage(aggregateID uuid.UUID, tenantID uuid.UUID, payload OutboxPayload) (*OutboxMessage, error)"
+      ],
+      "exported_methods": [
+        "(*OutboxMessage).ToInsertSQL() string"
+      ]
+    },
+    {
+      "package": "github.com/k1s0/tier2/redaction",
+      "exported_funcs": [
+        "Redact(src map[string]interface{}) map[string]interface{}",
+        "IsPiiField(key string) bool"
+      ]
+    },
+    {
+      "package": "github.com/k1s0/tier2/cqrs",
+      "exported_types": [
+        "DomainEvent",
+        "Projector"
+      ],
+      "exported_methods": [
+        "(*Projector).Project(ctx context.Context, event DomainEvent) error"
+      ]
+    },
+    {
+      "package": "github.com/k1s0/tier2/admin",
+      "exported_types": [
+        "AdminOperationKind",
+        "AdminRequest",
+        "AdminBoundaryGuard"
+      ],
+      "exported_consts": [
+        "TenantProvision",
+        "TenantSuspend",
+        "QuotaOverride",
+        "UserGrant",
+        "EmergencyAccess"
+      ],
+      "exported_vars": [
+        "ErrDualApprovalRequired",
+        "ErrAdminBoundaryViolation"
+      ],
+      "exported_methods": [
+        "(AdminOperationKind).String() string",
+        "(*AdminBoundaryGuard).Execute(ctx context.Context, req AdminRequest) error"
+      ]
+    }
   ]
 }

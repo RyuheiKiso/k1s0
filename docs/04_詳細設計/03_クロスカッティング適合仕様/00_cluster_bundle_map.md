@@ -3,7 +3,8 @@ id: detail.meta.cross_cluster_bundle_map
 axis: meta
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - detail.meta.axis_registry_conformance
 covered_by:

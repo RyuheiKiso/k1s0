@@ -39,6 +39,11 @@ tokio-tungstenite = { version = "0.24", features = [] }
 tokio = { version = "1", features = ["full"] }
 # futures-util: WebSocket ストリームの SinkExt / StreamExt に使用する
 futures-util = "0.3"
+# OS keystore 統合: Linux(GNOME Keyring/KWallet secret-service) / macOS(Keychain) / Windows(DPAPI) を統一する
+# R3-3: PSK を OS keystore に格納して default fallback を物理排除する
+keyring = "3"
+# hex: OS keystore から取得した PSK hex 文字列をバイト列に変換する
+hex = "0.4"
 
 [lib]
 # Tauri が要求するクレートタイプ

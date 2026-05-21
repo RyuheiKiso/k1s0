@@ -11,6 +11,10 @@ import "tier1/schema_evolution/v1/options.proto";
 
 // Go パッケージパス宣言
 option go_package = "github.com/k1s0-io/k1s0/tier1/schema_evolution/v1;schemaevolutionv1";
+// Java マルチファイル生成を有効にする（options.proto と同パッケージ内で値を統一する）
+option java_multiple_files = true;
+// Java パッケージ宣言（options.proto と同パッケージ内で値を統一する）
+option java_package = "io.k1s0.tier1.schema_evolution.v1";
 
 // DryRunPhase は migration pair dry_run の 5 フェーズを宣言する。
 // 02_移行Pair適合仕様.md §dry_run_phase（5 phase）と対応する。

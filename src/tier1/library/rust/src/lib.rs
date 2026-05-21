@@ -89,6 +89,13 @@ pub mod backend;
 // TransportNegotiationClient / BidiChannel / ClientCapabilities 等も提供する
 pub mod frontend;
 
+// ---- conformance assertion id デコレータ ----
+
+// conformance_assert モジュール: spec 01 §assertion id の連結
+// ConformanceAssertId 型 + conformance_assert! マクロを提供する。
+// CI 整合 2「scenarios.yaml の assertion id が全言語で実装されていること」の Rust 物理機構。
+pub mod conformance_assert;
+
 // ---- 後方互換: 既存 3 モジュールを維持する ----
 
 // key_handle モジュール: KeyClass enum + KeyHandle trait + OpenBaoKeyHandle struct

@@ -43,6 +43,7 @@ TOPO_ORDER: list[str] = [
     "instruments",
     "oss_inventory",
     "enforcement_points",
+    "tier2_enforcement_points",
     "idp_capabilities",
     "dry_run",
     "signals",
@@ -64,6 +65,8 @@ TOPO_ORDER: list[str] = [
     "forms_lint",
     "notifications_property",
     "design_tokens_contrast",
+    "otel_semconv",
+    "csp_sri",
     # client generators (v1.0.0 追加)
     "sdk_inventory",
     "capability_matrix",
@@ -72,6 +75,16 @@ TOPO_ORDER: list[str] = [
     "artifact_inventory",
     "ops_loop",
     "build_evidence",
+    # tier1 SLO rules generator (D5 ship blocker)
+    "slo_rules",
+    # tier1 拡張 generators (v1.0.0 追加)
+    "public_api_snapshot",
+    "api_snapshot",
+    "transport_migration",
+    "supply_chain_incident",
+    "sbom_catalog",
+    "sbom_triage",
+    "oss_conformance_check",
     "release_gate",
 ]
 
@@ -105,6 +118,8 @@ def get_generator(name: str) -> type | None:
         "instruments": ("tools.lock_yaml_generator.generate_instruments", "InstrumentsGenerator"),
         "oss_inventory": ("tools.lock_yaml_generator.generate_oss_inventory", "OssInventoryGenerator"),
         "enforcement_points": ("tools.lock_yaml_generator.generate_enforcement_points", "EnforcementPointsGenerator"),
+        # tier2 テナント容量 enforcement_points.lock.yaml 生成器（spec 09 §125 要求）
+        "tier2_enforcement_points": ("tools.lock_yaml_generator.generate_tier2_enforcement_points", "Tier2EnforcementPointsGenerator"),
         "idp_capabilities": ("tools.lock_yaml_generator.generate_idp_capabilities", "IdpCapabilitiesGenerator"),
         "dry_run": ("tools.lock_yaml_generator.generate_dry_run", "DryRunGenerator"),
         "signals": ("tools.lock_yaml_generator.generate_signals", "SignalsGenerator"),
@@ -126,6 +141,8 @@ def get_generator(name: str) -> type | None:
         "forms_lint": ("tools.lock_yaml_generator.generate_forms_lint", "FormsLintGenerator"),
         "notifications_property": ("tools.lock_yaml_generator.generate_notifications_property", "NotificationsPropertyGenerator"),
         "design_tokens_contrast": ("tools.lock_yaml_generator.generate_design_tokens_contrast", "DesignTokensContrastGenerator"),
+        "otel_semconv": ("tools.lock_yaml_generator.generate_otel_semconv", "OtelSemconvGenerator"),
+        "csp_sri": ("tools.lock_yaml_generator.generate_csp_sri", "CspSriGenerator"),
         # client generators
         "sdk_inventory": ("tools.lock_yaml_generator.generate_sdk_inventory", "SdkInventoryGenerator"),
         "capability_matrix": ("tools.lock_yaml_generator.generate_capability_matrix", "CapabilityMatrixGenerator"),
@@ -134,6 +151,16 @@ def get_generator(name: str) -> type | None:
         "artifact_inventory": ("tools.lock_yaml_generator.generate_artifact_inventory", "ArtifactInventoryGenerator"),
         "ops_loop": ("tools.lock_yaml_generator.generate_ops_loop", "OpsLoopGenerator"),
         "build_evidence": ("tools.lock_yaml_generator.generate_build_evidence", "BuildEvidenceGenerator"),
+        # tier1 SLO rules generator (D5 ship blocker)
+        "slo_rules": ("tools.lock_yaml_generator.generate_slo_rules", "SloRulesGenerator"),
+        # tier1 拡張 generators (v1.0.0 追加)
+        "public_api_snapshot": ("tools.lock_yaml_generator.generate_public_api_snapshot", "PublicApiSnapshotGenerator"),
+        "api_snapshot": ("tools.lock_yaml_generator.generate_api_snapshot", "ApiSnapshotGenerator"),
+        "transport_migration": ("tools.lock_yaml_generator.generate_transport_migration", "TransportMigrationGenerator"),
+        "supply_chain_incident": ("tools.lock_yaml_generator.generate_supply_chain_incident", "SupplyChainIncidentGenerator"),
+        "sbom_catalog": ("tools.lock_yaml_generator.generate_sbom_catalog", "SbomCatalogGenerator"),
+        "sbom_triage": ("tools.lock_yaml_generator.generate_sbom_triage", "SbomTriageGenerator"),
+        "oss_conformance_check": ("tools.lock_yaml_generator.generate_oss_conformance_check", "OssConformanceCheckGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }
     if name not in module_map:

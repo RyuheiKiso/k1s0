@@ -3,7 +3,8 @@ id: detail.cross_kek.kek_shamir_distribution
 axis: cross_kek
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - detail.tier1.key_management_conformance
   - detail.data.preservation_conformance

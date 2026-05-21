@@ -1,0 +1,19 @@
+# tier1 bidi capabilities assertion test クレート Cargo.toml
+# 01_Bidi適合仕様.md §adapter↔class supports 対応 の 29 applicable cell を
+# コードレベルの assertion として物理化する。
+# assertion_run_result_id の証拠生成（CI 整合 2 の物理化）を行う。
+[package]
+# クレート名: bidi-capabilities（ハイフン区切りが Cargo 標準）
+name = "bidi-capabilities"
+# バージョン: 初期版
+version = "0.1.0"
+# エディション: 2021（最新安定版）
+edition = "2021"
+# publish = false: 外部公開しない内部テストクレート
+publish = false
+
+# 開発・テスト専用依存クレート
+[dev-dependencies]
+# uuid: UUID v4 生成（assertion_run_result_id の証拠 ID 生成に使用する）
+# workspace = true を使わず workspace の version 定義を継承する
+uuid = { workspace = true }

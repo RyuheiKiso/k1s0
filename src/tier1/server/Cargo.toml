@@ -76,6 +76,8 @@ base64 = "0.22"
 k1s0-tier1-library = { path = "../library/rust" }
 # jsonwebtoken: JWT 検証（RS256 / ES256 / HS256 / JWKS リモート取得に使用する）
 jsonwebtoken = "9"
+# serde_yaml: YAML シリアライズ/デシリアライズ（Envoy jwt_authn filter 設定 YAML 生成に使用する）
+serde_yaml = "0.9"
 # web_transport は QUIC/HTTP3 が必要。pure Rust の quinn crate を使用する。
 # NOTE: Zig CC 環境では C ライブラリのビルドに制約があるため wtransport は一時無効化。
 #       production 環境では envoy HTTP/3 proxy で代替する。

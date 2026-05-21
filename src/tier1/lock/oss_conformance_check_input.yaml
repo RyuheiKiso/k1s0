@@ -1,0 +1,8 @@
+# Quarterly L2* conformance check records
+# 21 OSS × quarterly check — first run 2026-Q2
+check_quarter: '2026-Q2'
+total_oss_checked: 21
+conformant_count: 21
+non_conformant_count: 0
+status: green
+last_check_at: '2026-05-17T12:00:00Z'

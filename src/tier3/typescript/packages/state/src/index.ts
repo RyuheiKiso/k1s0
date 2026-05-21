@@ -51,3 +51,8 @@ export {
   chainIdempotencyKey,
   isIdempotencyKeyExpired,
 } from "./idempotency.js";
+
+// R3-5: client_purge_event emit 実装を公開する
+// layers.yaml purge_triggers の audit_emit: client_purge_event に対する物理実装
+export type { PurgeTrigger } from "./emitPurgeEvent.js";
+export { emitClientPurgeEvent } from "./emitPurgeEvent.js";

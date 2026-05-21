@@ -3,13 +3,16 @@
 # 各 assumption_id は capabilities.lock.yaml / formal 証明の accepted_with_assumption セルと一致させる
 
 # エントリ一覧
+# bidi_web_transport_unavailable_v1_assumption は 2026-05-21 に解決済み。
+# web_transport.rs コードレベル assertion（bidi_capabilities テストクレート）により
+# 5 cell が green に昇格したため、assumption エントリを削除する。
 entries:
-  # bidi_web_transport_unavailable_v1_assumption: WebTransport adapter の v1 opt-in 受容
-  - assumption_id: bidi_web_transport_unavailable_v1_assumption
-    # 説明: 01_Bidi 適合仕様 §「v1 opt-in、requires_fallback: true」に基づき、
-    # WebTransport adapter の 5 cell を accepted_with_assumption として v1.0.0 出荷許可リストに登録する
-    description: "v1 opt-in (spec: 01_Bidi適合仕様 §requires_fallback: true): WebTransport (QUIC/HTTP3) adapter は v1 ship 許可、fallback chain (paired_post_sse / sse_paired) が物理 enforce される。quinn 実装は v1.1+ に留保。"
-    # ステータス: accepted（spec 準拠、v1.0.0 ship 許可）
+  # profiles_ebpf_wsl2_unavailable_assumption: WSL2 dev 環境での eBPF probe 不可の受容
+  - assumption_id: profiles_ebpf_wsl2_unavailable_assumption
+    # 説明: WSL2 dev 環境では eBPF probe 不可。signals.lock.yaml profiles は accepted_with_assumption。
+    # 年次 linux bare-metal drill を ops_loop で代替検証。non-WSL2 drill schedule は ops_loop.lock.yaml に記録。
+    description: "WSL2 dev 環境では eBPF probe 不可。signals.lock.yaml profiles は accepted_with_assumption。年次 linux bare-metal drill を ops_loop で代替検証。non-WSL2 drill schedule は ops_loop.lock.yaml に記録。"
+    # ステータス: accepted（WSL2 制約、代替検証スケジュール記録済み）
     status: accepted
     # 対象軸
-    axis_name: tier1_bidi
+    axis_name: tier1_observability

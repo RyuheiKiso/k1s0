@@ -21,6 +21,10 @@
     <Description>k1s0 tier3 4 layer client state（C# 等価強度実装）</Description>
     <!-- MSTest テストランナーを有効にする -->
     <IsTestProject>true</IsTestProject>
+    <!-- コード解析を全て有効化する（至高路線・R3-9） -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- 警告をエラーとして扱う（tier3 C# 規律統一） -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!-- MSTest フレームワーク参照を追加する -->
@@ -31,21 +35,6 @@
     <PackageReference Include="MSTest.TestAdapter" Version="3.5.2" />
     <!-- Microsoft.NET.Test.Sdk（テストホスト） -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <!-- PublicApiAnalyzers: public API の変更を追跡して破壊的変更を CI で検出する -->
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4">
-      <!-- analyzer のみとして参照する（runtime 依存なし） -->
-      <PrivateAssets>all</PrivateAssets>
-      <!-- ビルド資産を含める -->
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <!-- PublicAPI ファイルを AdditionalFiles に追加する -->
-  <ItemGroup>
-    <!-- 出荷済み API の追跡ファイル（変更時は破壊的変更として CI が警告する） -->
-    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
-    <!-- 未出荷 API の追跡ファイル（新規 public API を列挙する） -->
-    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
 
   <!-- WPF App / WinForms サブプロジェクトの .cs を State lib のコンパイル対象から除外する -->
@@ -55,6 +44,9 @@
     <Compile Remove="wpf\**\*.cs" />
     <!-- legacy/winforms/ 配下の WinForms コードを除外する -->
     <Compile Remove="legacy\winforms\**\*.cs" />
+    <!-- TransportSelector.cs は .NET Framework 4.6.2 専用（WinHttpHandler 依存）につき .NET 8 target から除外する -->
+    <!-- k1s0.Tier3.Legacy.NetFx.csproj のみでビルドされる設計（cross-compile 禁止） -->
+    <Compile Remove="legacy\TransportSelector.cs" />
   </ItemGroup>
 
   <!-- k1s0-hlc C# 参照: wall-clock TTL 禁止規律に従い HLC を使用する -->
@@ -62,6 +54,16 @@
   <ItemGroup>
     <!-- k1s0-hlc C# lib: HlcTimestamp / HlcClock を提供する（path 依存） -->
     <ProjectReference Include="..\..\client\hlc_lib\csharp\HlcLib\HlcLib.csproj" />
+    <!-- k1s0.Connect.NetCore: Connect-RPC クライアントスタック（tier3 C# → tier1 Bidi 接続用、R3-8） -->
+    <ProjectReference Include="..\..\_crosscutting\13_dotnet8_connect_inhouse\lib\k1s0.Connect.NetCore.csproj" />
+  </ItemGroup>
+
+  <!-- 静的解析ツール（R3-9） -->
+  <ItemGroup>
+    <!-- 禁止 API 解析器: tier1 直接 import・raw token 露出を静的に検出する -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.11.0" />
+    <!-- BannedSymbols.txt: WPF プロジェクトと共有する禁止シンボルリスト -->
+    <AdditionalFiles Include="wpf\BannedSymbols.txt" />
   </ItemGroup>
 
 </Project>

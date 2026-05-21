@@ -28,6 +28,11 @@ anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
 # reqwest: 非同期 HTTP クライアント (BFF への状態転送に使用する、sidecar は localhost HTTP のみ TLS 不要)
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
+# OS keystore 統合: Linux(secret-service) / macOS(Keychain) / Windows(DPAPI) を統一する
+# R3-3: PSK を OS keystore に格納して default fallback を物理排除する
+keyring = "3"
+# hex: OS keystore から取得した PSK hex 文字列をバイト列に変換する
+hex = "0.4"
 
 [profile.release]
 # リリースビルドでパニック時にアボートする

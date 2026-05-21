@@ -1,0 +1,64 @@
+# BusinessConflict subtype SoT（source of truth）
+# 10_テナント分離適合仕様.md §business_conflict_subtypes の物理 catalog
+# tier3 conflict_tree.lock.yaml の subtypes セクションと 1:1 対応する（cross-reference 先）
+# tier2 は conflict の検出と 409 レスポンスの subtype フィールド設定を担当する
+# tier3 は受信した subtype に応じた UI ブランチ処理を担当する（conflict_tree.lock.yaml 参照）
+
+# 参照仕様: 10_テナント分離適合仕様.md §business_conflict_subtypes
+spec_reference: "docs/04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md §business_conflict_subtypes"
+# tier3 側の SoT へのクロスリファレンス（subtypes の tier3_event は conflict_tree.lock.yaml と一致させること）
+tier3_cross_reference: "src/tier3/lock/conflict_tree.lock.yaml"
+
+# BusinessConflict 4 サブタイプの定義
+subtypes:
+  # stale_write: 書き込み時点でデータが陳腐化していた（楽観ロック失敗）
+  - subtype_id: stale_write
+    # 検出条件: クライアントの base_version がサーバー側 version より古い場合（フィールド差分が非重複の場合は clean rebase 可能）
+    description: "書き込み時点でデータが陳腐化していた（楽観ロック失敗）"
+    # 検出ルール: クライアントが送信した version がサーバー現在 version より小さい場合に発火する
+    detector_rule: "last_seen_version != current_version"
+    # 解決戦略: クライアントは最新 server_truth を取得して変更を rebase してから再送しなければならない
+    resolution_strategy: client_must_rebase
+    # 409 レスポンスの audit_envelope に記録するフィールド名
+    audit_envelope_field: conflict_subtype
+    # tier3 conflict_tree.lock.yaml の対応 event_id（optimistic_rejected → dispatch_conflict_subtype_if_business_conflict 経由）
+    tier3_event: optimistic_rejected
+
+  # lost_update: 並行書き込みにより更新が消失した（フィールドが重複する場合は手動解決が必要）
+  - subtype_id: lost_update
+    # 検出条件: base_version がサーバー version より古く、かつフィールド差分が重複している場合
+    description: "並行書き込みにより更新が消失した（フィールド差分重複 / 手動解決が必要）"
+    # 検出ルール: 並行書き込みが検出され、かつ変更対象フィールドが重複している場合に発火する
+    detector_rule: "concurrent_write_detected && field_overlap"
+    # 解決戦略: フィールド差分が非重複であれば自動マージ、重複する場合は手動解決を要求する
+    resolution_strategy: auto_merge_if_disjoint
+    # 409 レスポンスの audit_envelope に記録するフィールド名
+    audit_envelope_field: conflict_subtype
+    # tier3 conflict_tree.lock.yaml の対応 event_id（409 受信時に dispatch_to_subtype_branch で分岐する）
+    tier3_event: business_conflict_received
+
+  # supersede: 後発の書き込みが先発を上書きした（同一アクターによる意図的な上書き）
+  - subtype_id: supersede
+    # 検出条件: 同一 aggregate に対して同一アクターが後続の操作を送信済みの場合
+    description: "後発の書き込みが先発を上書きした（同一アクターによる意図的な上書き）"
+    # 検出ルール: supersede_flag が true の場合、または同一 aggregate への後続操作が既に適用済みの場合に発火する
+    detector_rule: "supersede_flag == true"
+    # 解決戦略: 最新の書き込みを採用する（キュー内の先発エントリを破棄する）
+    resolution_strategy: accept_latest
+    # 409 レスポンスの audit_envelope に記録するフィールド名
+    audit_envelope_field: conflict_subtype
+    # tier3 conflict_tree.lock.yaml の対応 event_id（server_truth_advance の後続処理で silent_toast 通知する）
+    tier3_event: server_truth_advance
+
+  # concurrent_edit: 同一フィールドへの同時編集が検出された（プレゼンス機能で検出）
+  - subtype_id: concurrent_edit
+    # 検出条件: 他のアクターが同一フィールドを編集中であることが presence 情報から判明した場合
+    description: "同一フィールドへの同時編集が検出された（プレゼンス情報に基づく検出）"
+    # 検出ルール: フィールドの交差が検出され、かつ並行ライターが 2 人以上いる場合に発火する
+    detector_rule: "field_intersection_detected && concurrent_writers >= 2"
+    # 解決戦略: ユーザーが継続か中止かを選択するまでキューを保留する（手動解決必須）
+    resolution_strategy: require_manual_resolution
+    # 409 レスポンスの audit_envelope に記録するフィールド名
+    audit_envelope_field: conflict_subtype
+    # tier3 conflict_tree.lock.yaml の対応 event_id（409 受信時に dispatch_to_subtype_branch で分岐する）
+    tier3_event: business_conflict_received

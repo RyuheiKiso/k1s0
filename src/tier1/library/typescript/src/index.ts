@@ -180,6 +180,11 @@ export {
 // Secret 実装: in-memory stub 実装を再エクスポートする（テスト用）
 export { InMemorySecretStore } from "./secretImpl.js";
 
+// Conformance Assertion ID デコレータ: spec 01 §assertion id の連結（4 言語等価強度）
+// ConformanceAssertId ブランド型 / assertId ヘルパー / conformanceAssert 関数を再エクスポートする
+export type { ConformanceAssertId } from "./conformanceAssert.js";
+export { assertId, conformanceAssert } from "./conformanceAssert.js";
+
 // Frontend Transport Negotiation: Companion 役割 B の 8 adapter capability negotiation
 export type {
   ClientCapabilities,

@@ -1,7 +1,9 @@
 -- k1s0 tier2 migration: 0006_pgaudit_security_label
--- pgaudit 拡張を有効化し、pii_segregated クラスのテーブルに SECURITY LABEL を適用する
--- table_classes.yaml: pii_segregated.pgaudit_required = true の要件を物理化する
--- pgaudit_config.yaml の log_catalog (ddl / read / write / role) を DB 層で強制する
+-- migration_id: 0006_pgaudit_security_label
+-- description: pgaudit 拡張を有効化し、pii_segregated クラスのテーブルに SECURITY LABEL を適用する
+-- safety_level: requires_lock
+-- table_class: pii_segregated
+-- applied_at: 2026-05-17T00:00:00Z
 --
 -- 実行方法:
 --   sqlx migrate run --database-url $DATABASE_URL --source src/tier2/migrations/

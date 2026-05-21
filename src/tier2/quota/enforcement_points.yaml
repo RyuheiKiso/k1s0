@@ -1,6 +1,6 @@
-# k1s0 tier2 テナント容量 enforcement_points 定義
-# テナント容量適合仕様 09 の 4 階層 enforcement を物理化する
-# library_token_bucket / gateway_rate_limit / db_conn_limit / infra_resource_limit
+# k1s0 tier2 テナント容量 enforcement_points 定義（手書き input SoT）
+# spec 09_テナント容量適合仕様.md §§66-70 に定義する 5 enforcement_layer に完全準拠する
+# このファイルを入力として generate_enforcement_points.py が enforcement_points.lock.yaml を生成する
 
 # enforcement_points 定義バージョン
 apiVersion: k1s0/v1
@@ -12,81 +12,124 @@ kind: EnforcementPointCatalog
 metadata:
   # ファイル名と一致させる
   name: k1s0-tier2-enforcement-points
-  # 適合仕様のリファレンス
+  # 適合仕様のリファレンス（§単一の真 §enforcement_points.lock.yaml 参照）
   spec_reference: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
 
-# 4 階層 enforcement_points 定義
+# 5 階層 enforcement_points 定義（spec §42-48 §66-70 に準拠）
+# enforcement_layer enum 値 = spec §dimension の根拠 §58 の 5 種と 1:1 対応
 enforcement_points:
-  # 第 1 階層: library_token_bucket
-  # SDK / library 層でのトークンバケットレート制限（クライアント側で先に弾く）
-  - id: library_token_bucket
-    # enforcement レイヤー（クライアント側 SDK 内で動作する）
-    layer: client_sdk
-    # enforcement の説明
-    description: SDK 内のトークンバケットアルゴリズムによる API リクエスト制限
-    # 動作: リクエスト前にトークンを消費する（不足時は即座にエラーを返す）
-    mechanism: token_bucket
+  # 階層 1: envoy_local_rate_limit（ingress Envoy Gateway Local Rate Limit）
+  # spec §66: 「階層 1: ingress（Envoy Gateway Local Rate Limit）— v1_per_tenant_qps の主担当」
+  # spec §44: v1_per_tenant_qps.enforcement_layer = envoy_local_rate_limit
+  - id: envoy_local_rate_limit
+    # enforcement レイヤー: ingress Envoy で JWT claim から tenant_id を抽出してレート制限する
+    layer: ingress
+    # enforcement の説明（spec §51 と整合）
+    description: Envoy Gateway Local Rate Limit filter による per-tenant QPS 制限（tenant_id を JWT claim から抽出）
+    # 動作: sliding window + reject 429（burst 2x まで許容）
+    mechanism: envoy_local_rate_limit_filter
+    # 対応 quota_class（spec §42-48）
+    quota_class: v1_per_tenant_qps
     # 設定パラメータ
     parameters:
-      # バケット容量（バースト許容量）
-      bucket_capacity_factor: 1.1
-      # トークン補充レート（quota_class の api_requests_per_hour から算出する）
-      refill_rate_source: quota_class.api_requests_per_hour
-      # トークン不足時の動作: fast_fail（即座にエラーを返す）
-      on_exhaustion: fast_fail
-
-  # 第 2 階層: gateway_rate_limit
-  # API ゲートウェイ（Envoy / Nginx）でのレート制限（サーバー側の第一関門）
-  - id: gateway_rate_limit
-    # enforcement レイヤー（API ゲートウェイで動作する）
-    layer: api_gateway
-    # enforcement の説明
-    description: API ゲートウェイによるレート制限（429 Too Many Requests を返す）
-    # 動作: sliding window アルゴリズムで 1 時間あたりのリクエスト数を制限する
-    mechanism: sliding_window
-    # 設定パラメータ
-    parameters:
-      # ウィンドウサイズ（1 時間）
-      window_size_seconds: 3600
       # 上限ソース（quota_class から読み込む）
-      limit_source: quota_class.api_requests_per_hour
-      # 上限超過時のレスポンスコード
+      limit_source: quota_class.api_requests_per_second
+      # 上限超過時のレスポンスコード（spec §51 reject_429）
       response_code: 429
       # Retry-After ヘッダを付与する
       retry_after_header: true
+      # burst 許容倍率
+      burst_factor: 2.0
 
-  # 第 3 階層: db_conn_limit
-  # PgBouncer / pgpool による DB コネクション数制限（DB 層の第二関門）
-  - id: db_conn_limit
-    # enforcement レイヤー（DB コネクションプーラーで動作する）
-    layer: db_connection_pooler
-    # enforcement の説明
-    description: PgBouncer によるテナント別 DB コネクション数制限
-    # 動作: テナント別の接続プールでコネクション数を制限する
-    mechanism: connection_pool_per_tenant
+  # 階層 2: library_token_bucket（Library 内 in-process token bucket）
+  # spec §67: 「階層 2: Library token bucket（in-process）— v1_per_tenant_concurrency の主担当」
+  # spec §45: v1_per_tenant_concurrency.enforcement_layer = library_token_bucket
+  - id: library_token_bucket
+    # enforcement レイヤー: SDK / library 内の token bucket semaphore（in-process）
+    layer: client_sdk_in_process
+    # enforcement の説明（spec §52 と整合）
+    description: Library 内 token bucket semaphore による per-tenant 同時実行上限（Workflow / long-poll 含む）
+    # 動作: queue_with_timeout（deadline 超過で打ち切り）
+    mechanism: token_bucket_semaphore
+    # 対応 quota_class（spec §42-48）
+    quota_class: v1_per_tenant_concurrency
     # 設定パラメータ
     parameters:
-      # 上限ソース（quota_class から読み込む）
-      limit_source: quota_class.db_connections_max
-      # 上限超過時の動作: queue（キューで待機させる）
-      on_limit_exceeded: queue
-      # キューのタイムアウト（秒）
-      queue_timeout_seconds: 5
+      # バケット補充レート（quota_class の concurrency_max から算出する）
+      limit_source: quota_class.concurrency_max
+      # キュー待機許容時間（deadline 超過で打ち切り）
+      queue_timeout_ms: 30000
+      # 上限超過時の動作（spec §52 queue_with_timeout）
+      on_exhaustion: queue_with_timeout
 
-  # 第 4 階層: infra_resource_limit
-  # Kubernetes ResourceQuota / LimitRange によるインフラリソース制限（最終防衛線）
-  - id: infra_resource_limit
-    # enforcement レイヤー（Kubernetes 層で動作する）
-    layer: kubernetes
-    # enforcement の説明
-    description: Kubernetes ResourceQuota によるテナント別 CPU / Memory 制限
-    # 動作: Namespace 単位の ResourceQuota でリソースを制限する
-    mechanism: k8s_resource_quota
+  # 階層 3: oss_native_quota（OSS ネイティブ quota — Temporal / KEDA / pgvector / Superset）
+  # spec §68: 「階層 3: OSS native quota — v1_per_tenant_compute の主担当」
+  # spec §46: v1_per_tenant_compute.enforcement_layer = oss_native_quota
+  - id: oss_native_quota
+    # enforcement レイヤー: OSS の namespace / workload / resource quota 機構を活用する
+    layer: oss_native
+    # enforcement の説明（spec §54 と整合）
+    description: Temporal namespace quota / KEDA ScaledObject per-tenant scope / pgvector workload group / Superset row limit による CPU/GPU/Memory 制限
+    # 動作: shed_by_priority（優先度付き shed）
+    mechanism: oss_namespace_quota
+    # 対応 quota_class（spec §42-48）
+    quota_class: v1_per_tenant_compute
     # 設定パラメータ
     parameters:
-      # CPU 上限（quota_class に応じた vCPU 数）
-      cpu_limit_source: quota_class.cpu_vcpu
-      # Memory 上限（quota_class に応じた GB 数）
-      memory_limit_source: quota_class.memory_gb
-      # 上限超過時の動作: reject（Pod 作成を拒否する）
-      on_limit_exceeded: reject
+      # 対象 OSS システム（spec §68 の列挙に準拠）
+      systems:
+        - temporal_namespace_quota
+        - keda_scaledobject_per_tenant
+        - pgvector_workload_pool_quota
+        - superset_row_limit
+      # 上限ソース
+      limit_source: quota_class.compute_cpu_vcpu
+      # 上限超過時の動作（spec §54 shed_by_priority）
+      on_exhaustion: shed_by_priority
+
+  # 階層 4: storage_layer_quota（storage layer — Rook+Ceph / CloudNativePG / ClickHouse）
+  # spec §69: 「階層 4: storage / broker layer — v1_per_tenant_volume と v1_global_fair_queue の主担当」
+  # spec §46: v1_per_tenant_volume.enforcement_layer = storage_layer_quota
+  - id: storage_layer_quota
+    # enforcement レイヤー: storage レイヤーの namespace / pool / tablespace quota
+    layer: storage
+    # enforcement の説明（spec §53 と整合）
+    description: Rook+Ceph namespace/pool quota / CloudNativePG tablespace metering / ClickHouse retention TTL による per-tenant ストレージ制限
+    # 動作: overflow_to_cold（hot SSD → cold Ceph RGW）
+    mechanism: storage_namespace_quota
+    # 対応 quota_class（spec §42-48）
+    quota_class: v1_per_tenant_volume
+    # 設定パラメータ
+    parameters:
+      # 対象 OSS システム（spec §69 の列挙に準拠）
+      systems:
+        - rook_ceph_namespace_pool_quota
+        - cloudnativepg_tablespace_metering
+        - clickhouse_tenant_retention_ttl
+      # 上限ソース
+      limit_source: quota_class.storage_bytes_max
+      # 上限超過時の動作（spec §53 overflow_to_cold）
+      on_exhaustion: overflow_to_cold
+
+  # 階層 5: broker_layer（broker layer — Kafka per-tenant topic quota + partition fairness）
+  # spec §69: 「broker_layer: Kafka per-tenant topic quota + partition fairness」
+  # spec §48: v1_global_fair_queue.enforcement_layer = broker_layer
+  - id: broker_layer
+    # enforcement レイヤー: Kafka broker の per-tenant topic quota と partition rebalance
+    layer: broker
+    # enforcement の説明（spec §55 と整合）
+    description: Kafka per-tenant topic quota / Istio destination rule outlier detection による global I/O fairness 強制
+    # 動作: partition_rebalance（Kafka partition rebalance で公平性を回復する）
+    mechanism: kafka_per_tenant_quota
+    # 対応 quota_class（spec §42-48）
+    quota_class: v1_global_fair_queue
+    # 設定パラメータ
+    parameters:
+      # 対象 OSS システム（spec §69 の列挙に準拠）
+      systems:
+        - kafka_per_tenant_topic_quota
+        - istio_destination_rule_outlier_detection
+      # 上限ソース
+      limit_source: quota_class.partition_count_max
+      # 上限超過時の動作（spec §55 partition_rebalance）
+      on_exhaustion: partition_rebalance

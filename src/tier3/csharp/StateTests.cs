@@ -61,10 +61,17 @@ public class ReducerTests
         Assert.IsTrue(
             result.Actions.OfType<PromoteOptimisticAction>().Any(a => a.IdempotencyKey == "idem-ack"),
             "PromoteOptimistic(idem-ack) が含まれること");
-        // UPDATE_SERVER_TRUTH(10) action が含まれることを確認する
+        // conflict_tree.lock.yaml の optimistic_acknowledged actions は 2 件のみ
+        // DELETE_PQ_ENTRY action が含まれることを確認する
         Assert.IsTrue(
-            result.Actions.OfType<UpdateServerTruthAction>().Any(a => a.Version == 10),
-            "UpdateServerTruth(10) が含まれること");
+            result.Actions.OfType<DeletePqEntryAction>().Any(a => a.IdempotencyKey == "idem-ack"),
+            "DeletePqEntry(idem-ack) が含まれること");
+        // UPDATE_SERVER_TRUTH action が含まれないことを確認する（conflict_tree.lock.yaml に存在しない）
+        Assert.IsFalse(
+            result.Actions.OfType<UpdateServerTruthAction>().Any(),
+            "UpdateServerTruth は optimistic_acknowledged の actions に含まれないこと（conflict_tree.lock.yaml 準拠）");
+        // actions が 2 件のみであることを確認する（promote + delete の 2 件）
+        Assert.AreEqual(2, result.Actions.Count, "optimistic_acknowledged の actions は 2 件のみであること");
     }
 
     // ---------------------------------------------------------
@@ -241,12 +248,8 @@ public class ReducerTests
     [TestMethod]
     public void TestStaleWrite_RebaseClean_AutoResendWithChainedKey()
     {
-        // OL key を持つ state で stale_write + disjoint FieldDiff を受け取る
-        var state = ClientState.Initial() with
-        {
-            // OL の idempotency key を設定する
-            OptimisticLocalKey = "idem-stale-001",
-        };
+        // OL key を持つ Legacy.ClientState を生成する（Legacy.ClientStateReducer に渡すため Legacy 型を使用する）
+        var state = K1s0.Tier3.Legacy.ClientState.Initial().WithOptimisticLocalKey("idem-stale-001");
         // 完全 disjoint な FieldDiff を構築する（client と server が異なるフィールドを変更）
         var fieldDiff = new K1s0.Tier3.Legacy.FieldDiff(
             // client が変更したフィールド

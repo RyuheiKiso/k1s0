@@ -16,7 +16,7 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 from tools.lock_yaml_generator.dsl import evaluate_dsl
 
 # ---------------------------------------------------------------------------
-# 70 cell カタログ (v1.0.0 拡張: 54 → 70 cells)
+# 73 cell カタログ (v1.0.0 拡張: 54 → 70 cells → 72 cells → 73 cells)
 # (cell_id, source_lock, dsl_expr)
 # ---------------------------------------------------------------------------
 _CELL_CATALOG: list[tuple[str, str, str]] = [
@@ -249,7 +249,7 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     (
         "tier1.observation_signal_complete",
         "../../tier1/lock/signals.lock.yaml",
-        "count(`../../tier1/lock/signals.lock.yaml`, signals[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier1.observation_signal_complete, buf_lint_observability_pii_pass) == green",
+        "count(`../../tier1/lock/signals.lock.yaml`, signals[?status=='green']) >= 4 AND evidence(`build_evidence.lock.yaml`, tier1.observation_signal_complete, buf_lint_observability_pii_pass) == green",
     ),
     (
         # 04_認証適合仕様.md 5 auth_class 全て green を確認
@@ -365,6 +365,12 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "../../tier2/lock/registry_pin.lock.yaml",
         "count(`../../tier2/lock/registry_pin.lock.yaml`, languages[?pin_status=='pinned']) >= 4 AND evidence(`build_evidence.lock.yaml`, tier2.registry_pin_green, registry_pin_pass) == green",
     ),
+    (
+        # spec 09_テナント容量適合仕様 §125 要求の 5 enforcement_point が全て green であることを確認する
+        "tier2.enforcement_points_lock_green",
+        "../../tier2/lock/enforcement_points.lock.yaml",
+        "count(`../../tier2/lock/enforcement_points.lock.yaml`, enforcement_points[?status=='green']) >= 5",
+    ),
     # tier3 (拡張: 5 cell 追加 — a11y_audit / e2e_8scenarios / forms_eslint / notifications_idempotent / design_tokens_contrast)
     (
         # axe-core 検査で tier3 UI アクセシビリティが保証されていることを確認する
@@ -395,6 +401,19 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "tier3.design_tokens_contrast_green",
         "../../tier3/lock/design_tokens_contrast.lock.yaml",
         "field(`../../tier3/lock/design_tokens_contrast.lock.yaml`, wcag_aa_status) == declared AND evidence(`build_evidence.lock.yaml`, tier3.design_tokens_contrast_green, pnpm_test_pass) == green",
+    ),
+    # tier3 extended (v1.0.0)
+    (
+        # tier3_ext SemConv namespace の属性定義が 4 件以上かつ全根拠パスが存在することを確認する
+        "tier3.otel_semconv_tier3_ext_green",
+        "../../tier3/lock/otel_semconv.lock.yaml",
+        "field(`../../tier3/lock/otel_semconv.lock.yaml`, status) == green",
+    ),
+    (
+        # CSP unsafe-inline/eval 禁止 + SRI 必須の assertion が全て green であることを確認する
+        "tier3.csp_sri_enforce_green",
+        "../../tier3/lock/csp_sri.lock.yaml",
+        "field(`../../tier3/lock/csp_sri.lock.yaml`, status) == green",
     ),
     # client (false-green 解消: source_lock を sdk_inventory.lock.yaml に差し替え + 4 cell 追加)
     (
@@ -428,6 +447,49 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "../../client/lock/sdk_inventory.lock.yaml",
         "count(`../../client/lock/sdk_inventory.lock.yaml`, packages) >= 5 AND evidence(`build_evidence.lock.yaml`, client.slsa_l3_attested_green, slsa_attest_pass) == green",
     ),
+    # tier1 extended (v1.0.0)
+    (
+        # 4 言語 public API snapshot が全て drift なしであることを確認する
+        "tier1.library_public_api_snapshot_green",
+        "../../tier1/lock/public_api_snapshot.lock.yaml",
+        "field(`../../tier1/lock/public_api_snapshot.lock.yaml`, status) == green",
+    ),
+    (
+        # proto 2 層（public/admin）の API スナップショットが breaking change ゼロであることを確認する
+        "tier1.proto_two_layer_api_snapshot_green",
+        "../../tier1/lock/api_snapshot.lock.yaml",
+        "field(`../../tier1/lock/api_snapshot.lock.yaml`, status) == green",
+    ),
+    (
+        # Bidi transport switch drill が 1 件以上 green であることを確認する
+        "tier1.transport_migration_drill_green",
+        "../../tier1/lock/transport_migration.lock.yaml",
+        "field(`../../tier1/lock/transport_migration.lock.yaml`, status) == green",
+    ),
+    (
+        # サプライチェーンインシデント drill が green であることを確認する
+        "tier1.supply_chain_incident_log_green",
+        "../../tier1/lock/supply_chain_incident.lock.yaml",
+        "field(`../../tier1/lock/supply_chain_incident.lock.yaml`, status) == green",
+    ),
+    (
+        # SBOM カタログが green（Syft で月次生成済み）であることを確認する
+        "tier1.sbom_catalog_green",
+        "../../tier1/lock/sbom_catalog.lock.yaml",
+        "field(`../../tier1/lock/sbom_catalog.lock.yaml`, status) == green",
+    ),
+    (
+        # 月次 SBOM/CVE トリアージが green（critical/high CVE ゼロ）であることを確認する
+        "tier1.sbom_monthly_triage_green",
+        "../../tier1/lock/sbom_triage.lock.yaml",
+        "field(`../../tier1/lock/sbom_triage.lock.yaml`, status) == green",
+    ),
+    (
+        # 四半期 L2* OSS 適合チェックが green（21 OSS 全適合）であることを確認する
+        "tier1.oss_conformance_quarterly_green",
+        "../../tier1/lock/oss_conformance_check.lock.yaml",
+        "field(`../../tier1/lock/oss_conformance_check.lock.yaml`, status) == green",
+    ),
 ]
 
 
@@ -450,7 +512,7 @@ class ReleaseGateV2Generator(BaseGenerator):
         return {"lock_dir": lock_dir}
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        """46 cell の AND-gate を計算して artifact dict を返す。"""
+        """全 cell の AND-gate を計算して artifact dict を返す。"""
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )

@@ -1,0 +1,102 @@
+// tier1 Bidi サービス定義 v1 — BidiService proto SoT
+// 01_Bidi適合仕様.md に基づく BidiService と BidiEnvelope の正規定義。
+// .proto が単一の真: 手書き SDK・手書き生成コード diff は CI fail になる。
+// grpc_native adapter の axum router は buf generate 後に生成される
+// BidiService::NAME 等を参照すること（hardcoded 文字列は buf generate 後に削除する）。
+syntax = "proto3";
+
+// パッケージ名: tier1.bidi.v1（Buf モジュール名と一致させる）
+package tier1.bidi.v1;
+
+// bidi_method option 定義（conformance_class / ordering / half_close 等）をインポートする
+import "tier1/bidi/v1/options.proto";
+// auth_method option 定義（required_auth_class / min_step_up 等）をインポートする
+import "tier1/auth/v1/options.proto";
+// slo_method option 定義（slo_class / latency_threshold_ms 等）をインポートする
+import "tier1/slo/v1/options.proto";
+// quota_method option 定義（quota_class / enforcement_layer 等）をインポートする
+import "tier1/tenant_capacity/v1/options.proto";
+// observability_method option 定義（signals / audit_required 等）をインポートする
+import "tier1/observability/v1/options.proto";
+
+// Go パッケージパス（buf generate の go plugin が参照する）
+option go_package = "github.com/k1s0-io/k1s0/tier1/bidi/v1;bidiv1";
+// Java マルチファイル展開（Java codegen で BidiService と BidiEnvelope を別クラスにする）
+option java_multiple_files = true;
+// Java パッケージ名
+option java_package = "io.k1s0.tier1.bidi.v1";
+
+// BidiEnvelope は bidi stream 上を流れる統一エンベロープ型を宣言する。
+// 01_Bidi適合仕様.md §BidiEnvelope スキーマ に準拠する。
+// seq / payload / trace_id / span_id / actor_id / aggregate_qualified_name を含む。
+message BidiEnvelope {
+  // seq: stream 内のメッセージシーケンス番号（単調増加、0 起算、重複・欠落検知に使用する）
+  uint64 seq = 1;
+  // payload: アプリケーションペイロード（opaque bytes — tier2 以上の型は別 proto で定義する）
+  bytes payload = 2;
+  // trace_id: W3C traceparent の trace-id 部分（16 byte hex 文字列 — OpenTelemetry 分散トレーシング）
+  string trace_id = 3;
+  // span_id: W3C traceparent の span-id 部分（8 byte hex 文字列 — OpenTelemetry span 識別子）
+  string span_id = 4;
+  // actor_id: 操作主体の canonical subject_id（AuthContext.subject_id と一致させる）
+  string actor_id = 5;
+  // aggregate_qualified_name: 操作対象の集約修飾名（"<bounded_context>.<AggregateRoot>/<id>" 形式）
+  string aggregate_qualified_name = 6;
+  // resume_token: v1_interactive / v1_alert / v1_event_feed における再接続トークン
+  // resumable=REQUIRED の class では必須フィールドとなる（空の場合は新規セッション）
+  string resume_token = 7;
+  // conformance_class: このフレームが属する Bidi conformance class（classes.yaml の id と一致する）
+  string conformance_class = 8;
+}
+
+// BidiService は tier1 Bidi 双方向 RPC サービスを宣言する。
+// 01_Bidi適合仕様.md §BidiService 定義 に準拠する。
+// buf generate 後、Go codegen が BidiService_ServiceDesc・BidiServiceServer を生成する。
+// grpc_native adapter は BidiServiceServer を実装し、生成された NAME 定数でルーティングする。
+service BidiService {
+  // OpenBidiStream は双方向 bidi streaming RPC を宣言する。
+  // client → server および server → client 両方向に BidiEnvelope を送受信する。
+  // 01_Bidi適合仕様.md §v1_interactive class（デフォルト class）で動作する。
+  // buf generate 後は BidiService_OpenBidiStream_FullMethodName 定数（"/tier1.bidi.v1.BidiService/OpenBidiStream"）
+  // を grpc_native adapter のルーティングに使用すること（手書き文字列 "/k1s0.tier1.bidi.v1.BidiService/OpenBidiStream" を削除する）。
+  // TODO: buf generate 実行後に grpc_native.rs の hardcoded path を BidiService_OpenBidiStream_FullMethodName に置き換える。
+  rpc OpenBidiStream(stream BidiEnvelope) returns (stream BidiEnvelope) {
+    // bidi_method: conformance_class = CONFORMANCE_CLASS_INTERACTIVE（v1_interactive: 双方向対話）
+    // ordering=SESSION_ORDERED / half_close=SUPPORTED / resumable=REQUIRED / lag≤200ms / direction=BIDIRECTIONAL
+    option (tier1.bidi.v1.bidi_method) = {
+      conformance_class: CONFORMANCE_CLASS_INTERACTIVE
+      ordering: ORDERING_SESSION_ORDERED
+      half_close: HALF_CLOSE_SUPPORTED
+      resumable: RESUMABLE_REQUIRED
+      max_msg_lag_ms: 200
+      direction: DIRECTION_BIDIRECTIONAL
+    };
+    // auth_method: required_auth_class = AUTH_CLASS_HUMAN_SESSION（業務担当者 SPA セッション — OIDC + DPoP）
+    // min_step_up = STEP_UP_POLICY_ON_HIGH_RISK（高リスク action 直前の step_up）
+    option (tier1.auth.v1.auth_method) = {
+      required_auth_class: AUTH_CLASS_HUMAN_SESSION
+      min_step_up: STEP_UP_POLICY_ON_HIGH_RISK
+    };
+    // slo_method: slo_class = SLO_CLASS_REQUEST_LATENCY_P99（p99 latency ≤ 200ms）
+    // latency_threshold_ms = 200（v1_interactive の max_msg_lag_ms と一致させる）
+    option (tier1.slo.v1.slo_method) = {
+      slo_class: SLO_CLASS_REQUEST_LATENCY_P99
+      latency_threshold_ms: 200
+    };
+    // quota_method: quota_class = QUOTA_CLASS_PER_TENANT_CONCURRENCY（per-tenant 同時実行上限）
+    // enforcement_layer = ENFORCEMENT_LAYER_LIBRARY_TOKEN_BUCKET（Library token bucket）
+    // exhaustion_response = EXHAUSTION_RESPONSE_QUEUE_WITH_TIMEOUT（deadline まで queue して打ち切り）
+    option (tier1.tenant_capacity.v1.quota_method) = {
+      quota_class: QUOTA_CLASS_PER_TENANT_CONCURRENCY
+      enforcement_layer: ENFORCEMENT_LAYER_LIBRARY_TOKEN_BUCKET
+      exhaustion_response: EXHAUSTION_RESPONSE_QUEUE_WITH_TIMEOUT
+    };
+    // observability_method: signals = [TRACES, METRICS, LOGS]（全 3 シグナル — audit は v1_interactive 非必須）
+    // slo_trace_id_required = true（SLO 追跡用トレース ID を必須にする）
+    option (tier1.observability.v1.observability_method) = {
+      signals: [SIGNAL_CLASS_TRACES, SIGNAL_CLASS_METRICS, SIGNAL_CLASS_LOGS]
+      audit_required: false
+      slo_trace_id_required: true
+    };
+  }
+}

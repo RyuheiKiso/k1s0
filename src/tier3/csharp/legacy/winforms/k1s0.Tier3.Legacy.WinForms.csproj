@@ -19,8 +19,8 @@
     <AssemblyName>k1s0.Tier3.Legacy.WinForms</AssemblyName>
     <!-- WarningLevel: コンパイラ警告レベルを最大に設定する -->
     <WarningLevel>4</WarningLevel>
-    <!-- treat warnings as errors: 品質を担保する -->
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- treat warnings as errors: 至高路線で false は規律低下のため true を強制する（R3-10 対応） -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Deterministic ビルドを有効にする -->
     <Deterministic>true</Deterministic>
     <!-- High DPI 対応: Windows 10 以降で Per-Monitor DPI を使用する -->
@@ -33,10 +33,12 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
-  <!-- Legacy.NetFx プロジェクト参照（Companion runtime stub + 添付ファイルヘルパーを使用する）-->
+  <!-- Legacy.NetFx プロジェクト参照（Companion runtime + 添付ファイルヘルパーを使用する）-->
   <ItemGroup>
     <!-- k1s0.Tier3.Legacy.NetFx: Companion runtime + 添付ファイルヘルパーを使用する -->
     <ProjectReference Include="..\k1s0.Tier3.Legacy.NetFx.csproj" />
+    <!-- K1s0.Companion.NetFx.OTelExt: WCF / HttpWebRequest / HttpClient / WebClient の OTel 計装（R3-7）-->
+    <ProjectReference Include="..\..\..\..\_crosscutting\11_companion_otel_extension\lib\K1s0.Companion.NetFx.OTelExt.csproj" />
   </ItemGroup>
 
 </Project>

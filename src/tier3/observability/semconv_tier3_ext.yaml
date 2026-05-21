@@ -1,0 +1,88 @@
+# OTel SemConv 拡張定義 — tier3_ext namespace
+# 08_観測可能性.md §OTel Browser SDK Auto-Instrumentation
+# spec_id: detail.tier3.otel_semconv_tier3_ext
+namespace: tier3_ext
+version: "1.0.0"
+
+attributes:
+  - id: tier3_ext.tenant_id
+    type: string
+    brief: "テナント識別子（URL/query への露出禁止）"
+    required: required
+    stability: stable
+
+  - id: tier3_ext.layer
+    type:
+      allow_custom_values: false
+      members:
+        - id: ST
+          value: ST
+          brief: "Server Truth layer"
+        - id: OL
+          value: OL
+          brief: "Optimistic Local layer"
+        - id: PQ
+          value: PQ
+          brief: "Pending Queue layer"
+        - id: DR
+          value: DR
+          brief: "Draft layer"
+    brief: "クライアント状態レイヤ (4 layer state machine)"
+    required: opt_in
+    stability: stable
+
+  - id: tier3_ext.conflict_subtype
+    type:
+      allow_custom_values: false
+      members:
+        - id: stale_write
+          value: stale_write
+        - id: lost_update
+          value: lost_update
+        - id: supersede
+          value: supersede
+        - id: concurrent_edit
+          value: concurrent_edit
+    brief: "BusinessConflict サブタイプ"
+    required: opt_in
+    stability: stable
+
+  - id: tier3_ext.app_form
+    type:
+      allow_custom_values: false
+      members:
+        - id: spa
+          value: spa
+        - id: desktop
+          value: desktop
+        - id: legacy
+          value: legacy
+    brief: "アプリケーション形態"
+    required: opt_in
+    stability: stable
+
+  - id: tier3_ext.hlc_pt
+    type: int64
+    brief: "HLC physical time（NTP synced wallclock, ms since Unix epoch）"
+    required: required
+    stability: stable
+
+  - id: tier3_ext.hlc_lt
+    type: int64
+    brief: "HLC logical time（単調増加カウンタ、同一 ms 内の順序付けに使用）"
+    required: required
+    stability: stable
+
+  - id: tier3_ext.hlc_node
+    type: string
+    brief: "HLC ノード識別子（sender を一意に識別する UUID 形式）"
+    required: required
+    stability: stable
+
+implementation_evidence:
+  - path: src/tier3/typescript/spa/src/observability/
+    description: "OTel Browser SDK instrumentation setup"
+  - path: src/tier3/typescript/packages/realtime/src/transport.ts
+    description: "WebSocket/SSE transport with OTel tracing"
+  - path: src/tier3/dx/perses/dashboard.yaml
+    description: "Perses dashboard using tier3_ext metrics"

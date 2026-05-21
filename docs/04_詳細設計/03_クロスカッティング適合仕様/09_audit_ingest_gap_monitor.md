@@ -3,7 +3,8 @@ id: detail.cross_pii.audit_ingest_gap_monitor
 axis: cross_pii
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - detail.security.threat_model_conformance
   - detail.meta.axis_registry_conformance
@@ -28,19 +29,19 @@ related_axes:
 ## 役割
 
 ### 役割 AGM-A: heartbeat insert
-- 各 ingest source（application emit / pgaudit / kube-apiserver audit / Vector）が 1 minute ごとに synthetic audit_event `ingest_heartbeat` を emit
+- 各 ingest source（application emit / pgaudit / kube-apiserver audit / Vector）が **30 秒ごと**に synthetic audit_event `ingest_heartbeat` を emit（至高路線: 60s より 2 倍高頻度で gap を早期検出）
 - heartbeat event は通常の audit_event と同じ chain に混入し、ClickHouse audit table に書込まれる
 - heartbeat に含むフィールド: `source_id`, `emitted_at`, `sequence_number`, `source_instance_id`
 
 ### 役割 AGM-B: gap monitor
-- ClickHouse の audit table を 1 minute ごと query:
+- ClickHouse の audit table を 30 秒ごと query:
   ```sql
   SELECT source_id, MAX(emitted_at) as latest
   FROM audit_event
   WHERE event_type = 'ingest_heartbeat'
   GROUP BY source_id
   ```
-- `latest` が現在時刻 - 90 sec を超えた source は gap と判定（1 min interval + 30 sec 余裕）
+- `latest` が現在時刻 - 90 sec を超えた source は gap と判定（30 sec interval + 60 sec 余裕）
 - `audit_ingest_gap_seconds` metric を Prometheus に export、SLO 化（gap > 0 で page）
 
 ### 役割 AGM-C: kube-apiserver drop 検出 + audit backend 二重化
@@ -73,7 +74,7 @@ related_axes:
 | `keycloak_event_listener` | Keycloak event listener SPI |
 | `cosign_rekor_log` | cosign / Rekor transparency log |
 
-- 各 source は heartbeat を 1 min ごと emit する責務を持つ
+- 各 source は heartbeat を 30 sec ごと emit する責務を持つ
 - 新 source を追加する際は heartbeat 実装を mandatory として PR review checklist 化
 
 ## 副作用
@@ -81,8 +82,8 @@ related_axes:
 ### heartbeat insert 量
 - `source_id` ごとに `source_instance_id` 軸を持つ
 - 各 source の instance 数は環境ごとに異なる（典型値: tier1_library_emit ≈ tier1 server pod 数 (例 50)、tier2_application_emit ≈ tier2 service pod 数 (例 200)、postgresql_pgaudit ≈ CNPG instance 数 (例 6)、kube_apiserver_audit ≈ apiserver instance 数 (例 3)、vector_pipeline ≈ Vector pod 数 (例 30)、openbao_audit ≈ OpenBao instance 数 (例 3)、keycloak_event_listener ≈ Keycloak instance 数 (例 3)、cosign_rekor_log ≈ Rekor instance 数 (例 3)）
-- 上記 reference 環境（合計 instance 数 ≈ 298）で 1 instance × 1 min × 60 = 60 events/hour/instance、24h で 298 × 60 × 24 ≈ 429,120 events/day
-- ClickHouse の typical write throughput は 100k events/sec オーダーであり、本機構 heartbeat の流量比は 0.005% / hour オーダー（無視可能）
+- 上記 reference 環境（合計 instance 数 ≈ 298）で 1 instance × 30 sec × 120 = 120 events/hour/instance、24h で 298 × 120 × 24 ≈ 858,240 events/day（30s 間隔換算）
+- ClickHouse の typical write throughput は 100k events/sec オーダーであり、本機構 heartbeat の流量比は 0.01% / hour オーダー（無視可能）
 
 ### gap monitor の自己 SPOF
 - ops-edge cluster で担保するため、ops-edge cluster は本機構の運用 prerequisite
@@ -98,7 +99,7 @@ related_axes:
 - 整合 2: 同方針の「100% 保存」表現は「sampling 禁止 + drop 検出 + secondary etcd audit log redundancy」に書き換え
 - 整合 3: [脅威モデル適合仕様](../01_適合仕様/15_脅威モデル適合仕様.md) の audit mitigation pointer に「ingest gap detection」を追加（detective class）
 - 整合 4: [ops_edge_cluster](10_ops_edge_cluster.md) の役割 OE-D（dead-man）と本機構の SPOF 対策が二重に閉路を作ることを明記
-- 整合 5: [検証規律適合仕様](../01_適合仕様/19_検証規律適合仕様.md) の Chaos drill に「ingest pipeline kill → 90 sec 以内に gap 検出 page」を追加
+- 整合 5: [検証規律適合仕様](../01_適合仕様/19_検証規律適合仕様.md) の Chaos drill に「ingest pipeline kill → 60 sec 以内に gap 検出 page（30s interval × 2 周期以内）」を追加
 
 ## 関連参照
 - [security 監査方針](../../03_概要設計/07_security設計方針/05_監査方針.md)

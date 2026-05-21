@@ -17,6 +17,10 @@ members = [
     "tests/chaos",
     # tier1 test harness: KEK M=3 N=5 Shamir ceremony (05_鍵管理適合仕様)
     "tests/kek_ceremony",
+    # tier1 test harness: 観測適合仕様 PII redaction property test (03_観測適合仕様)
+    "tests/observability",
+    # tier1 test harness: Bidi capabilities assertion test（01_Bidi適合仕様 §29 applicable cell）
+    "tests/bidi_capabilities",
 ]
 
 [workspace.dependencies]

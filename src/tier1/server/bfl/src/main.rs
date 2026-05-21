@@ -11,6 +11,15 @@ mod oidc;
 mod openbao;
 // spire_workload モジュール: SPIRE Workload API 経由で X.509-SVID を取得する adapter
 mod spire_workload;
+// spire_revoke モジュール: SPIRE SVID revoke / forced rotation 経路
+// spec 05_鍵管理適合仕様.md §v1_mtls_workload: destruction_method=spire_revoke を物理実装する
+mod spire_revoke;
+// dpop モジュール: RFC 9449 DPoP proof replay 検証（JTI nonce キャッシュ + ath claim 検証）
+mod dpop;
+// token_exchange モジュール: RFC 8693 token exchange フロー（Keycloak STS 経由）
+mod token_exchange;
+// emergency_break_glass モジュール: break-glass audit emit 100%（TTL 600 秒 / purpose=emergency）
+mod emergency_break_glass;
 
 // axum: HTTP サーバーとハンドラー
 use axum::{Json, Router, routing::{get, post}};

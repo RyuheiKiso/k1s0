@@ -1,6 +1,9 @@
 -- k1s0 tier2 migration: 0001_initial_schema
--- tier2 の基本スキーマを作成する
--- domain_event / outbox_message / audit_event の 3 テーブルを作成する
+-- migration_id: 0001_initial_schema
+-- description: tier2 の基本スキーマを作成する（domain_event / outbox_message / audit_event の 3 テーブル）
+-- safety_level: safe
+-- table_class: tenant_scoped
+-- applied_at: 2026-05-17T00:00:00Z
 --
 -- 実行方法:
 --   sqlx migrate run --database-url $DATABASE_URL --source src/tier2/migrations/

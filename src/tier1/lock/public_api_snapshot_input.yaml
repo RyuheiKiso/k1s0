@@ -1,0 +1,23 @@
+# tier1 library public API snapshot status
+# 4 languages × key categories — drift_status tracks breaking changes
+snapshots:
+  - language: rust
+    tool: cargo-public-api
+    snapshot_path: src/tier1/library/rust/public_api.txt
+    drift_status: green
+    last_verified_at: '2026-05-21T11:00:00Z'
+  - language: csharp
+    tool: PublicApiAnalyzers
+    snapshot_path: src/tier1/library/csharp/PublicAPI.Shipped.txt
+    drift_status: green
+    last_verified_at: '2026-05-21T11:00:00Z'
+  - language: go
+    tool: go-apidiff
+    snapshot_path: src/tier1/library/go/apidiff_baseline.json
+    drift_status: green
+    last_verified_at: '2026-05-21T11:00:00Z'
+  - language: typescript
+    tool: api-extractor
+    snapshot_path: src/tier1/library/typescript/api_extractor.api.json
+    drift_status: green
+    last_verified_at: '2026-05-21T11:00:00Z'

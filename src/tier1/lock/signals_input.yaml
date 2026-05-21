@@ -29,8 +29,8 @@ signals:
     sor: parca
     collector: parca_agent
     # kind cluster 上では eBPF 制限があるため Parca agent stub で確認した
-    status: green
-    notes: "kind cluster: Parca agent stub deployed, profiling endpoint responds, eBPF probe disabled in WSL2 kind but integration point verified"
+    status: accepted_with_assumption
+    notes: "kind cluster: Parca agent stub deployed, profiling endpoint responds, eBPF probe disabled in WSL2 kind but integration point verified(WSL2 eBPF 不可、formal assumption profiles_ebpf_wsl2_unavailable_assumption 参照)"
   # audit: ClickHouse audit table が SoR（PostgreSQL audit_local → relay）
   - signal_id: audit
     sor: clickhouse_audit

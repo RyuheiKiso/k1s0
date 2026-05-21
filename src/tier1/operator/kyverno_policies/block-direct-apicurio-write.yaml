@@ -1,0 +1,80 @@
+# block-direct-apicurio-write.yaml — Apicurio への直接書込（GitOps SoT バイパス）を Deny する ClusterPolicy
+# docs/04_詳細設計/01_適合仕様/03_観測適合仕様.md §defense_in_depth layer E に準拠する。
+# Apicurio Schema Registry は GitOps パイプライン（ArgoCD）経由でのみ更新可能とし、
+# APICURIO_DIRECT_WRITE=true 環境変数を持つ Pod をクラスターに展開することを禁止する。
+# これにより schema の single source of truth（Git リポジトリ）が保護される。
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case）
+  name: k1s0-block-direct-apicurio-write
+  # ポリシーのアノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "Block Direct Apicurio Write"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "Tier1 Enforcement Layer E"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      APICURIO_DIRECT_WRITE=true 環境変数を持つ Pod を Deny する。
+      Apicurio Schema Registry への直接書込は GitOps SoT（Git リポジトリ）を
+      バイパスするため禁止する。Schema 変更は必ず GitOps パイプライン経由で行う
+      (03_観測適合仕様.md §defense_in_depth layer E)。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # APICURIO_DIRECT_WRITE=true 環境変数を持つ containers を deny する
+    - name: deny-direct-apicurio-write-containers
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system 名前空間は除外する
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する
+              namespaces:
+                - kyverno
+                - kube-system
+      # 検証条件: APICURIO_DIRECT_WRITE=true を持つコンテナが存在しないこと
+      validate:
+        # deny メッセージ: オペレーターへの説明
+        message: >
+          APICURIO_DIRECT_WRITE=true 環境変数は禁止されています。
+          Apicurio Schema Registry への直接書込は GitOps SoT をバイパスします。
+          Schema 変更は Git → ArgoCD → apicurio_client.rs（GitOps 連携）経由で行ってください
+          (03_観測適合仕様.md §defense_in_depth layer E)。
+        # 検証条件: APICURIO_DIRECT_WRITE=true が存在しないこと
+        deny:
+          conditions:
+            # any: いずれかのコンテナが APICURIO_DIRECT_WRITE=true を持つ場合に deny する
+            any:
+              # spec.containers の環境変数で APICURIO_DIRECT_WRITE=true を検索する
+              - key: "{{ request.object.spec.containers[].env[?name == 'APICURIO_DIRECT_WRITE' && value == 'true'] | length(@) }}"
+                # 演算子: 1 以上の場合（APICURIO_DIRECT_WRITE=true が 1 件以上存在する）に deny する
+                operator: GreaterThanOrEquals
+                # 1 件以上存在する場合に deny する
+                value: "1"
+              # spec.initContainers の環境変数でも同様に検索する
+              - key: "{{ request.object.spec.initContainers[].env[?name == 'APICURIO_DIRECT_WRITE' && value == 'true'] | length(@) }}"
+                # 演算子: 1 以上の場合に deny する
+                operator: GreaterThanOrEquals
+                # 1 件以上存在する場合に deny する
+                value: "1"

@@ -161,6 +161,9 @@ pub enum ReducerAction {
     HoldQueue,
     // presence indicator を更新する
     UpdatePresence { actor_id: String },
+    // server_truth を再取得する（stale_write / lost_update 後の rebase 前に最新を取得する）
+    // TypeScript / Go の refetch_server_truth 相当（多言語 parity 維持のため追加）
+    RefetchServerTruth { aggregate_id: String },
     // 全 layer を purge する
     PurgeAllLayers { reason: PurgeReason },
 }

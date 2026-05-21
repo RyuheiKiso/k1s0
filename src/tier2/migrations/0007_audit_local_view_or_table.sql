@@ -1,7 +1,9 @@
 -- k1s0 tier2 migration: 0007_audit_local_view_or_table
--- audit_local view を k1s0.audit_event から導出する
--- 設計方針 08: audit_local は PII 不在が保証された view（relay.rs が参照する）
--- relay.rs の fetch_pending_events / mark_as_relayed が期待するカラム定義に合わせる
+-- migration_id: 0007_audit_local_view_or_table
+-- description: audit_local view を k1s0.audit_event から導出する（PII 不在保証 view / relay.rs 参照）
+-- safety_level: safe
+-- table_class: tenant_scoped
+-- applied_at: 2026-05-17T00:00:00Z
 --
 -- 実行方法:
 --   sqlx migrate run --database-url $DATABASE_URL --source src/tier2/migrations/
@@ -51,6 +53,8 @@ CREATE OR REPLACE VIEW k1s0.audit_local AS
 SELECT
     -- イベント識別子（domain_event と同一 UUID、relay.rs PendingAuditEvent.id に対応）
     id,
+    -- 集約識別子（PII ではない、docs §117 で payload のみ除外と定義されているため含める）
+    aggregate_id,
     -- テナント識別子（PII ではない、relay.rs PendingAuditEvent.tenant_id に対応）
     tenant_id,
     -- 操作主体（Keycloak subject、PII ではない、relay.rs PendingAuditEvent.actor_id に対応）
@@ -71,18 +75,17 @@ SELECT
     created_at
 FROM k1s0.audit_event;
 -- payload カラム（PII 含有可能性あり）は意図的に除外する
--- aggregate_id カラムは relay.rs が参照しないため除外する
 
 -- ============================================================
 -- audit_local view へのアクセス権付与
 -- ============================================================
--- k1s0_app ロールが audit_local view を参照・更新できるよう権限を付与する
+-- k1s0app ロールが audit_local view を参照・更新できるよう権限を付与する
 DO $$
 BEGIN
-    -- k1s0_app ロールが存在する場合のみ GRANT を実行する
-    IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'k1s0_app') THEN
+    -- k1s0app ロールが存在する場合のみ GRANT を実行する
+    IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'k1s0app') THEN
         -- audit_local view への SELECT 権限を付与する（fetch_pending_events に必要）
-        EXECUTE 'GRANT SELECT ON k1s0.audit_local TO k1s0_app';
+        EXECUTE 'GRANT SELECT ON k1s0.audit_local TO k1s0app';
     END IF;
 END;
 $$;

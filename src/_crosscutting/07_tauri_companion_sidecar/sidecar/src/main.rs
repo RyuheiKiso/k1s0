@@ -1,6 +1,7 @@
 // k1s0 Tauri コンパニオン Sidecar のメインファイル
 // Tauri frontend から IPC 経由で呼び出される standalone HTTP sidecar を実装する
 // WebUSB / Bluetooth / Serial デバイスブリッジを axum HTTP server として提供する
+// R3-3: PSK は OS keystore から取得し default fallback を物理排除する
 
 // axum のルーター、ハンドラ関連型をインポートする
 use axum::{
@@ -30,6 +31,29 @@ use std::collections::HashMap;
 use tracing::{info, warn, error};
 // axum の状態抽出器をインポートする
 use axum::extract::State;
+// hex: OS keystore から取得した PSK hex 文字列をバイト列に変換する（R3-3）
+use hex;
+
+/// read_psk_from_keystore は OS keystore から k1s0 sidecar テナント PSK を読み取る
+/// Linux: GNOME Keyring / KWallet (secret-service protocol)
+/// macOS: Keychain Services API
+/// Windows: DPAPI / Windows Credential Manager
+/// R3-3: default fallback を物理排除済み。PSK 未配布時は Err を返して起動不可とする
+#[allow(dead_code)]
+fn read_psk_from_keystore() -> Result<Vec<u8>, String> {
+    // OS keystore の service 名と account 名を定義する（companion と共通設定）
+    let entry = keyring::Entry::new("k1s0-companion", "tenant-psk")
+        // keystore entry 作成失敗時はエラーを返す（keystore デーモン未起動等）
+        .map_err(|e| format!("keystore entry 作成失敗: {}", e))?;
+    // OS keystore から PSK を hex 文字列として取得する（未配布時は Err）
+    let psk_hex = entry.get_password()
+        // PSK が OS keystore に存在しない場合はエラーを返す（default fallback 禁止）
+        .map_err(|e| format!("OS keystore に PSK が配布されていません（k1s0-companion / tenant-psk）: {}", e))?;
+    // hex 文字列を raw bytes に変換して返す
+    hex::decode(&psk_hex)
+        // hex decode 失敗時はエラーを返す（keystore の値が不正形式）
+        .map_err(|e| format!("PSK hex decode 失敗（keystore の値を確認してください）: {}", e))
+}
 
 // シリアルポートの接続情報を表す構造体
 #[derive(Debug, Clone, Serialize, Deserialize)]

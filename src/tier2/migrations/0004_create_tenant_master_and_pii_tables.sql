@@ -1,7 +1,9 @@
 -- k1s0 tier2 migration: 0004_create_tenant_master_and_pii_tables
--- tenant_master / pii_data / platform_config テーブルを作成する
--- table_classes.yaml の 4 クラス全てを物理化する（tenant_scoped / tenant_master / pii_segregated / platform_global）
--- 0001_initial_schema.sql で作成された domain_event / outbox_message / audit_event は触らない
+-- migration_id: 0004_create_tenant_master_and_pii_tables
+-- description: tenant_master / pii_data / platform_config テーブルを作成する（table_classes.yaml 4 クラス全物理化）
+-- safety_level: safe
+-- table_class: tenant_master
+-- applied_at: 2026-05-17T00:00:00Z
 --
 -- 実行方法:
 --   sqlx migrate run --database-url $DATABASE_URL --source src/tier2/migrations/

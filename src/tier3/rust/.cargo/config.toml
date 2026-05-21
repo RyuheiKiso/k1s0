@@ -1,0 +1,20 @@
+# config.toml — Cargo レジストリ設定（tier3 Rust standalone workspace）
+# 強制機構: docs/04_詳細設計/02_強制機構/03_tier3強制機構.md 層 12: 内部レジストリ唯一化
+# crates.io を内部 cargo registry に置換して外部 registry からの取得を禁止する
+
+# ---- [source.crates-io] セクション: crates.io を内部 registry に置換する ----
+[source.crates-io]
+# crates.io からの直接取得を禁止し、内部 registry に置換する（層 12 規律）
+replace-with = "k1s0-internal"
+
+# ---- [source.k1s0-internal] セクション: 内部 cargo registry を定義する ----
+[source.k1s0-internal]
+# 内部 cargo registry の sparse index URL を設定する（sparse+ prefix で sparse protocol を使用）
+registry = "sparse+https://cargo.k1s0.internal/index/"
+
+# ---- [net] セクション: ネットワーク設定 ----
+[net]
+# 内部 registry への接続に使用するプロキシを設定する（CI 環境変数で上書き可能）
+# proxy = "http://proxy.k1s0.internal:3128"
+# git fetch 時の shallow clone を有効にしてビルド速度を改善する
+git-fetch-with-cli = true

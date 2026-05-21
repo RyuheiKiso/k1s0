@@ -26,6 +26,9 @@ uuid = { version = "1", features = ["v4"] }
 # k1s0-hlc: wall-clock TTL 禁止規律に従い HLC（Hybrid Logical Clock）を使用する（path 依存）
 # src/CLAUDE.md §wall-clock TTL 禁止: deadline 計算は HLC ベース必須
 k1s0-hlc = { path = "../../client/hlc_lib/rust" }
+# OpenTelemetry: client_purge_event を span event として audit emit する（R3-5）
+opentelemetry = { version = "0.27", features = ["trace"] }
 
 [dev-dependencies]
-# テストで使用する追加クレートなし
+# Pact consumer contract test で pact broker への HTTP リクエストに使用する（層 9 強制機構）
+ureq = "2"

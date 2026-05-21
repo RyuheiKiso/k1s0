@@ -5,8 +5,12 @@
 pub mod admin_operation;
 // 管理境界ガードモジュール（AdminBoundaryGuard トレイトの定義）
 pub mod admin_boundary;
+// CSV 一括インポートモジュール（10_テナント分離適合仕様.md §admin_operation 対応）
+pub mod bulk_import;
 
 // 公開型の再エクスポート（tier2-admin 公開 API 表面を最小化する）
 pub use admin_operation::AdminOperation;
 // AdminRequest / AdminResponse / AdminBoundaryGuard / AdminBoundaryError を公開する
 pub use admin_boundary::{AdminBoundaryError, AdminBoundaryGuard, AdminRequest, AdminResponse};
+// BulkImportConfig / BulkImportResult / execute_bulk_import を公開する
+pub use bulk_import::{execute_bulk_import, BulkImportConfig, BulkImportResult};

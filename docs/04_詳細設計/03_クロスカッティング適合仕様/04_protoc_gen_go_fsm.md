@@ -3,7 +3,8 @@ id: detail.cross_fsm.protoc_gen_go_fsm
 axis: cross_fsm
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier2.tier2_index
   - detail.tier2.tier2_enforcement

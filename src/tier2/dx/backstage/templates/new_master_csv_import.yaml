@@ -1,0 +1,76 @@
+# Backstage Scaffolder テンプレート: 業務マスタ CSV 一括インポート
+# 10_テナント分離適合仕様.md §admin_operation + bulk_import_workflow.yaml の Argo Workflow を起動する
+# テンプレート利用者は masterType と tenantId を入力するだけでインポートパイプラインを開始できる
+
+# Backstage Scaffolder テンプレートの API バージョン
+apiVersion: scaffolder.backstage.io/v1beta3
+# リソース種別: Template（Scaffolder テンプレートを宣言する）
+kind: Template
+metadata:
+  # テンプレートの一意識別子（kebab-case / 英数字とハイフンのみ）
+  name: new-master-csv-import
+  # テンプレートの表示タイトル（UI に表示される）
+  title: 業務マスタ CSV 一括インポート
+  # テンプレートの説明文（UI に表示される）
+  description: 新規業務マスタ CSV インポートワークフローを Argo で起動する（RLS FORCE でテナント境界を保証）
+  # テンプレートのタグ（フィルタリングに使用する）
+  tags:
+    # tier2 軸に属するテンプレート
+    - tier2
+    # 管理操作テンプレートとして分類する
+    - admin
+    # バルクインポート種別として分類する
+    - bulk-import
+spec:
+  # テンプレートのオーナー（tier2-team が管理する）
+  owner: tier2-team
+  # テンプレート種別: service（新規サービスリソースを作成するテンプレート）
+  type: service
+  # テンプレートのパラメータ定義（フォームに表示される入力項目）
+  parameters:
+    # インポート設定ステップ
+    - title: インポート設定
+      # 必須フィールドを宣言する
+      required:
+        - masterType
+        - tenantId
+      properties:
+        # 業務マスタ種別の入力フィールド
+        masterType:
+          title: マスタ種別
+          type: string
+          description: インポート対象の業務マスタ種別（業界中立語のみ使用）
+        # テナント ID の入力フィールド
+        tenantId:
+          title: テナント ID
+          type: string
+          description: インポート先テナント ID（UUID 形式）
+        # CSV URL の入力フィールド
+        csvUrl:
+          title: CSV URL
+          type: string
+          description: インポート対象 CSV の署名付き URL（オブジェクトストレージ上の一時 URL）
+  # テンプレートのステップ定義（実行されるアクションのシーケンス）
+  steps:
+    # ステップ 1: Argo Workflow を起動して CSV バルクインポートパイプラインを開始する
+    - id: trigger-argo-workflow
+      name: Argo Workflow トリガー
+      # Backstage HTTP リクエストアクションを使用する
+      action: http:backstage:request
+      input:
+        # POST リクエストで Argo Workflow を起動する
+        method: POST
+        # Argo Workflow API エンドポイント（tier2 Namespace 内の bulk-master-import Workflow を起動する）
+        path: /api/argo/workflows/k1s0-tier2/tier2-bulk-import
+        # リクエストボディ（Argo Workflow の arguments を渡す）
+        body:
+          resourceKind: Workflow
+          resourceName: bulk-master-import
+          submitOptions:
+            parameters:
+              - name: tenant_id
+                value: ${{ parameters.tenantId }}
+              - name: csv_url
+                value: ${{ parameters.csvUrl }}
+              - name: master_type
+                value: ${{ parameters.masterType }}
