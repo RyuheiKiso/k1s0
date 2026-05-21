@@ -5,17 +5,11 @@
 import type { Transport, TransportOptions } from "./transport.js";
 import { createWebSocketAdapter } from "./websocket_adapter.js";
 import { createSseAdapter } from "./sse_adapter.js";
+// long_poll_adapter.ts の完全実装をインポートする（C-7: TODO stub を実装に置き換える）
+import { createLongPollAdapter } from "./long_poll_adapter.js";
 
 // サポートするアダプター名（preferredAdapters の値として使用）
 export type AdapterName = "websocket" | "sse" | "long-poll";
-
-// long-poll アダプターのプレースホルダー（実装はサーバー側と協調が必要）
-// 本 milestone では stub として SSE へフォールバックする
-function createLongPollAdapter(url: string, options?: TransportOptions): Transport {
-  // long-poll 要求時は SSE にフォールバックする（将来実装のプレースホルダー）
-  // TODO: long-poll の完全実装が必要な場合は別モジュールで実装する
-  return createSseAdapter(url, options);
-}
 
 // UA 文字列から WebSocket 接続をサポートするかを判定するヘルパー
 function uaSupportsWebSocket(): boolean {

@@ -114,6 +114,189 @@ export async function splitIntoChunks(
   return chunks;
 }
 
+// --------- Object Storage メタデータ型 ---------
+
+// AttachmentMetadata: Object Storage に保存された添付ファイルのフルメタデータ型
+// spec arch.tier3 §26_添付帳票 UX: signed URL / sandbox iframe / virus scan / hashChain を含む
+export interface AttachmentMetadata {
+  // サーバー生成の添付ファイル UUID
+  readonly id: string;
+  // テナント識別子（公開 URL / クエリパラメータに露出しない — tier3 CLAUDE.md §データ保護）
+  readonly tenantId: string;
+  // MIME タイプ（allowlist で検査済み）
+  readonly mimeType: string;
+  // ファイルサイズ（バイト）
+  readonly sizeBytes: number;
+  // ハッシュチェーン（"sha256:<チャンク0>|sha256:<チャンク1>|..." 形式）
+  readonly hashChain: string;
+  // アップロード完了時刻（ISO 8601 文字列）
+  readonly uploadedAt: string;
+}
+
+// --------- IAttachmentStore interface ---------
+
+// IAttachmentStore: Object Storage への添付ファイル操作を抽象化する interface
+// spec arch.tier3 §26_添付帳票 UX: upload / download / delete / signed URL 生成の 4 操作を要求する
+export interface IAttachmentStore {
+  // ファイルをアップロードして AttachmentMetadata を返す
+  // file: アップロード対象の File オブジェクト
+  upload(file: File): Promise<AttachmentMetadata>;
+
+  // 添付ファイルをダウンロードして ArrayBuffer で返す
+  // attachmentId: 取得する添付ファイルの UUID
+  download(attachmentId: string): Promise<ArrayBuffer>;
+
+  // 添付ファイルを論理削除する
+  // attachmentId: 削除する添付ファイルの UUID
+  delete(attachmentId: string): Promise<void>;
+
+  // Object Storage の署名付き URL を生成する（sandbox iframe 表示用）
+  // attachmentId: 署名付き URL を生成する添付ファイルの UUID
+  // expiresInSeconds: URL の有効期限（秒）
+  generateSignedUrl(attachmentId: string, expiresInSeconds: number): Promise<string>;
+}
+
+// --------- ハッシュチェーン構築ヘルパー ---------
+
+// buildHashChain: チャンクの SHA-256 ハッシュ配列からハッシュチェーン文字列を生成する
+// chunkHashes: 各チャンクの SHA-256 hex ハッシュ（順序通り）
+// フォーマット: "sha256:<hash0>|sha256:<hash1>|..." — hashChain 連結形式
+export function buildHashChain(chunkHashes: readonly string[]): string {
+  // 各チャンクハッシュに "sha256:" プレフィックスを付けてパイプ区切りで連結する
+  return chunkHashes.map((h) => `sha256:${h}`).join("|");
+}
+
+// verifyHashChain: AttachmentMetadata の hashChain が再計算値と一致するか検証する
+// metadata: 検証対象の AttachmentMetadata
+// computedChunkHashes: クライアント側で再計算したチャンクハッシュ配列
+// 戻り値: ハッシュチェーンが一致する場合 true、不一致の場合 false
+export function verifyHashChain(
+  metadata: AttachmentMetadata,
+  computedChunkHashes: readonly string[],
+): boolean {
+  // 再計算したハッシュチェーンを生成する
+  const expected = buildHashChain(computedChunkHashes);
+  // metadata のハッシュチェーンと比較する（定数時間比較ではないが整合性確認用途）
+  return metadata.hashChain === expected;
+}
+
+// --------- sandbox iframe URL 生成 ---------
+
+// createSandboxUrl: 添付ファイル ID から sandbox iframe 用の URL を生成する
+// spec arch.tier3 §26_添付帳票 UX: CSP sandbox iframe で表示するため tier2 proxy URL を生成する
+// attachmentId: sandbox iframe に表示する添付ファイルの UUID
+// bffOrigin: tier2 BFF のオリジン（例: "https://bff.example.com"）
+// 戻り値: sandbox iframe に使用する tier2 proxy URL 文字列
+export function createSandboxUrl(attachmentId: string, bffOrigin: string): string {
+  // tier2 BFF の attachment proxy エンドポイント URL を組み立てる
+  // attachmentId を path パラメータとして埋め込む（クエリパラメータでは tenant_id を含めない）
+  return `${bffOrigin}/attachments/${encodeURIComponent(attachmentId)}/view`;
+}
+
+// --------- TierAttachmentStore（骨格 in-memory 実装） ---------
+
+// InMemoryAttachmentRecord: in-memory ストア内部の添付ファイルレコード型
+interface InMemoryAttachmentRecord {
+  // 添付ファイルのメタデータ
+  metadata: AttachmentMetadata;
+  // 添付ファイルのバイナリデータ
+  data: ArrayBuffer;
+}
+
+// TierAttachmentStore: IAttachmentStore の骨格 in-memory 実装（テスト / モック用途）
+// 本番環境では Object Storage (S3 互換) を呼び出す実装に差し替える
+export class TierAttachmentStore implements IAttachmentStore {
+  // in-memory ストレージ（attachmentId → InMemoryAttachmentRecord のマップ）
+  private readonly store = new Map<string, InMemoryAttachmentRecord>();
+
+  // テナント識別子（アップロード時のメタデータに使用する）
+  private readonly tenantId: string;
+
+  // コンストラクタ: テナント識別子を受け取る
+  public constructor(tenantId: string) {
+    // テナント識別子を設定する（公開 URL に露出しない）
+    this.tenantId = tenantId;
+  }
+
+  // upload: ファイルをチャンク分割してハッシュを計算し、in-memory ストアに保存する
+  public async upload(file: File): Promise<AttachmentMetadata> {
+    // MIME タイプを検査する（allowlist 方式）
+    if (!checkMimeType(file.type)) {
+      // 許可されていない MIME タイプはエラーとする
+      throw new Error(`許可されていない MIME タイプです: ${file.type}`);
+    }
+    // チャンクに分割してハッシュを計算する
+    const chunks = await splitIntoChunks(file);
+    // チャンクハッシュ一覧を取得する
+    const chunkHashes = chunks.map((c) => c.chunkSha256Hex);
+    // ハッシュチェーン文字列を生成する
+    const hashChain = buildHashChain(chunkHashes);
+    // 添付ファイル UUID を生成する（crypto.randomUUID を使用する）
+    const id = crypto.randomUUID();
+    // アップロード完了時刻を ISO 8601 文字列で記録する（表示用途のみ、TTL 計算に使用しない）
+    const uploadedAt = new Date().toISOString();
+    // ファイル全体の ArrayBuffer を取得する
+    const fileBuffer = await file.arrayBuffer();
+    // メタデータを構築する
+    const metadata: AttachmentMetadata = {
+      // 生成した UUID を設定する
+      id,
+      // テナント識別子を設定する
+      tenantId: this.tenantId,
+      // MIME タイプを設定する
+      mimeType: file.type,
+      // ファイルサイズを設定する
+      sizeBytes: file.size,
+      // ハッシュチェーンを設定する
+      hashChain,
+      // アップロード完了時刻を設定する
+      uploadedAt,
+    };
+    // in-memory ストアに保存する
+    this.store.set(id, { metadata, data: fileBuffer });
+    // AttachmentMetadata を返す
+    return metadata;
+  }
+
+  // download: 添付ファイルのバイナリデータを ArrayBuffer で返す
+  public async download(attachmentId: string): Promise<ArrayBuffer> {
+    // ストアからレコードを取得する
+    const record = this.store.get(attachmentId);
+    // レコードが存在しない場合はエラーを投げる
+    if (!record) {
+      // 存在しない添付ファイル ID はエラーとする
+      throw new Error(`添付ファイルが見つかりません: ${attachmentId}`);
+    }
+    // バイナリデータを返す（Promise でラップする）
+    return Promise.resolve(record.data);
+  }
+
+  // delete: 添付ファイルを in-memory ストアから論理削除する
+  public async delete(attachmentId: string): Promise<void> {
+    // ストアからレコードを削除する
+    this.store.delete(attachmentId);
+    // void を返す（Promise でラップする）
+    return Promise.resolve();
+  }
+
+  // generateSignedUrl: in-memory 実装ではモック URL を返す（本番は Object Storage SDK 呼び出し）
+  public async generateSignedUrl(
+    attachmentId: string,
+    expiresInSeconds: number,
+  ): Promise<string> {
+    // ストアにレコードが存在するか確認する
+    if (!this.store.has(attachmentId)) {
+      // 存在しない添付ファイル ID はエラーとする
+      throw new Error(`添付ファイルが見つかりません: ${attachmentId}`);
+    }
+    // モック signed URL を生成する（本番は S3 互換 SDK の presign を使用する）
+    // expiresInSeconds を URL パラメータとして含める（テスト検証用）
+    return Promise.resolve(
+      `https://mock-storage.example.com/attachments/${encodeURIComponent(attachmentId)}?expires=${expiresInSeconds}`,
+    );
+  }
+}
+
 // --------- アップロードクライアント ---------
 
 // AttachmentUploadClient: tier2 BFF へのチャンクアップロードを管理するクライアント

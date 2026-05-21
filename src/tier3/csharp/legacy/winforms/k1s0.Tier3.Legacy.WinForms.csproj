@@ -1,0 +1,42 @@
+<!-- k1s0 tier3 Legacy WinForms host プロジェクト -->
+<!-- 適合仕様: tier3 Desktop Legacy = .NET Framework 4.8（WinForms ERP 並行運用向け）-->
+<!-- src/tier3/CLAUDE.md 「Legacy: .NET Framework 4.6.2+（WinForms / WPF）」に準拠する -->
+<!-- docs/03_概要設計/04_tier3設計方針/09_レガシー資産統合.md の Companion + Gateway 経由 HTTP/1.1 + SSE 設計に準拠する -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- .NET Framework 4.8 ターゲット（Legacy 適合仕様の推奨バージョン: 4.6.2+ かつ Windows 10 1607+ / Server 2016+ 必須）-->
+    <TargetFramework>net48</TargetFramework>
+    <!-- WinForms を有効化する（UseWindowsForms は SDK スタイルプロジェクトで指定する）-->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- 出力タイプ: Windows GUI EXE（コンソールウィンドウを表示しない）-->
+    <OutputType>WinExe</OutputType>
+    <!-- Nullable 参照型を有効にする（コード品質を担保する）-->
+    <Nullable>enable</Nullable>
+    <!-- ルート名前空間を設定する -->
+    <RootNamespace>K1s0.Tier3.Legacy.WinForms</RootNamespace>
+    <!-- アセンブリ名を設定する -->
+    <AssemblyName>k1s0.Tier3.Legacy.WinForms</AssemblyName>
+    <!-- WarningLevel: コンパイラ警告レベルを最大に設定する -->
+    <WarningLevel>4</WarningLevel>
+    <!-- treat warnings as errors: 品質を担保する -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Deterministic ビルドを有効にする -->
+    <Deterministic>true</Deterministic>
+    <!-- High DPI 対応: Windows 10 以降で Per-Monitor DPI を使用する -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <!-- 標準 .NET Framework 参照アセンブリ（SDK スタイルでも明示指定する）-->
+  <ItemGroup>
+    <!-- System.Net.Http: HttpClient 経由で BFF に HTTP/1.1 + SSE 接続に使用する -->
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <!-- Legacy.NetFx プロジェクト参照（Companion runtime stub + 添付ファイルヘルパーを使用する）-->
+  <ItemGroup>
+    <!-- k1s0.Tier3.Legacy.NetFx: Companion runtime + 添付ファイルヘルパーを使用する -->
+    <ProjectReference Include="..\k1s0.Tier3.Legacy.NetFx.csproj" />
+  </ItemGroup>
+
+</Project>

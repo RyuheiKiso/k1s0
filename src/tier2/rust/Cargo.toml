@@ -35,6 +35,8 @@ thiserror = "1"
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid", "chrono", "json"] }
 # tokio: 非同期ランタイム（sqlx の runtime-tokio と対で使用する）
 tokio = { version = "1", features = ["full"] }
+# k1s0-hlc: Hybrid Logical Clock（wall-clock TTL 禁止規律に従い HLC で timestamp を生成する）
+k1s0-hlc = { path = "../../../client/hlc_lib/rust" }
 
 [dev-dependencies]
 # tokio: 非同期テストランタイム（#[tokio::test] アトリビュートに使用する）

@@ -125,6 +125,13 @@ impl OpenBaoKeyHandle {
         }
     }
 
+    // key_class_str は key_class の文字列表現を返す（Display impl を使用する）。
+    // gateway など呼び出し元が KeyClass の文字列表現を必要とする場合に使用する。
+    pub fn key_class_str(&self) -> String {
+        // Display impl を使って spec §v1 key_class 名（snake_case）を返す
+        self.key_class.to_string()
+    }
+
     // from_key_material は生 key bytes を受け取り、KeyHandle として wrap する。
     // 呼び出し元スコープを抜けると key_bytes は zeroize で消去される。
     pub fn from_key_material(key_class: KeyClass, handle_id: String, key_bytes: Vec<u8>) -> Self {

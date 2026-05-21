@@ -64,11 +64,16 @@ export function buildCspHeader(directives: CspDirectives): string {
 
 // nonce を生成する（CSP nonce-{value} で inline script を許可する場合に使用）
 // crypto.getRandomValues を使って 16 バイトのランダムバイト列を base64 エンコードする
+// 暗号学的に安全でない Math.random() フォールバックは禁止する（セキュリティポリシー: CSP nonce は CSPRNG 必須）
 export function generateCspNonce(): string {
   // crypto.getRandomValues が利用可能かチェックする
   if (typeof crypto === "undefined" || typeof crypto.getRandomValues === "undefined") {
-    // フォールバック: Math.random を使用する（テスト環境用）
-    return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    // crypto.getRandomValues が利用不可能な環境では CSP nonce の生成を禁止する
+    // Math.random() は暗号学的に安全でないため CSP nonce に使用してはならない（OWASP CSP Cheat Sheet）
+    throw new Error(
+      "[csp_sri] crypto.getRandomValues が利用できない環境では CSP nonce を生成できません。" +
+      "Math.random() フォールバックは暗号学的に安全でないため使用を禁止します。"
+    );
   }
   // 16 バイトのランダムバイト列を生成する
   const bytes = new Uint8Array(16);

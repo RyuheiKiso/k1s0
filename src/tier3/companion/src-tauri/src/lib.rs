@@ -18,12 +18,18 @@ use ring::hmac;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 // futures: WebSocket ストリームの送受信に使用する
 use futures_util::{SinkExt, StreamExt};
-// 標準ライブラリの時刻型（HLC の物理クロック基底に使用する）
-use std::time::{SystemTime, UNIX_EPOCH};
+// k1s0_hlc: HLC クロック（wall-clock TTL 禁止規律に従い SystemTime::now() は本 crate 内部のみ許可）
+// src/CLAUDE.md §wall-clock TTL 禁止: companion は k1s0_hlc を経由して HLC タイムスタンプを取得する
+use k1s0_hlc::HlcClock;
 // Arc / Mutex: アプリ起動時に生成した鍵ペアをスレッドセーフに共有する
 use std::sync::{Arc, Mutex};
 // tokio: 非同期ランタイム
 use tokio;
+
+// グローバル HLC クロック: Tauri companion プロセス全体で共有する（スレッドセーフ）
+// wall-clock TTL 禁止規律に従い SystemTime::now() は k1s0_hlc 内部のみ許可されるため、
+// companion は必ず本クロックを経由して HLC タイムスタンプを取得する
+static HLC_CLOCK: std::sync::LazyLock<HlcClock> = std::sync::LazyLock::new(HlcClock::from_env);
 
 // DPoP 鍵ペアをアプリ起動時に 1 度だけ生成してグローバルに保持する
 // Tauri の state 管理ではなくグローバルで保持する（Tauri v2 の state 機構を使うのが望ましいが暫定実装）
@@ -75,25 +81,14 @@ impl<T> IpcResponse<T> {
     }
 }
 
-/// hlc_now は HLC タイムスタンプ文字列を返す
-/// フォーマット: "{timestamp_ms_hex}-{logical_counter}-{node_id}"
-/// monotonic timestamp: SystemTime::now() の UNIX_EPOCH からのオフセット（ミリ秒）を使用する
-/// wall-clock 禁止規約のコメント: Tauri companion は単一プロセスの HLC として物理クロック基底を UNIX ミリ秒で使用する
+/// hlc_now は k1s0_hlc のグローバルクロックから現在の HLC タイムスタンプを取得して compact 文字列に返す
+/// wall-clock TTL 禁止規約（src/CLAUDE.md §wall-clock TTL 禁止）に従い、
+/// SystemTime::now() は k1s0_hlc 内部のみ許可されるため、companion は HLC_CLOCK 経由で取得する
 fn hlc_now() -> String {
-    // UNIX_EPOCH からの経過時間（ミリ秒）で monotonic ベースのタイムスタンプを取得する
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        // UNIX_EPOCH より前の時刻は panic する（実環境では発生しない）
-        .expect("SystemTime before UNIX_EPOCH")
-        .as_millis() as u64;
-    // ミリ秒を 16 桁 hex 文字列にフォーマットする
-    let timestamp_hex = format!("{:016x}", ms);
-    // logical_counter は本実装では 0000 固定（同一ミリ秒内の複数イベントが不要なため）
-    let logical_counter = "0000";
-    // node_id は本実装では 0000 固定（Tauri companion は単一ノード想定）
-    let node_id = "0000";
-    // HLC タイムスタンプ文字列を組み立てて返す
-    format!("{}-{}-{}", timestamp_hex, logical_counter, node_id)
+    // HLC_CLOCK.now()（tick の alias）で現在の HLC タイムスタンプを生成する
+    let ts = HLC_CLOCK.now();
+    // format_compact で "{wall_ms_hex_16}-{logical_04x}-{node_04x}" 形式の文字列を返す
+    ts.format_compact()
 }
 
 /// dpop_init は起動時に DPoP 用 ES256 鍵ペアを生成して DPOP_KEY_PAIR に格納する
@@ -145,24 +140,36 @@ fn dpop_sign(method: &str, uri: &str) -> Result<String, String> {
     let key_pair = EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &wrapper.pkcs8_bytes, &rng)
         // 鍵ペア再生成失敗時はエラー文字列を返す
         .map_err(|e| format!("DPoP 鍵ペア再生成失敗: {:?}", e))?;
-    // DPoP JWK（公開鍵）を base64url エンコードする
-    let public_key_b64 = URL_SAFE_NO_PAD.encode(&wrapper.public_key_bytes);
+    // 公開鍵バイト列を参照する（uncompressed point 形式: 0x04 || x(32B) || y(32B)）
+    let pubkey_bytes = &wrapper.public_key_bytes;
+    // uncompressed point の先頭バイトが 0x04 であることを確認する
+    // pubkey_bytes[0] == 0x04: uncompressed point を示すプレフィックス
+    // x 座標: bytes[1..33]（32 バイト）
+    // y 座標: bytes[33..65]（32 バイト）
+    if pubkey_bytes.len() < 65 {
+        // 公開鍵のバイト長が不正な場合はエラーを返す
+        return Err("DPoP 公開鍵のバイト長が不正です（65 バイト必要: 0x04 + x(32) + y(32)）".to_string());
+    }
+    // x 座標を base64url エンコードする（bytes[1..33]）
+    let x_b64 = URL_SAFE_NO_PAD.encode(&pubkey_bytes[1..33]);
+    // y 座標を base64url エンコードする（bytes[33..65]）
+    let y_b64 = URL_SAFE_NO_PAD.encode(&pubkey_bytes[33..65]);
     // DPoP ヘッダ（JWT header 部）を JSON で生成する
     let header = serde_json::json!({
         // JWT タイプ: DPoP
         "typ": "dpop+jwt",
         // 署名アルゴリズム: ES256
         "alg": "ES256",
-        // JWK（公開鍵）を埋め込む
+        // JWK（公開鍵）を埋め込む（x/y 座標を正規化して設定する）
         "jwk": {
             // キータイプ: EC
             "kty": "EC",
             // 曲線: P-256
             "crv": "P-256",
-            // 公開鍵（base64url）
-            "x": &public_key_b64[..public_key_b64.len().min(43)],
-            // y 座標（簡略化: 本実装では x の一部を使用する）
-            "y": &public_key_b64[public_key_b64.len().saturating_sub(43)..]
+            // x 座標（bytes[1..33] を base64url エンコード）
+            "x": x_b64,
+            // y 座標（bytes[33..65] を base64url エンコード）
+            "y": y_b64
         }
     });
     // HLC タイムスタンプを jti として使用する（wall-clock 禁止規約に従い HLC を使用する）
@@ -175,8 +182,8 @@ fn dpop_sign(method: &str, uri: &str) -> Result<String, String> {
         "htm": method,
         // HTTP URI
         "htu": uri,
-        // 発行時刻（HLC ミリ秒を秒に変換する）
-        "iat": SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+        // 発行時刻（HLC の wall_ms ミリ秒を秒に変換する — wall-clock 禁止規律に従い HLC 経由で取得する）
+        "iat": HLC_CLOCK.now().wall_ms / 1000
     });
     // header と payload を base64url エンコードする（compact JWT の signing input）
     let header_b64 = URL_SAFE_NO_PAD.encode(header.to_string().as_bytes());

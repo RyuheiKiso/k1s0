@@ -1,0 +1,208 @@
+# quota_tier.yaml — k1s0 tier2 サブスクリプション tier 定義
+# docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md §per-action threshold
+# quota_class の dimension 軸（classes.yaml）とは直交する subscription tier 軸を定義する。
+# 各 tier が 5 quota_class の per-action threshold（上限値）を保持する。
+
+# quota_tier 定義バージョン
+apiVersion: k1s0/v1
+
+# リソース種別: quota_tier_catalog（サブスクリプション tier 定義）
+kind: QuotaTierCatalog
+
+# メタデータ
+metadata:
+  # ファイル名と一致させる
+  name: k1s0-tier2-quota-tiers
+  # 適合仕様のリファレンス
+  spec_reference: docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md
+  # quota_class の次元軸定義は classes.yaml を参照すること
+  class_ref: src/tier2/quota/classes.yaml
+
+# quota_tier 一覧（5 tier）
+# 各 tier が 5 quota_class（次元軸）それぞれの per-action threshold を宣言する
+quota_tiers:
+
+  # lite tier: 試用・小規模開発向けの最小構成
+  - tier_id: lite
+    # tier の表示名
+    display_name: Lite
+    # tier の説明
+    description: "試用・小規模開発向けの最小構成 tier"
+    # 5 quota_class 各々の per-action threshold を宣言する
+    quota_class_thresholds:
+      # v1_per_tenant_qps: API QPS の per-action threshold
+      v1_per_tenant_qps:
+        # QPS 上限（1 時間あたりのリクエスト数）
+        api_requests_per_hour: 1000
+        # burst: 2x まで許容する（short_1s window 内）
+        burst_factor: 2.0
+      # v1_per_tenant_concurrency: 同時実行上限
+      v1_per_tenant_concurrency:
+        # DB コネクション上限
+        db_connections_max: 5
+        # Workflow 同時実行上限
+        workflow_concurrent_max: 5
+      # v1_per_tenant_volume: ストレージ volume 上限
+      v1_per_tenant_volume:
+        # ストレージ上限（GB）
+        storage_gb_max: 10
+        # Kafka メッセージ上限（1 日あたり）
+        kafka_messages_per_day: 10000
+      # v1_per_tenant_compute: CPU / GPU / memory 上限
+      v1_per_tenant_compute:
+        # Temporal Workflow execution 時間上限（1 日あたり、秒）
+        workflow_execution_seconds_per_day: 3600
+        # pgvector QPS 上限
+        vector_search_qps_max: 10
+      # v1_global_fair_queue: 全テナント横断の公平 share 比率
+      v1_global_fair_queue:
+        # global fair queue でのシェア比率（全 tier 合計で 1.0 になるように Kafka が制御する）
+        global_share_weight: 1
+
+  # standard tier: 一般的な業務用途向けの標準 tier
+  - tier_id: standard
+    # tier の表示名
+    display_name: Standard
+    # tier の説明
+    description: "一般的な業務用途向けの標準 tier"
+    # 5 quota_class 各々の per-action threshold
+    quota_class_thresholds:
+      # v1_per_tenant_qps: API QPS の per-action threshold
+      v1_per_tenant_qps:
+        # QPS 上限（1 時間あたり）
+        api_requests_per_hour: 10000
+        # burst: 2x まで許容する
+        burst_factor: 2.0
+      # v1_per_tenant_concurrency: 同時実行上限
+      v1_per_tenant_concurrency:
+        # DB コネクション上限
+        db_connections_max: 20
+        # Workflow 同時実行上限
+        workflow_concurrent_max: 20
+      # v1_per_tenant_volume: ストレージ volume 上限
+      v1_per_tenant_volume:
+        # ストレージ上限（GB）
+        storage_gb_max: 100
+        # Kafka メッセージ上限（1 日あたり）
+        kafka_messages_per_day: 100000
+      # v1_per_tenant_compute: CPU / GPU / memory 上限
+      v1_per_tenant_compute:
+        # Temporal Workflow execution 時間上限（1 日あたり、秒）
+        workflow_execution_seconds_per_day: 36000
+        # pgvector QPS 上限
+        vector_search_qps_max: 100
+      # v1_global_fair_queue: global fair queue でのシェア比率
+      v1_global_fair_queue:
+        # standard tier は lite の 10 倍のシェアを持つ
+        global_share_weight: 10
+
+  # professional tier: 大規模業務用途向けのプロフェッショナル tier
+  - tier_id: professional
+    # tier の表示名
+    display_name: Professional
+    # tier の説明
+    description: "大規模業務用途向けのプロフェッショナル tier"
+    # 5 quota_class 各々の per-action threshold
+    quota_class_thresholds:
+      # v1_per_tenant_qps: API QPS の per-action threshold
+      v1_per_tenant_qps:
+        # QPS 上限（1 時間あたり）
+        api_requests_per_hour: 100000
+        # burst: 3x まで許容する（professional 以上は burst 係数が上がる）
+        burst_factor: 3.0
+      # v1_per_tenant_concurrency: 同時実行上限
+      v1_per_tenant_concurrency:
+        # DB コネクション上限
+        db_connections_max: 50
+        # Workflow 同時実行上限
+        workflow_concurrent_max: 50
+      # v1_per_tenant_volume: ストレージ volume 上限
+      v1_per_tenant_volume:
+        # ストレージ上限（GB）
+        storage_gb_max: 1000
+        # Kafka メッセージ上限（1 日あたり）
+        kafka_messages_per_day: 1000000
+      # v1_per_tenant_compute: CPU / GPU / memory 上限
+      v1_per_tenant_compute:
+        # Temporal Workflow execution 時間上限（1 日あたり、秒）
+        workflow_execution_seconds_per_day: 360000
+        # pgvector QPS 上限
+        vector_search_qps_max: 1000
+      # v1_global_fair_queue: global fair queue でのシェア比率
+      v1_global_fair_queue:
+        # professional tier は standard の 10 倍のシェアを持つ
+        global_share_weight: 100
+
+  # enterprise tier: 大企業・高負荷用途向けのエンタープライズ tier
+  - tier_id: enterprise
+    # tier の表示名
+    display_name: Enterprise
+    # tier の説明
+    description: "大企業・高負荷業務向けのエンタープライズ tier"
+    # 5 quota_class 各々の per-action threshold
+    quota_class_thresholds:
+      # v1_per_tenant_qps: API QPS の per-action threshold
+      v1_per_tenant_qps:
+        # QPS 上限（1 時間あたり）
+        api_requests_per_hour: 1000000
+        # burst: 5x まで許容する
+        burst_factor: 5.0
+      # v1_per_tenant_concurrency: 同時実行上限
+      v1_per_tenant_concurrency:
+        # DB コネクション上限
+        db_connections_max: 200
+        # Workflow 同時実行上限
+        workflow_concurrent_max: 200
+      # v1_per_tenant_volume: ストレージ volume 上限
+      v1_per_tenant_volume:
+        # ストレージ上限（GB）
+        storage_gb_max: 10000
+        # Kafka メッセージ上限（1 日あたり）
+        kafka_messages_per_day: 10000000
+      # v1_per_tenant_compute: CPU / GPU / memory 上限
+      v1_per_tenant_compute:
+        # Temporal Workflow execution 時間上限（1 日あたり、秒）
+        workflow_execution_seconds_per_day: 3600000
+        # pgvector QPS 上限
+        vector_search_qps_max: 10000
+      # v1_global_fair_queue: global fair queue でのシェア比率
+      v1_global_fair_queue:
+        # enterprise tier は professional の 10 倍のシェアを持つ
+        global_share_weight: 1000
+
+  # dedicated tier: 物理分離・最高性能の専有 tier
+  - tier_id: dedicated
+    # tier の表示名
+    display_name: Dedicated
+    # tier の説明
+    description: "物理分離・最高性能の専有 tier（テナント専用インスタンス）"
+    # 5 quota_class 各々の per-action threshold（専有のため null = 無制限）
+    quota_class_thresholds:
+      # v1_per_tenant_qps: 専有インスタンスのため制限なし
+      v1_per_tenant_qps:
+        # 専有インスタンスのため QPS 上限なし
+        api_requests_per_hour: null
+        # burst 係数: 専有のため制限なし
+        burst_factor: null
+      # v1_per_tenant_concurrency: 専有インスタンスのため制限なし
+      v1_per_tenant_concurrency:
+        # 専有インスタンスのため DB コネクション上限なし
+        db_connections_max: null
+        # 専有インスタンスのため Workflow 同時実行上限なし
+        workflow_concurrent_max: null
+      # v1_per_tenant_volume: 専有インスタンスのため制限なし
+      v1_per_tenant_volume:
+        # 専有インスタンスのためストレージ上限なし
+        storage_gb_max: null
+        # 専有インスタンスのため Kafka メッセージ上限なし
+        kafka_messages_per_day: null
+      # v1_per_tenant_compute: 専有インスタンスのため制限なし
+      v1_per_tenant_compute:
+        # 専有インスタンスのため Workflow execution 時間上限なし
+        workflow_execution_seconds_per_day: null
+        # 専有インスタンスのため pgvector QPS 上限なし
+        vector_search_qps_max: null
+      # v1_global_fair_queue: 専有インスタンスのため独立した broker queue を持つ
+      v1_global_fair_queue:
+        # 専有インスタンスは global fair queue に参加しない（dedicated broker layer を持つ）
+        global_share_weight: null

@@ -91,6 +91,22 @@ lock_artifacts:
 - 層 D: runtime（露出概念整合検査）。tier2 業務コード移行ガイドは `exposed_concepts_affected` を起点に機械的に生成、手書き diff があれば fail
 - 層 E: 物理層（年次 cadence + release blocker）。`dry_run.lock.yaml` の `last_green_at` が 365 日を超えた pair があれば、Library のリリース pipeline を物理的に block
 
+## atomic_triple_write と tier1 schema 配下の tier2bridge 配置
+
+`src/tier1/schema/tier2/buf.yaml` および `src/tier1/tier2bridge/v1/triple_write.proto` が tier1 schema 配下に置かれる理由を以下に明示する。
+
+**設計決定**: tier1 transport layer が tier2 の atomic_triple_write の wire 形式を定義する必要があるため、tier2bridge の proto schema は tier1 schema 配下（`src/tier1/schema/tier2/`）に置かれる。
+
+- tier1 transport は Bidi RPC の物理 wire 形式（gRPC / Connect-RPC）を所有する
+- tier2 の atomic 三表書込（State change + Outbox + Audit を同一トランザクション内で書く）は、tier1 transport を介した RPC として実装される
+- したがって、その wire 形式（`triple_write.proto`）は tier1 が SoT として定義しなければならない
+- これは axis 越境配置ではなく、「tier1 transport layer が tier2 の atomic_triple_write の proto schema を所有する」という設計決定である
+
+この配置は以下の不変条件を満たす:
+- tier2 実装は `triple_write.proto` の生成コードを buf generate で取得する（手書き禁止）
+- tier2 が tier1 transport proto を直接 modify することは禁止（CR 経由で tier1 maintainer が修正）
+- tier1 / tier2 の依存方向（tier2 は tier1 proto 生成コードに依存、逆方向禁止）を維持する
+
 ## 三軸との接合
 本仕様は三軸（07 transport / 32 data / 39 client）の上位レイヤとして、移行軸の不変条件を形式化する。dual_write_ramp / cutover / rollback の各 phase 中でも三軸の不変条件は保たれる必要がある:
 - `relational_pg_pair` の dual_write_ramp / cutover: 32 atomic 三表書込 (P1)〜(P4) が両 backend で同時に成立、32 RLS が両 backend で同一 policy 適用
@@ -146,6 +162,57 @@ lock_artifacts:
 - cloud lock-in 移行先を 1.0.0 primary pair に採用
 - dry-run green の不在で 1.0.0 release tag 作成
 - pair / phase / assertion の手動更新（全て build artifact 経由）
+
+## parity_vectors.yaml SoT（4 言語等価強度検証ベクタ）
+
+`src/tier1/library/parity_vectors.yaml` は、Rust / Go / C# / TypeScript の 4 言語 Library 実装が同一入力から同一出力を返すことを保証する検証ベクタの SoT である。
+
+### 各 factory / method の等価 API シグネチャ一覧
+
+| ベクタ id | module | operation | 入力 | 期待出力スキーマ（型制約） |
+|---|---|---|---|---|
+| `key_handle_generate_ed25519` | KeyHandle | generate | `{key_type: ed25519, purpose: signing}` | `{key_id: string, algorithm: ed25519, has_private: false}` |
+| `auth_context_validate_jwt_format` | AuthContext | validate_format | `{token: "header.payload.signature"}` | `{valid_format: boolean, algorithm: string}` |
+| `repository_tenant_scope_query` | Repository | tenant_scope_check | `{tenant_id: string, resource_id: string}` | `{in_scope: boolean}` |
+| `quota_rate_limit_check` | Quota | check_limit | `{class: v1_standard, current_qps: integer}` | `{allowed: boolean, remaining: integer}` |
+| `bidi_handshake_capabilities` | Bidi | negotiate_capabilities | `{conformance_class: c1_bidirectional_full}` | `{accepted: boolean, negotiated_class: string}` |
+| `auth_context_v1_human_session` | AuthContext | create_session | `{auth_class: v1_human_session, session_id: string, tenant_id: UUID}` | `{access_token_exposed: false, auth_class: v1_human_session, tenant_id: UUID}` |
+| `key_handle_v1_signing` | KeyHandle | generate_signing_key | `{key_class: v1_signing}` | `{raw_bytes_exposed: false, key_id: string}` |
+| `idempotency_key_chaining` | IdempotencyKey | chain_key | `{original_key: string}` | `{starts_with_original_key: true, contains_wall_clock_timestamp: false, result_type: string}` |
+
+### 等価強度の判定基準（equivalence_criteria）
+
+- `function_name_semantic`: 関数名の命名規則差（camelCase / PascalCase / snake_case）は許容し、意味同一性で判定
+- `argument_type_equivalent`: 言語の型システム差を考慮した等価型（例: Go `string` ↔ Rust `&str` ↔ TypeScript `string`）
+- `return_type_equivalent`: 言語の async パターン差を許容（Go error tuple / Rust Result / TypeScript Promise / C# Task）
+- `error_semantic_equivalent`: 4 言語で同一エラーセマンティクスを持つこと（同一エラー種別が同一状況で発生）
+
+4 言語間で API surface に drift が生じた場合は `ship_blocker_on_drift: true`（`language_parity` 宣言）により CI fail となる。
+
+## migration_commitments.yaml SoT（言語間 API 差分コミットメント）
+
+`src/tier1/library/migration_commitments.yaml` は、L1+ カテゴリ各 OSS に対するライフサイクルイベント時の移行先候補と toolchain 整備状況を機械可読形式で宣言するコミットメント一覧の SoT である。
+
+### L1+ 移行コミットメント一覧（カテゴリ × 移行先 primary pair）
+
+| category | current_oss | current_operator | primary 移行先 | exposed_concepts（API 表面に露出する OSS 概念） |
+|---|---|---|---|---|
+| `relational_store` | postgresql | cnpg | postgresql（stackgres） | pg_advisory_lock / pg_skip_locked / pg_guc / pg_logical_replication / pg_vector_index_type |
+| `messaging` | apache_kafka | strimzi | redpanda | kafka_consumer_group / kafka_transaction_producer / kafka_isolation_level / schema_registry_id |
+| `workflow` | temporal | temporal_operator | cadence | temporal_workflow_definition / temporal_activity_definition / temporal_schedule |
+| `rule_engine` | zen_engine | null | custom_dsl（Rust 実装） | zen_decision_table_format / zen_evaluation_context |
+| `vector_search` | pgvector | null | pgvector（hnsw index） | pgvector_index_type / pgvector_distance_metric / pgvector_search_params |
+
+### 引数順序差等の注意点
+
+- `workflow_pair`（Temporal → Cadence）: Workflow ID 体系差・補償処理の書き方・決定論実行制約が差異として生じる。これは `exposed_concepts_affected` の `workflow_pair` エントリに赤線扱いで記録される
+- `rule_engine_pair`（ZEN → 自製 DSL）: DSL 評価コンテキスト（`custom_node` / `code_node`）の API が変わる可能性がある。移行先は ZEN DSL の semantics を SoT として Rust で再実装するため、決定表フォーマット互換性は保証される
+
+### 年次 dry-run 管理
+
+- `dry_run_schedule.month: 1`（毎年 1 月に全 pair の dry-run を実施）
+- `ship_blocker_days: 365`（dry-run から 365 日超過で CI fail）
+- 各 migration_target の `last_dry_run` フィールドに実施日を記録。null = 未実施（1.0.0 ship 前必須）
 
 ## 関連参照
 - [Library](../../03_概要設計/02_tier1設計方針/02_Library.md)

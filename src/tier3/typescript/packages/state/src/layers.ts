@@ -93,6 +93,23 @@ export type PurgeReason =
   // device_bound_key ローテーション
   | "device_bound_key_rotate";
 
+// ALL_LAYERS: 全 layer の識別子を網羅した定数配列
+// rotation_wiring.ts / logout_handler.ts が LAYERS_TO_PURGE の代わりにこの定数を import して使用する
+// 新しい layer 追加時はこの定数も更新する（major version up が必要）
+export const ALL_LAYERS = [
+  // tier2 atomic 三表書込確定値のキャッシュ（server_truth の略称: ST）
+  "ST",
+  // mutation in-flight overlay（optimistic_local の略称: OL）
+  "OL",
+  // offline 永続化 mutation 経路（pending_queue の略称: PQ）
+  "PQ",
+  // 編集中フォームの dirty state（draft の略称: DR）
+  "DR",
+] as const;
+
+// AllLayer: ALL_LAYERS の各要素の型（略称形式）
+export type AllLayer = (typeof ALL_LAYERS)[number];
+
 // PurgeEvent: 全 layer purge 時に audit emit するイベント
 export interface PurgeEvent {
   // purge 理由

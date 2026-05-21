@@ -1,0 +1,228 @@
+# migration_commitments.yaml — k1s0 tier1 Library L1+ OSS 移行コミットメント定義
+# docs/03_概要設計/02_tier1設計方針/02_Library.md §L1+ 移行コミットメント に準拠する。
+# L1+ カテゴリ各 OSS に対し、ライフサイクルイベント時の移行先候補と
+# toolchain 整備状況を機械可読形式で宣言する。
+# src/CLAUDE.md §build artifact 手書き禁止: 本ファイルは手書き管理（生成器なし）。
+# バージョン管理: Library バージョンアップ時に同時更新し CI で検証する。
+
+# スキーマバージョン
+version: "1.0.0"
+
+# ---- L1+ 移行コミットメント一覧 ----
+# 各エントリは 02_Library.md §移行先候補 の 5 カテゴリ × 対応ペアを定義する。
+
+commitments:
+  # ---- Relational Store / Single-leader: PostgreSQL ----
+  - category: relational_store
+    # pair_id: 移行 Pair の識別子（02_移行Pair適合仕様.md と同期する）
+    pair_id: relational_pg_pair
+    # current_oss: 現在採用している OSS
+    current_oss: postgresql
+    # current_operator: 現在採用している Kubernetes Operator
+    current_operator: cnpg
+    # abstraction_level: Library の抽象化レベル（L1+ は単一 OSS 深耕）
+    abstraction_level: L1plus
+    # migration_targets: 移行先候補（確定ではないが toolchain 保証範囲）
+    migration_targets:
+      # CNPG ↔ StackGres: Operator 差し替え（同一 PG バイナリ）
+      - target_id: relational_pg_stackgres
+        target_oss: postgresql
+        target_operator: stackgres
+        # toolchain_status: 移行 toolchain の整備状況
+        # ready / in_progress / planned のいずれか
+        toolchain_status: planned
+        # schema_diff_tool: スキーマ差分検出ツール
+        schema_diff_tool: pg_diff
+        # dual_write_support: dual-write 移行支援の有無
+        dual_write_support: true
+        # last_dry_run: 直近の年次 dry-run 日時（YYYY-MM-DD）dry_run.lock.yaml last_green_at と同期する
+        last_dry_run: "2026-05-17"
+      # CNPG ↔ Crunchy PGO: Operator 差し替え（同一 PG バイナリ）
+      - target_id: relational_pg_crunchy
+        target_oss: postgresql
+        target_operator: crunchy_pgo
+        toolchain_status: planned
+        schema_diff_tool: pg_diff
+        dual_write_support: true
+        last_dry_run: "2026-05-17"
+      # PG → Aurora PG: クラウドマネージド移行
+      - target_id: relational_aurora_pg
+        target_oss: aurora_postgresql
+        target_operator: null
+        toolchain_status: planned
+        schema_diff_tool: pg_diff
+        dual_write_support: true
+        last_dry_run: "2026-05-17"
+    # exposed_concepts: L1+ カテゴリで API 表面に露出する OSS 概念
+    exposed_concepts:
+      # PostgreSQL の advisory lock / SKIP LOCKED / RETURNING は API 表面に露出する
+      - pg_advisory_lock
+      # SKIP LOCKED: skip 付き SELECT ... FOR UPDATE
+      - pg_skip_locked
+      # GUC: app.auth_class 等の カスタム GUC
+      - pg_guc
+      # logical replication: logical replication slot / publication / subscription
+      - pg_logical_replication
+      # pgvector: pgvector extension の ivfflat / hnsw index 種別
+      - pg_vector_index_type
+
+  # ---- Messaging / EventBus: Kafka ----
+  - category: messaging
+    pair_id: messaging_kafka_pair
+    current_oss: apache_kafka
+    current_operator: strimzi
+    abstraction_level: L1plus
+    migration_targets:
+      # Kafka → RedPanda: wire 互換（Kafka Client API で接続可能）
+      - target_id: messaging_redpanda
+        target_oss: redpanda
+        target_operator: redpanda_operator
+        toolchain_status: planned
+        # schema_diff_tool: Schema Registry エントリの差分検出
+        schema_diff_tool: schema_registry_diff
+        # replication_tool: MirrorMaker 2 系の replication ツール
+        replication_tool: mirrormaker2
+        dual_write_support: true
+        last_dry_run: "2026-05-17"
+      # Kafka → AWS MSK: クラウドマネージド移行
+      - target_id: messaging_aws_msk
+        target_oss: aws_msk
+        target_operator: null
+        toolchain_status: planned
+        schema_diff_tool: schema_registry_diff
+        replication_tool: mirrormaker2
+        dual_write_support: true
+        last_dry_run: "2026-05-17"
+      # Kafka → Confluent Cloud: クラウドマネージド移行
+      - target_id: messaging_confluent_cloud
+        target_oss: confluent_cloud
+        target_operator: null
+        toolchain_status: planned
+        schema_diff_tool: schema_registry_diff
+        replication_tool: cluster_linking
+        dual_write_support: true
+        last_dry_run: "2026-05-17"
+    exposed_concepts:
+      # Kafka の consumer group / partition / offset は API 表面に露出する
+      - kafka_consumer_group
+      # Kafka の transaction producer API
+      - kafka_transaction_producer
+      # Kafka の isolation level（read_committed / read_uncommitted）
+      - kafka_isolation_level
+      # Kafka の Schema Registry ID（schemaId フィールド）
+      - schema_registry_id
+
+  # ---- Workflow / Long-running Saga: Temporal ----
+  - category: workflow
+    # pair_id: 02_移行Pair適合仕様.md SoT (schema/migration/pairs.yaml) の正規 pair_id に統一する
+    pair_id: workflow_pair
+    current_oss: temporal
+    current_operator: temporal_operator
+    abstraction_level: L1plus
+    migration_targets:
+      # Temporal → Cadence: API 類似（Uber 起源の fork）
+      - target_id: workflow_cadence
+        target_oss: cadence
+        target_operator: null
+        toolchain_status: planned
+        # state_diff_tool: Workflow / Activity 定義の差分検出
+        state_diff_tool: workflow_state_diff
+        dual_write_support: false
+        last_dry_run: "2026-05-18"
+      # Temporal → Temporal Cloud: クラウドマネージド移行
+      - target_id: workflow_temporal_cloud
+        target_oss: temporal_cloud
+        target_operator: null
+        toolchain_status: planned
+        state_diff_tool: workflow_state_diff
+        dual_write_support: false
+        last_dry_run: "2026-05-18"
+    exposed_concepts:
+      # Temporal の Workflow / Activity / Signal / Query は API 表面に露出する
+      - temporal_workflow_definition
+      # Temporal の Activity 定義
+      - temporal_activity_definition
+      # Temporal の Schedule（Cron / Calendar 形式）
+      - temporal_schedule
+
+  # ---- Rule Engine: ZEN ----
+  - category: rule_engine
+    # pair_id: 02_移行Pair適合仕様.md SoT (schema/migration/pairs.yaml) の正規 pair_id に統一する
+    pair_id: rule_engine_pair
+    current_oss: zen_engine
+    current_operator: null
+    abstraction_level: L1plus
+    migration_targets:
+      # ZEN → 自製 DSL: Library として独自実装に移行
+      - target_id: rule_engine_custom_dsl
+        target_oss: custom_dsl
+        target_operator: null
+        toolchain_status: planned
+        # dsl_diff_tool: 決定表 DSL の差分検出
+        dsl_diff_tool: rule_dsl_diff
+        dual_write_support: false
+        last_dry_run: "2026-05-16"
+    exposed_concepts:
+      # ZEN の decision table フォーマット（JSON / YAML）
+      - zen_decision_table_format
+      # ZEN の evaluation context（custom_node / code_node）
+      - zen_evaluation_context
+
+  # ---- Vector Search: pgvector ----
+  # 注記: vector_search は 02_移行Pair適合仕様.md §4 primary pair の対象外（同一 OSS 内 index 種別変更）
+  # pair_id は null とし、formal migration pair としては管理しない（族外移行は project_spawn 経路）
+  - category: vector_search
+    pair_id: null
+    current_oss: pgvector
+    current_operator: null
+    abstraction_level: L1plus
+    migration_targets:
+      # pgvector ivfflat → hnsw: 同一 extension 内の index 種別変更（formal migration pair ではない）
+      - target_id: vector_pgvector_hnsw
+        target_oss: pgvector
+        target_operator: null
+        toolchain_status: ready
+        # schema_diff_tool: pgvector index 差分検出
+        schema_diff_tool: pg_diff
+        dual_write_support: false
+        last_dry_run: "2026-05-17"
+    # 族外 standalone vector engine への移行はスコープ外
+    # Qdrant / Milvus / Weaviate は 14_OSS ライフサイクル適合仕様 の project_spawn 経路で扱う
+    out_of_scope_targets:
+      - qdrant
+      - milvus
+      - weaviate
+    exposed_concepts:
+      # pgvector の index 種別（ivfflat / hnsw）は API 表面に露出する
+      - pgvector_index_type
+      # pgvector の距離関数（cosine / l2 / inner_product）
+      - pgvector_distance_metric
+      # pgvector の probes / ef_search パラメータ
+      - pgvector_search_params
+
+# ---- toolchain 年次 dry-run 管理 ----
+# 各 migration_target の toolchain は年次 dry-run でグリーン維持を必須とする。
+# dry_run_schedule はカレンダー月（1 = 1月）で指定する。
+dry_run_schedule:
+  # 年次 dry-run の実施月（毎年 1 月に実施する）
+  month: 1
+  # dry_run が失敗した場合の ship blocker 日数（この日数を超えると CI fail になる）
+  ship_blocker_days: 365
+
+# ---- 4 言語等価強度宣言 ----
+# Library の 4 言語（Rust / C# / Go / TypeScript）が同一 API surface を持つことを宣言する。
+language_parity:
+  # parity_check_tool: 4 言語の API surface を比較するツール
+  parity_check_tool: tools/library_parity_check/check_parity.py
+  # 4 言語の API surface が一致しない場合の ship blocker
+  ship_blocker_on_drift: true
+  # 等価強度の基準: 関数名 / 引数型 / 戻り値型が 4 言語で等価であること
+  equivalence_criteria:
+    # 関数名（camelCase / PascalCase / snake_case の命名規則差は許容する）
+    - function_name_semantic
+    # 引数型（言語の型システム差を考慮した等価型）
+    - argument_type_equivalent
+    # 戻り値型（言語の async パターン差は許容: Go error / Rust Result / TS Promise）
+    - return_type_equivalent
+    # エラー型（4 言語で同一エラーセマンティクスを持つこと）
+    - error_semantic_equivalent

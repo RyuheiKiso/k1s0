@@ -13,4 +13,6 @@ use (
 	./operator
 	// buf generate 出力（protobuf 生成型）
 	./schema/gen/go
+	// HLC クロック（wall-clock TTL 禁止規律に従い time.Now() の代替として使用する）
+	../client/hlc_lib/go
 )

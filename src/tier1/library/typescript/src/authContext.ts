@@ -52,8 +52,9 @@ export class AuthContext {
   readonly #dpopJkt: string | undefined;
   // #attestationLevel: device attestation level（private class field: jwt_attested のみ）
   readonly #attestationLevel: string | undefined;
-  // #stepUpProven: 最終 step_up challenge 済みフラグ（private class field）
-  readonly #stepUpProven: boolean;
+  // #stepUpProvenAt: 最終 step_up challenge 時刻（private class field）
+  // null = 未証明（workload / federated 等 step_up 不要クラス）、ISO 8601 文字列 = challenge 完了時刻
+  readonly #stepUpProvenAt: string | null;
   // #isValid: token 検証結果（private class field）
   readonly #isValid: boolean;
 
@@ -79,8 +80,8 @@ export class AuthContext {
     readonly dpopJkt?: string | undefined;
     // attestationLevel: device attestation level（オプション）
     readonly attestationLevel?: string | undefined;
-    // stepUpProven: step_up 済みフラグ
-    readonly stepUpProven: boolean;
+    // stepUpProvenAt: step_up challenge 完了時刻（ISO 8601 文字列）または null（未証明）
+    readonly stepUpProvenAt: string | null;
     // isValid: 検証結果
     readonly isValid: boolean;
   }) {
@@ -95,7 +96,7 @@ export class AuthContext {
     this.#scopes = params.scopes;
     this.#dpopJkt = params.dpopJkt;
     this.#attestationLevel = params.attestationLevel;
-    this.#stepUpProven = params.stepUpProven;
+    this.#stepUpProvenAt = params.stepUpProvenAt;
     this.#isValid = params.isValid;
   }
 
@@ -138,8 +139,8 @@ export class AuthContext {
     readonly scopes: readonly string[];
     // dpopJkt: DPoP key thumbprint（オプション）
     readonly dpopJkt?: string | undefined;
-    // stepUpProven: step_up 済みフラグ
-    readonly stepUpProven: boolean;
+    // stepUpProvenAt: step_up challenge 完了時刻（ISO 8601 文字列）または null（未証明）
+    readonly stepUpProvenAt: string | null;
   }): AuthContext {
     // v1_human_session の固定属性を適用する（dimension override 禁止）
     return new AuthContext({
@@ -156,7 +157,7 @@ export class AuthContext {
       dpopJkt: params.dpopJkt,
       // human session には attestationLevel は不要
       attestationLevel: undefined,
-      stepUpProven: params.stepUpProven,
+      stepUpProvenAt: params.stepUpProvenAt,
       isValid: true,
     });
   }
@@ -192,8 +193,8 @@ export class AuthContext {
       // workload は DPoP 不要
       dpopJkt: undefined,
       attestationLevel: undefined,
-      // workload は step_up が不要（never ポリシー）
-      stepUpProven: false,
+      // workload は step_up が不要（never ポリシー）。stepUpProvenAt は null
+      stepUpProvenAt: null,
       isValid: true,
     });
   }
@@ -214,8 +215,8 @@ export class AuthContext {
     readonly sessionId: string;
     // attestationLevel: TPM / HSM / WebAuthn platform authenticator の種別
     readonly attestationLevel: string;
-    // stepUpProven: step_up 済みフラグ（on_first_use ポリシー）
-    readonly stepUpProven: boolean;
+    // stepUpProvenAt: step_up challenge 完了時刻（ISO 8601 文字列）または null（未証明）
+    readonly stepUpProvenAt: string | null;
   }): AuthContext {
     // v1_device_attest の固定属性を適用する（dimension override 禁止）
     return new AuthContext({
@@ -233,7 +234,7 @@ export class AuthContext {
       // device cert で proof-of-possession を担保するため DPoP 不要
       dpopJkt: undefined,
       attestationLevel: params.attestationLevel,
-      stepUpProven: params.stepUpProven,
+      stepUpProvenAt: params.stepUpProvenAt,
       isValid: true,
     });
   }
@@ -269,8 +270,8 @@ export class AuthContext {
       scopes: ["business_op"],
       dpopJkt: undefined,
       attestationLevel: undefined,
-      // federated exchange は step_up 不要（never ポリシー）
-      stepUpProven: false,
+      // federated exchange は step_up 不要（never ポリシー）。stepUpProvenAt は null
+      stepUpProvenAt: null,
       isValid: true,
     });
   }
@@ -291,6 +292,8 @@ export class AuthContext {
     readonly sessionId: string;
     // dpopJkt: DPoP key thumbprint（オプション）
     readonly dpopJkt?: string | undefined;
+    // stepUpProvenAt: emergency factory では必須（always step_up ポリシーのため non-null 必須）ISO 8601 文字列
+    readonly stepUpProvenAt: string;
   }): AuthContext {
     // v1_emergency_step_up の固定属性を適用する（always step_up + purpose=emergency 強制）
     return new AuthContext({
@@ -308,7 +311,7 @@ export class AuthContext {
       dpopJkt: params.dpopJkt,
       attestationLevel: undefined,
       // v1_emergency_step_up は常に step_up 済みとして発行される（always ポリシー）
-      stepUpProven: true,
+      stepUpProvenAt: params.stepUpProvenAt,
       isValid: true,
     });
   }
@@ -326,6 +329,8 @@ export class AuthContext {
     }
     // SQL injection 対策: single quote をエスケープするヘルパー関数
     const esc = (s: string): string => s.replace(/'/g, "''");
+    // step_up_proven_at: null の場合は空文字列、non-null の場合は ISO 8601 文字列をそのまま emit する
+    const stepUpProvenAtStr: string = this.#stepUpProvenAt !== null ? this.#stepUpProvenAt : "";
     // 04_認証適合仕様.md §AuthContext スキーマの全 GUC 対応フィールドを SET LOCAL 文にする
     const setters: string[] = [
       // auth_class GUC を設定する
@@ -340,8 +345,8 @@ export class AuthContext {
       `SET LOCAL app.session_id = '${this.#sessionId}';`,
       // audience GUC を設定する
       `SET LOCAL app.audience = '${esc(this.#audience)}';`,
-      // step_up_proven GUC を設定する
-      `SET LOCAL app.step_up_proven = '${this.#stepUpProven}';`,
+      // step_up_proven_at GUC を設定する（GUC 名を app.step_up_proven_at に変更）
+      `SET LOCAL app.step_up_proven_at = '${stepUpProvenAtStr}';`,
     ];
     // dpopJkt が設定されている場合のみ GUC を設定する（dpop_bound_jwt のみ）
     if (this.#dpopJkt !== undefined) {

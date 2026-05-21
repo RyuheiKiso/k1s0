@@ -1,6 +1,10 @@
 // src/tier3/typescript/packages/notifications/src/index.ts
 // tier3 通知パッケージ: Toast / Snackbar / Dialog の通知管理
 // WCAG 2.1 AA: aria-live="polite" / aria-live="assertive" で支援技術に通知する
+// 型重複解消: types.ts の型を re-export して二重定義を排除する
+
+// types.ts の型を re-export する（NotificationLevel / Notification）
+export type { NotificationLevel, Notification } from "./types.js";
 
 // 通知種別を定義する (info / success / warning / error)
 export type NotificationKind = "info" | "success" | "warning" | "error";

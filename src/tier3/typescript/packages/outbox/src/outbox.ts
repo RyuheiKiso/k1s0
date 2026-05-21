@@ -1,29 +1,40 @@
 // k1s0 tier3 IndexedDB encrypted outbox
 // PQ（PendingQueue）を IndexedDB + WebCrypto AES-GCM で encrypted at rest にする
 // PII strip on enqueue / Idempotency-Key 24h TTL を強制する
+// wall-clock TTL 禁止規約（src/CLAUDE.md §wall-clock TTL 禁止）に従い、
+// Date.now() を直接使用せず @k1s0/hlc-lib の HlcClock / HlcTimestamp を経由する
+
+// @k1s0/hlc-lib: HLC クロックおよびタイムスタンプ操作 API（wall-clock 禁止規律準拠）
+import { HlcTimestamp, HlcClock } from '@k1s0/hlc-lib';
 
 // Idempotency-Key の 24h TTL（ミリ秒）
 export const IDEMPOTENCY_KEY_TTL_MS = 24 * 60 * 60 * 1000;
 
-// HLC フォーマット: {timestamp_ms_hex}-{logical_counter}-{node_id}
-// wall clock を TTL/deadline 計算に使うことを禁止するため HLC でラップする
-// logical_counter と node_id は本実装では固定値（0000）を使用する
+// モジュールレベルのグローバル HLC クロック（環境変数 HLC_NODE_ID から node_id を取得する）
+// wall-clock TTL 禁止規約に従い @k1s0/hlc-lib の HlcClock のみが Date.now() を呼ぶ
+const _globalHlcClock = HlcClock.fromEnv();
+
+// hlcNow は @k1s0/hlc-lib のグローバルクロックから現在の HLC タイムスタンプを取得して compact 文字列に変換する
+// 旧実装の手書き Date.now() を @k1s0/hlc-lib 経由に置換する（wall-clock 禁止規律準拠）
 export function hlcNow(): string {
-  // Date.now() を HLC の物理クロック基底として使用する（TS HLC: monotonic 担保はアプリ層で行う）
-  const timestampMsHex = Date.now().toString(16).padStart(16, "0");
-  // logical_counter は現実装では 0000 固定（同一ミリ秒内の複数イベントが不要なため）
-  const logicalCounter = "0000";
-  // node_id は現実装では 0000 固定（単一ノード想定）
-  const nodeId = "0000";
-  // HLC タイムスタンプ文字列を組み立てて返す
-  return `${timestampMsHex}-${logicalCounter}-${nodeId}`;
+  // HlcClock.now()（tick の alias）で現在の HLC タイムスタンプを生成する
+  const ts = _globalHlcClock.now();
+  // formatCompact で "{wall_ms_hex_16}-{logical_04x}-{node_04x}" 形式の文字列を返す
+  return ts.formatCompact();
 }
 
-// HLC タイムスタンプからミリ秒を抽出する
+// extractMsFromHlc は HLC compact 文字列からミリ秒値を number として抽出する
 // hlcTimestamp: "{timestamp_ms_hex}-{logical_counter}-{node_id}" 形式
+// @k1s0/hlc-lib の HlcTimestamp.parseCompact を使用してパースする（手書き parseInt 禁止）
 function extractMsFromHlc(hlcTimestamp: string): number {
-  // ハイフン区切りの先頭部分が 16 進数ミリ秒タイムスタンプ（undefined の場合は "0" にフォールバック）
-  return parseInt(hlcTimestamp.split("-")[0] ?? "0", 16);
+  // HlcTimestamp.parseCompact で HlcTimestamp にパースする（失敗時は null）
+  const ts = HlcTimestamp.parseCompact(hlcTimestamp);
+  // パース失敗時は 0 を返す（safe 側フォールバック）
+  if (ts === null) {
+    return 0;
+  }
+  // wall_ms（bigint）を number に変換して返す（2^53 未満の値であれば精度ロスなし）
+  return Number(ts.wall_ms);
 }
 
 // PII strip の結果を保持する型（PII フィールドを除去した payload）
@@ -70,37 +81,46 @@ export type OverTtlPolicy =
   // 新 key で再送する
   | "new_key_resend";
 
-// Idempotency-Key を生成する（ULID + aggregateId prefix + method hash）
-// wall-clock TTL 禁止規約に従い HLC を使用する
+// Idempotency-Key を生成する（tenantId prefix + ULID + method hash）
+// フォーマット: "{tenantId}_{ulidHex}_{methodHash}" — docs §idempotency_key 準拠
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
+// wall-clock TTL 禁止規約に従い HLC を使用する（Math.random() 禁止）
 export function generateIdempotencyKey(
+  tenantId: string,
   aggregateId: string,
   rpcMethod: string,
 ): string {
-  // HLC タイムスタンプの先頭 16 進数部分をランダム識別子の基底として使用する
+  // HLC タイムスタンプの先頭 16 進数部分を ULID の時刻部分として使用する
   const hlcBase = hlcNow().split("-")[0];
-  // ランダム部分を生成する（Math.random を使用してエントリ固有性を確保する）
-  const random = Math.random().toString(36).slice(2, 10);
-  // aggregateId の先頭 8 文字 + method の先頭 4 文字を prefix に使用する
-  const prefix = `${aggregateId.slice(0, 8)}_${rpcMethod.slice(0, 4)}`;
-  // prefix + HLC ベース + random で Idempotency-Key を組み立てる
-  return `${prefix}_${hlcBase}_${random}`;
+  // crypto.randomUUID() でランダム部分を生成する（暗号論的に安全）
+  const randomPart = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  // ULID 相当: HLC タイムスタンプ hex + random で識別子を生成する
+  const ulidHex = `${hlcBase}${randomPart}`;
+  // rpcMethod の先頭 4 文字を method hash として使用する（短縮識別子）
+  const methodHash = rpcMethod.slice(0, 4);
+  // tenantId prefix + ulid + method hash の形式で Idempotency-Key を組み立てる
+  return `${tenantId}_${ulidHex}_${methodHash}`;
 }
 
 // chain された新 Idempotency-Key を生成する（rebase 後再送）
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
 export function chainIdempotencyKey(
   original: string,
+  tenantId: string,
   aggregateId: string,
   rpcMethod: string,
 ): { newKey: string; chainedFrom: string } {
   // 新しい key を生成して chain 親子関係を記録する
-  const newKey = generateIdempotencyKey(aggregateId, rpcMethod);
+  const newKey = generateIdempotencyKey(tenantId, aggregateId, rpcMethod);
   // chain 元と新 key の組を返す
   return { newKey, chainedFrom: original };
 }
 
 // Outbox エントリのメタデータを生成する（PII strip 済み payload と一緒に使用）
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
 // wall-clock TTL 禁止規約に従い HLC ベースのタイムスタンプを使用する
 export function createOutboxMeta(
+  tenantId: string,
   aggregateId: string,
   rpcMethod: string,
   chainedFrom?: string,
@@ -111,8 +131,8 @@ export function createOutboxMeta(
   const enqueuedMs = extractMsFromHlc(nowHlc);
   // chain がある場合は chain された新 key を生成する
   const key = chainedFrom
-    ? chainIdempotencyKey(chainedFrom, aggregateId, rpcMethod).newKey
-    : generateIdempotencyKey(aggregateId, rpcMethod);
+    ? chainIdempotencyKey(chainedFrom, tenantId, aggregateId, rpcMethod).newKey
+    : generateIdempotencyKey(tenantId, aggregateId, rpcMethod);
   // backward compat 用の expiresAtMs は HLC ミリ秒から計算する
   const expiresAtMs = enqueuedMs + IDEMPOTENCY_KEY_TTL_MS;
   // メタデータオブジェクトを組み立てて返す

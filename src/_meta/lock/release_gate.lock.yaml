@@ -3,7 +3,7 @@ release_gate_status: green
 total_cells: 70
 red_count: 0
 yellow_count: 0
-generated_at: '2026-05-19T15:56:53Z'
+generated_at: '2026-05-20T10:22:35Z'
 cells:
 - axis_id: meta
   cell_id: meta.axis_registry_complete
@@ -199,7 +199,7 @@ cells:
   cell_id: tier1.bidi_conformance_complete
   source_lock: ../../tier1/lock/capabilities.lock.yaml
   status: green
-  detail: all 2 clauses green
+  detail: all 3 clauses green
 - axis_id: tier1
   cell_id: tier1.migration_pair_dry_run_green
   source_lock: ../../tier1/lock/dry_run.lock.yaml

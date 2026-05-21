@@ -18,6 +18,11 @@
             "target": "./packages",
             "from": "../../tier1",
             "message": "tier3 から tier1 への直接 import を禁止する（tier2 SDK 経由必須）"
+          },
+          {
+            "target": "./spa",
+            "from": "../../tier1",
+            "message": "tier3 SPA から tier1 への直接 import を禁止する（tier2 SDK 経由必須）。spa target の検出漏れ防止のため zones に追加する。"
           }
         ]
       }

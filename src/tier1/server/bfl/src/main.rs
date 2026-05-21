@@ -14,6 +14,8 @@ mod spire_workload;
 
 // axum: HTTP サーバーとハンドラー
 use axum::{Json, Router, routing::{get, post}};
+// chrono: step_up_proven_at の DateTime<Utc> 型に使用する（canonical AuthContext 準拠）
+use chrono::Utc;
 // serde: JSON シリアライズ
 use serde::{Deserialize, Serialize};
 // tracing: 構造化ロギング
@@ -94,22 +96,25 @@ async fn verify_token_handler(
                         verifier.verify_dpop_proof(dpop, method, uri).ok().map(|_| dpop.to_string())
                     });
                     // AuthContext を構築する（生 token は含めない）
+                    // step_up_proven_at: 通常ログインは step_up 未証明のため None を渡す
                     let ctx = AuthContext::new_human_session(
                         claims.sub,
                         req.tenant_id.clone(),
                         claims.jti,
                         claims.scope.map(|s| s.split(' ').map(|x| x.to_string()).collect()).unwrap_or_default(),
                         dpop_jkt,
-                        false,
+                        // step_up_proven_at: None（通常セッション — step_up challenge なし）
+                        None,
                     );
                     (ctx, vec![])
                 }
                 Err(e) => {
                     // 検証失敗時は is_valid=false の AuthContext を返す（raw token は含めない）
                     warn!(auth_class = "v1_human_session", error = %e, "token verification failed");
+                    // step_up_proven_at: None（検証失敗セッションは step_up 未証明）
                     let ctx = AuthContext::new_human_session(
                         "unknown".to_string(), req.tenant_id.clone(),
-                        Uuid::new_v4().to_string(), vec![], None, false,
+                        Uuid::new_v4().to_string(), vec![], None, None,
                     );
                     let ctx = AuthContext { is_valid: false, ..ctx };
                     (ctx, vec![format!("verification failed: {e}")])
@@ -163,9 +168,10 @@ async fn verify_token_handler(
                 Ok(claims) => {
                     // device subject は "device:" prefix を持つ
                     info!(auth_class = "v1_device_attest", sub = %claims.sub, "device JWT verified");
+                    // step_up_proven_at: None（device attest セッションは step_up 不要）
                     let mut ctx = AuthContext::new_human_session(
                         claims.sub, req.tenant_id.clone(),
-                        claims.jti, vec![], None, false,
+                        claims.jti, vec![], None, None,
                     );
                     // auth_class を V1DeviceAttest に上書きする
                     ctx.auth_class = AuthClass::V1DeviceAttest;
@@ -178,9 +184,10 @@ async fn verify_token_handler(
                 Err(e) => {
                     // デバイス token 検証失敗
                     warn!(auth_class = "v1_device_attest", error = %e, "device JWT verification failed");
+                    // step_up_proven_at: None（検証失敗セッションは step_up 未証明）
                     let mut ctx = AuthContext::new_human_session(
                         "device-invalid".to_string(), req.tenant_id.clone(),
-                        Uuid::new_v4().to_string(), vec![], None, false,
+                        Uuid::new_v4().to_string(), vec![], None, None,
                     );
                     ctx.auth_class = AuthClass::V1DeviceAttest;
                     ctx.subject_kind = "device".to_string();
@@ -253,42 +260,55 @@ async fn verify_token_handler(
             match verifier.verify_token(&req.bearer_token).await {
                 Ok(claims) => {
                     // DPoP proof は emergency_step_up で必須とする
-                    let dpop_ok = if let Some(dpop) = req.dpop_token.as_deref() {
+                    let dpop_jkt_opt = req.dpop_token.as_deref().and_then(|dpop| {
                         let method = req.request_method.as_deref().unwrap_or("POST");
                         let uri = req.request_uri.as_deref().unwrap_or("/auth/verify");
-                        verifier.verify_dpop_proof(dpop, method, uri).is_ok()
-                    } else {
-                        // DPoP なしは emergency_step_up では許可しない
-                        false
-                    };
+                        // DPoP proof を検証し、成功した場合のみ jkt 文字列を返す
+                        verifier.verify_dpop_proof(dpop, method, uri).ok().map(|_| dpop.to_string())
+                    });
+                    // dpop_jkt は emergency_step_up では必須（spec §emergency step_up は always DPoP bound）
+                    // DPoP が提示されなかった場合は is_valid=false として返す
+                    let dpop_ok = dpop_jkt_opt.is_some();
                     // emergency_step_up の AuthContext を構築する
+                    // dpop_jkt が None の場合は空文字列を渡し is_valid を false に上書きする
                     info!(
                         auth_class = "v1_emergency_step_up",
                         sub = %claims.sub,
                         dpop_ok = dpop_ok,
                         "emergency step-up JWT verified"
                     );
+                    // step_up_proven_at: 現在時刻（always step_up ポリシー — challenge 完了済み）
+                    let step_up_proven_at = Utc::now();
+                    // dpop_jkt が Some の場合のみ有効な AuthContext を構築する
                     let ctx = AuthContext::new_emergency_step_up(
                         claims.sub,
                         req.tenant_id.clone(),
                         claims.jti,
-                        if dpop_ok { req.dpop_token.clone() } else { None },
+                        // dpop_jkt は必須引数: DPoP なしの場合は空文字列を渡して is_valid で棄却する
+                        dpop_jkt_opt.unwrap_or_default(),
+                        step_up_proven_at,
                     );
-                    let warn_msgs = if dpop_ok {
-                        vec![]
+                    // DPoP なしの場合は is_valid を false に上書きして警告を返す
+                    let (ctx, warn_msgs) = if dpop_ok {
+                        (ctx, vec![])
                     } else {
-                        vec!["DPoP proof required for emergency_step_up but not provided".to_string()]
+                        (AuthContext { is_valid: false, ..ctx }, vec!["DPoP proof required for emergency_step_up but not provided".to_string()])
                     };
                     (ctx, warn_msgs)
                 }
                 Err(e) => {
                     // break-glass token 検証失敗
                     warn!(auth_class = "v1_emergency_step_up", error = %e, "emergency step-up JWT verification failed");
+                    // step_up_proven_at: 検証失敗時も現在時刻を渡すが is_valid=false で棄却する
+                    let step_up_proven_at = Utc::now();
+                    // dpop_jkt: 検証失敗のため空文字列を渡す（is_valid=false で棄却する）
                     let ctx = AuthContext::new_emergency_step_up(
                         "emergency-invalid".to_string(),
                         req.tenant_id.clone(),
                         Uuid::new_v4().to_string(),
-                        None,
+                        // dpop_jkt: 検証失敗のため空文字列（is_valid=false で上書きする）
+                        String::new(),
+                        step_up_proven_at,
                     );
                     let ctx = AuthContext { is_valid: false, ..ctx };
                     (ctx, vec![format!("emergency step-up JWT verification failed: {e}")])
@@ -428,11 +448,12 @@ mod tests {
             "warnings に 'unknown auth_class' が含まれなければならない（実際: {:?}）",
             resp.warnings
         );
-        // guc_setters が 6 要素であることを確認する（auth_class / subject_id / etc.）
+        // guc_setters が 7 要素であることを確認する（canonical AuthContext: auth_class / subject_id /
+        // subject_kind / token_id / session_id / audience / step_up_proven_at の 7 フィールド）
         assert_eq!(
             resp.guc_setters.len(),
-            6,
-            "guc_setters は 6 要素でなければならない（実際: {}）",
+            7,
+            "guc_setters は 7 要素でなければならない（実際: {}）",
             resp.guc_setters.len()
         );
     }

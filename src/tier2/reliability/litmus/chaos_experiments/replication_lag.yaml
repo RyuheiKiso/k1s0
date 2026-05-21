@@ -1,0 +1,63 @@
+# replication_lag.yaml — PostgreSQL レプリケーションラグ注入 LitmusChaos 実験
+# docs 参照: docs/03_概要設計/03_tier2設計方針/README.md §信頼性 / RTO/RPO
+# docs 参照: docs/04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md §レプリカ整合性
+# PostgreSQL スタンバイノードに人工的なレプリケーションラグを注入し
+# アプリケーションの stale read 検知・フォールバック動作を検証する
+apiVersion: litmuschaos.io/v1alpha1
+# 実験定義リソース種別: ChaosExperiment
+kind: ChaosExperiment
+metadata:
+  # 実験リソース名
+  name: tier2-postgres-replication-lag
+  # 実験対象の Namespace
+  namespace: k1s0-tier2
+  # 実験メタデータラベル
+  labels:
+    # 実験種別ラベル
+    experiment.type: replication-lag
+    # 対象サービスラベル
+    app.kubernetes.io/component: tier2
+    # データベース系カオス実験ラベル
+    chaos.category: database
+spec:
+  # 定義するカスタム実験の仕様
+  definition:
+    # このスコープは Namespaced に限定する
+    scope: Namespaced
+    # 実験コンテナの権限設定
+    permissions:
+      # PostgreSQL pod への exec 権限が必要
+      - apiGroups: [""]
+        resources: ["pods", "pods/exec"]
+        verbs: ["get", "list", "create", "delete"]
+    # 実験イメージ（LitmusChaos ランナー）
+    image: "litmuschaos/go-runner:3.0.0"
+    # 実験コマンド
+    command:
+      - /bin/bash
+    # レプリケーションラグを tc netem で注入するスクリプト
+    args:
+      - -c
+      - "./experiments/postgres-replication-lag"
+    # 実験環境変数
+    env:
+      # PostgreSQL スタンバイポッドのラベルセレクタ
+      - name: TARGET_POD_LABEL
+        # スタンバイポッドを対象とする
+        value: "app=postgres-standby"
+      # 注入するネットワーク遅延量（ミリ秒単位）
+      - name: NETWORK_LATENCY_MS
+        # 5 秒の遅延を注入してレプリケーションラグを模倣する
+        value: "5000"
+      # 遅延のジッター量（ミリ秒単位）
+      - name: LATENCY_JITTER_MS
+        value: "500"
+      # 実験継続時間（秒単位）
+      - name: TOTAL_CHAOS_DURATION
+        value: "120"
+      # 検証: WAL 受信ラグが閾値を超えた場合にアプリが stale read を検知すること
+      - name: WAL_LAG_DETECTION_ENABLED
+        value: "true"
+      # tier2 API がスタンバイへのフォールバックを停止する閾値（秒単位）
+      - name: STALE_READ_FALLBACK_THRESHOLD_SECONDS
+        value: "30"

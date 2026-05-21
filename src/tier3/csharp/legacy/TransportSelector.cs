@@ -154,10 +154,8 @@ namespace K1s0.Tier3.Legacy
                 probeHandler.RequestConnectionTimeout = _options.AlpnProbeTimeout;
                 // SSL クライアント証明書選択を無効化する（probe 用なので不要）
                 probeHandler.ClientCertificateOption = ClientCertificateOption.Manual;
-                // TLS チェック設定（本番では ServerCertificateValidationCallback で厳格化する）
-                // legacy 環境の自己署名証明書を許可する（開発・検証環境のみ）
-                probeHandler.ServerCertificateValidationCallback =
-                    (sender, cert, chain, errors) => true;
+                // TLS 証明書検証は常に有効にする（production/development 分岐禁止規約）
+                // ServerCertificateValidationCallback を null のままにすることで OS デフォルトの TLS 検証を適用する
 
                 // プローブ用 HttpClient を初期化する
                 probeClient = new HttpClient(probeHandler, disposeHandler: true);
@@ -259,10 +257,8 @@ namespace K1s0.Tier3.Legacy
             // .NET 4.6.2 では ServicePointManager を通じて設定する
             ServicePointManager.SecurityProtocol =
                 SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
-            // TLS チェック設定（legacy サーバーの自己署名証明書を許可する場合）
-            // 本番では証明書検証を有効にする必要がある
-            handler.ServerCertificateCustomValidationCallback =
-                (message, cert, chain, errors) => true;
+            // TLS 証明書検証は常に有効にする（production/development 分岐禁止規約）
+            // ServerCertificateCustomValidationCallback を null のままにすることで OS デフォルトの TLS 検証を適用する
             // HTTP/1.1 対応の HttpClient を生成する
             var client = new HttpClient(handler, disposeHandler: true);
             // レガシー URI（ポート 8443）をベースアドレスに設定する

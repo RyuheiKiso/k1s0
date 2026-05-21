@@ -32,6 +32,24 @@ covered_by:
 - TypeScript: `eslint-plugin-import` の `no-restricted-imports` と `eslint-plugin-boundaries` で tier1 / OSS パッケージを禁止
 - tier3 が独自に OSS をラップする経路も同枠で禁止
 
+#### TypeScript ESLint deny list（`src/tier3/typescript/.eslintrc.json` の `no-restricted-imports` 規定）
+
+`no-restricted-imports.patterns` に登録する禁止 package / パターン一覧:
+
+| パターン | 禁止理由 |
+|---|---|
+| `*tier1*` / `@tier1/*` / `@k1s0/tier1-*` | tier3 から tier1 への直接 import を禁止（tier2 SDK 経由必須） |
+| `@k1s0/tier2-admin-*` | 業務管理 API（tier2-admin）を tier3 業務 UI から直接 import 禁止 |
+| `*getAccessToken*` / `*get_access_token*` | access_token getter の公開を禁止（BFF cookie auth のみ許容） |
+| `*/admin/*` / `**/admin/**` | 業務管理 API（admin 配下）を tier3 業務 UI から直接 import 禁止（tier2 SDK 経由必須） |
+
+`import/no-restricted-paths.zones` に登録する禁止パス一覧:
+
+| target | from | 禁止理由 |
+|---|---|---|
+| `./packages` | `../../tier1` | tier3 packages から tier1 への直接 import を禁止（tier2 SDK 経由必須） |
+| `./spa` | `../../tier1` | tier3 SPA から tier1 への直接 import を禁止（tier2 SDK 経由必須） |
+
 ### 層 2: 業務管理 API import 禁止
 - tier3 業務 UI が業務管理 API（`/admin/v1/...` / `tier2.<pack>.admin.v1`）を import する経路を CI で禁止
 - C#: 業務管理 NuGet パッケージを参照不可（Central Package Management の許可リストから除外）

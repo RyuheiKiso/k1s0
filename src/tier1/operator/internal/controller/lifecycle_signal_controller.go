@@ -1,6 +1,8 @@
 // lifecycle_signal_controller.go — OSS ライフサイクルシグナルを集約する Reconcile controller
 // 08_OSSライフサイクル適合仕様.md §lifecycle_signal に準拠する
 // CVE / CVSS / maintainer_health 等 8 シグナルを OSV / deps.dev / GitHub API から実取得する
+// spec canonical の 8 signal を evaluateSpecSignals で評価し、OSSInventory.Status.TriggeredSignals に反映する
+// lifecycle_class 名は spec canonical 名（v1_l1plus_primary 等）に統一する
 
 // パッケージ名: controller（internal パッケージ: operator 外部からのインポート禁止）
 package controller
@@ -42,7 +44,7 @@ import (
 )
 
 // OssLifecycleSignal は OSS パッケージ 1 件の 8 ライフサイクルシグナルを保持する構造体
-// 08_OSSライフサイクル適合仕様.md §lifecycle_signal の 8 シグナル定義に対応する
+// 08_OSSライフサイクル適合仕様.md §lifecycle_signal の 8 シグナル定義に対応する（raw metrics）
 type OssLifecycleSignal struct {
 	// CVE 件数: NIST NVD / OSV から取得した既知の脆弱性の総数
 	CveCount int
@@ -60,6 +62,61 @@ type OssLifecycleSignal struct {
 	DependencyDepth int
 	// セキュリティポリシーの存在有無: SECURITY.md 等のポリシーが存在するか
 	HasSecurityPolicy bool
+}
+
+// OssTriggeredSignals は spec canonical の 8 signal が現在トリガーされているかを保持する
+// 08_OSSライフサイクル適合仕様.md §signal 8 値（license_change 等 canonical 名）に対応する
+type OssTriggeredSignals struct {
+	// LicenseChange: license_change signal — ライセンス変更シグナル
+	LicenseChange bool
+	// EolAnnounced: eol_announced signal — EOL 宣言シグナル
+	EolAnnounced bool
+	// CveBacklogThreshold: cve_backlog_threshold signal — CVE バックログ閾値超過シグナル
+	CveBacklogThreshold bool
+	// MaintainerTurnover: maintainer_turnover signal — メンテナー交代シグナル
+	MaintainerTurnover bool
+	// ForkEvent: fork_event signal — フォークイベントシグナル
+	ForkEvent bool
+	// ConformanceDrift: conformance_drift signal — conformance ドリフトシグナル
+	ConformanceDrift bool
+	// MajorUp: major_up signal — メジャーアップデートシグナル（deps.dev からの検出は別途実装）
+	MajorUp bool
+	// SpecDrift: spec_drift signal — spec ドリフトシグナル（spec 乖離検出は別途実装）
+	SpecDrift bool
+}
+
+// evaluateSpecSignals は OssLifecycleSignal（raw metrics）から spec canonical 8 signal を評価して返す
+// 08_OSSライフサイクル適合仕様.md §signal_threshold に定義された閾値を使用する
+func evaluateSpecSignals(raw OssLifecycleSignal) OssTriggeredSignals {
+	// 結果構造体を初期化する（全 signal は false で開始する）
+	result := OssTriggeredSignals{}
+
+	// cve_backlog_threshold: CVE 件数 > 5 または最大 CVSS スコア >= 9.0 の場合にトリガーする
+	result.CveBacklogThreshold = raw.CveCount > 5 || raw.MaxCvssScore >= 9.0
+
+	// eol_announced: 最終リリース日から 365 日超過の場合にトリガーする（暫定閾値、仕様に合わせて調整可）
+	result.EolAnnounced = raw.DaysSinceLastRelease > 365
+
+	// license_change: ライセンスが承認済みリストから変更された場合にトリガーする
+	result.LicenseChange = raw.LicenseDrift
+
+	// maintainer_turnover: メンテナー健全性スコアが 30 未満の場合にトリガーする
+	result.MaintainerTurnover = raw.MaintainerHealthScore < 30
+
+	// fork_event: フォーク乖離コミット数が 100 超の場合にトリガーする
+	result.ForkEvent = raw.ForkDivergenceCommits > 100
+
+	// conformance_drift: セキュリティポリシーが存在しない場合にトリガーする
+	result.ConformanceDrift = !raw.HasSecurityPolicy
+
+	// major_up: deps.dev からのメジャーバージョン bump 検出は別途実装（現在は false 固定）
+	result.MajorUp = false
+
+	// spec_drift: spec からの乖離検出は別途実装（現在は false 固定）
+	result.SpecDrift = false
+
+	// 評価済み signal 構造体を返す
+	return result
 }
 
 // osvVulnsResponse は OSV API /v1/query の レスポンス構造を宣言する
@@ -245,7 +302,7 @@ func fetchDepsDotDevSignals(ctx context.Context, ecosystem, packageName, version
 		t, parseErr := time.Parse(time.RFC3339, depsResp.PublishedAt)
 		// パース成功の場合は経過日数を計算する
 		if parseErr == nil {
-			// 現在時刻との差を計算する（日数単位）
+			// 現在時刻との差を計算する（日数単位: status 記録目的の wall-clock 使用、TTL 計算禁止）
 			daysSinceRelease = int(time.Since(t).Hours() / 24)
 		}
 	}
@@ -373,24 +430,25 @@ func fetchGitHubTokenFromSecret(ctx context.Context, c client.Client, namespace 
 
 // evaluateLifecycleSignal は OSSInventory の spec から lifecycle signal を評価して返す
 // OSV API / deps.dev API / GitHub API から実際のシグナルを取得する
+// lifecycle_class 値は 08_OSSライフサイクル適合仕様.md の spec canonical 名に準拠する
 func evaluateLifecycleSignal(ctx context.Context, c client.Client, inv tier1v1.OSSInventory) OssLifecycleSignal {
 	// LifecycleClass に応じてメンテナー健全性スコアを初期設定する
 	healthScore := 100
-	// ライフサイクルクラスに応じてスコアを分岐する
+	// spec canonical lifecycle_class 名に応じてスコアを分岐する
 	switch inv.Spec.LifecycleClass {
-	// L3_deprecated: メンテナーが非推奨宣言しているパッケージは健全性スコアを 30 にする
-	case "L3_deprecated":
-		// 非推奨パッケージのスコアを低く設定する
-		healthScore = 30
-	// L3_eol: サポート終了のパッケージは健全性スコアを 0 にする
-	case "L3_eol":
-		// EOL パッケージのスコアを最低値に設定する
-		healthScore = 0
-	// L2_maintenance: メンテナンスモードのパッケージは健全性スコアを 60 にする
-	case "L2_maintenance":
-		// メンテナンスモードのスコアを中間値に設定する
+	// v1_l3_generic: 標準クラスのパッケージは健全性スコアを 60 にする（非推奨宣言相当）
+	case "v1_l3_generic":
+		// 標準クラスの健全性スコアを中間値に設定する
 		healthScore = 60
-	// L1_active またはその他: アクティブなパッケージはデフォルトスコア 100 を維持する
+	// v1_l6_deprecated: 非推奨クラスのパッケージは健全性スコアを 0 にする（EOL 相当）
+	case "v1_l6_deprecated":
+		// 非推奨クラスのスコアを最低値に設定する
+		healthScore = 0
+	// v1_l2star_alt: 重要クラスのパッケージは健全性スコアを 60 にする（メンテナンスモード相当）
+	case "v1_l2star_alt":
+		// 重要クラスのスコアを中間値に設定する
+		healthScore = 60
+	// v1_l1plus_primary / v1_l4_dev_tool / v1_l5_sandbox またはその他: デフォルトスコア 100 を維持する
 	default:
 		// デフォルトスコアをそのまま維持する
 		healthScore = 100
@@ -554,7 +612,47 @@ func (r *LifecycleSignalReconciler) Reconcile(ctx context.Context, req reconcile
 		"has_security_policy", signal.HasSecurityPolicy,
 	)
 
-	// ---- 3. lifecycle class に基づいて active フラグを更新する ----
+	// ---- 3. spec canonical 8 signal を評価して triggered signal 一覧を構築する ----
+
+	// raw metrics から spec canonical の 8 signal をトリガー評価する
+	triggeredSpec := evaluateSpecSignals(signal)
+
+	// triggered signal の名前一覧を構築する（spec canonical 名を使用する）
+	triggeredNames := []string{}
+	// license_change signal がトリガーされた場合に追加する
+	if triggeredSpec.LicenseChange {
+		triggeredNames = append(triggeredNames, "license_change")
+	}
+	// eol_announced signal がトリガーされた場合に追加する
+	if triggeredSpec.EolAnnounced {
+		triggeredNames = append(triggeredNames, "eol_announced")
+	}
+	// cve_backlog_threshold signal がトリガーされた場合に追加する
+	if triggeredSpec.CveBacklogThreshold {
+		triggeredNames = append(triggeredNames, "cve_backlog_threshold")
+	}
+	// maintainer_turnover signal がトリガーされた場合に追加する
+	if triggeredSpec.MaintainerTurnover {
+		triggeredNames = append(triggeredNames, "maintainer_turnover")
+	}
+	// fork_event signal がトリガーされた場合に追加する
+	if triggeredSpec.ForkEvent {
+		triggeredNames = append(triggeredNames, "fork_event")
+	}
+	// conformance_drift signal がトリガーされた場合に追加する
+	if triggeredSpec.ConformanceDrift {
+		triggeredNames = append(triggeredNames, "conformance_drift")
+	}
+	// major_up signal がトリガーされた場合に追加する
+	if triggeredSpec.MajorUp {
+		triggeredNames = append(triggeredNames, "major_up")
+	}
+	// spec_drift signal がトリガーされた場合に追加する
+	if triggeredSpec.SpecDrift {
+		triggeredNames = append(triggeredNames, "spec_drift")
+	}
+
+	// ---- 4. lifecycle class に基づいて active フラグを更新する ----
 
 	// メンテナー健全性スコアが 50 以上の場合は active と判定する
 	isActive := signal.MaintainerHealthScore >= 50
@@ -570,13 +668,24 @@ func (r *LifecycleSignalReconciler) Reconcile(ctx context.Context, req reconcile
 	// active フラグを更新する
 	updated.Status.Active = isActive
 
+	// triggered signals を status に反映する
+	updated.Status.TriggeredSignals = triggeredNames
+
+	// frozen 状態を更新する（新規シグナルが発生した場合のみ凍結する）
+	if len(triggeredNames) > 0 && !updated.Status.Frozen {
+		// 新規 signal トリガーが発生した場合は凍結状態にする
+		updated.Status.Frozen = true
+		// 凍結の原因となった最初の signal 名を記録する
+		updated.Status.FreezeReason = triggeredNames[0]
+	}
+
 	// 最終検証時刻を現在時刻に更新する
 	// NOTE: wall-clock 使用は status の記録目的のみ許可される（deadline/TTL 計算への使用は禁止）
 	now := metav1.Now()
 	// 最終検証時刻ポインタを設定する
 	updated.Status.LastVerifiedAt = &now
 
-	// ---- 4. OSSInventory の status を API サーバに書き込む ----
+	// ---- 5. OSSInventory の status を API サーバに書き込む ----
 
 	// status サブリソースを更新する（Status() を使うことで spec への誤上書きを防ぐ）
 	if err := r.Client.Status().Update(ctx, updated); err != nil {
@@ -589,7 +698,7 @@ func (r *LifecycleSignalReconciler) Reconcile(ctx context.Context, req reconcile
 		return reconcile.Result{}, fmt.Errorf("update OSSInventory status: %w", err)
 	}
 
-	// ---- 5. 次回 Reconcile のスケジュールを設定する ----
+	// ---- 6. 次回 Reconcile のスケジュールを設定する ----
 
 	// lifecycle signal は日次更新で十分なため 24 時間後に再 Reconcile する
 	return reconcile.Result{RequeueAfter: 24 * time.Hour}, nil

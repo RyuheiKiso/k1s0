@@ -30,5 +30,24 @@ export type {
 export { resolveSubtypeActions } from "./subtypes.js";
 
 // 4 layer reducer と helper を公開する
-export type { ClientState, ReducerResult, ReducerAction } from "./reducer.js";
+// AutoResendWithChainedKeyAction を追加で export する（T3-4 typed action 公開）
+export type {
+  ClientState,
+  ReducerResult,
+  ReducerAction,
+  AutoResendWithChainedKeyAction,
+} from "./reducer.js";
 export { createInitialState, reducePurge, reduce } from "./reducer.js";
+
+// Idempotency-Key 形式定数・型・ヘルパー関数を公開する
+// 04_状態管理.md §Idempotency-Key format: ULID + tenant_id + RPC method short hash
+export type { IdempotencyKeyComponents, OverTtlPolicy } from "./idempotency.js";
+export {
+  IDEMPOTENCY_KEY_SEPARATOR,
+  IDEMPOTENCY_KEY_METHOD_HASH_LENGTH,
+  IDEMPOTENCY_KEY_TTL_MS,
+  DEFAULT_OVER_TTL_POLICY,
+  buildIdempotencyKey,
+  chainIdempotencyKey,
+  isIdempotencyKeyExpired,
+} from "./idempotency.js";

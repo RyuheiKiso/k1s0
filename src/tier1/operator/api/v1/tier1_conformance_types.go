@@ -1,6 +1,8 @@
 // tier1_conformance_types.go — k1s0 tier1 operator: OSSInventory CRD 型定義
 // 08_OSSライフサイクル適合仕様.md §lifecycle_class セットに準拠する。
+// lifecycle_class 名は spec canonical 名（v1_l1plus_primary 等 6 値）に統一する。
 // OSSInventory CRD は tier1 OSS パッケージのライフサイクル管理（lifecycle_class / license 追跡）を行う。
+// freeze / unfreeze フィールドで lifecycle signal トリガーによる凍結状態を管理する。
 
 // パッケージ名: v1 API グループ（types.go と同一パッケージに属する）
 package v1
@@ -20,7 +22,9 @@ type OSSInventorySpec struct {
 	// ライセンス種別: MIT / Apache-2.0 / GPL-3.0 等の SPDX 表記を使用する
 	LicenseType string `json:"licenseType,omitempty"`
 	// lifecycle_class: 08_OSSライフサイクル適合仕様.md §lifecycle_class セットの値を指定する
-	// L1_active / L2_maintenance / L3_deprecated / L3_eol のいずれかを指定する
+	// v1_l1plus_primary / v1_l1plus_pair_target / v1_l2star_member / v1_l3_runtime / v1_reserved_category / v1_inhouse_authoritative のいずれかを指定する
+	// SoT: src/tier1/schema/oss_lifecycle/classes.yaml §lifecycle_classes 6 値
+	// +kubebuilder:validation:Enum=v1_l1plus_primary;v1_l1plus_pair_target;v1_l2star_member;v1_l3_runtime;v1_reserved_category;v1_inhouse_authoritative
 	LifecycleClass string `json:"lifecycleClass,omitempty"`
 	// バージョン: 使用中の OSS パッケージバージョン（semver 表記）
 	Version string `json:"version,omitempty"`
@@ -30,13 +34,30 @@ type OSSInventorySpec struct {
 }
 
 // OSSInventoryStatus は OSSInventory リソースのステータスを定義する
+// lifecycle signal トリガーによる freeze / unfreeze 状態を含む
 type OSSInventoryStatus struct {
-	// ライフサイクル状態が有効であるか: lifecycle_class が L1_active なら true
+	// ライフサイクル状態が有効であるか: MaintainerHealthScore >= 50 かつ Critical CVE なしの場合 true
 	// +optional
 	Active bool `json:"active,omitempty"`
-	// 最終確認時刻: Reconciler が lifecycle 状態を確認した時刻
+	// 最終確認時刻: Reconciler が lifecycle 状態を確認した時刻（status 記録目的の wall-clock: TTL 計算禁止）
 	// +optional
 	LastVerifiedAt *metav1.Time `json:"lastVerifiedAt,omitempty"`
+	// Frozen: lifecycle signal トリガーにより OSS 利用が凍結されているか
+	// +optional
+	Frozen bool `json:"frozen,omitempty"`
+	// FrozenUntil: 凍結の期限（dual sign-off で解除されるまで nil）
+	// NOTE: TTL / deadline 計算への使用は wall-clock TTL 禁止規約により禁止する
+	// +optional
+	FrozenUntil *metav1.Time `json:"frozenUntil,omitempty"`
+	// FreezeReason: 凍結の原因となった signal 名（08_OSSライフサイクル適合仕様.md §signal 8 値の canonical 名）
+	// +optional
+	FreezeReason string `json:"freezeReason,omitempty"`
+	// UnfreezeSignoffs: 解凍承認済み sign-off の一覧（dual sign-off 規約に基づく解除承認リスト）
+	// +optional
+	UnfreezeSignoffs []string `json:"unfreezeSignoffs,omitempty"`
+	// TriggeredSignals: 現在トリガーされている signal 名の一覧（spec canonical 8 signal 名）
+	// +optional
+	TriggeredSignals []string `json:"triggeredSignals,omitempty"`
 }
 
 // OSSInventory は tier1 OSS ライフサイクル管理の CRD
@@ -46,6 +67,7 @@ type OSSInventoryStatus struct {
 // +kubebuilder:printcolumn:name="Package",type=string,JSONPath=".spec.packageName"
 // +kubebuilder:printcolumn:name="LifecycleClass",type=string,JSONPath=".spec.lifecycleClass"
 // +kubebuilder:printcolumn:name="Active",type=boolean,JSONPath=".status.active"
+// +kubebuilder:printcolumn:name="Frozen",type=boolean,JSONPath=".status.frozen"
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
 type OSSInventory struct {
 	// Kubernetes 型メタ情報を埋め込む
@@ -87,6 +109,26 @@ func (in *OSSInventory) DeepCopyObject() runtime.Object {
 		t := *in.Status.LastVerifiedAt
 		out.Status.LastVerifiedAt = &t
 	}
+	// FrozenUntil は *metav1.Time（ポインタ型）なのでディープコピーが必要
+	if in.Status.FrozenUntil != nil {
+		// 新しい Time 値を生成してポインタを設定する
+		t := *in.Status.FrozenUntil
+		out.Status.FrozenUntil = &t
+	}
+	// UnfreezeSignoffs スライスのディープコピーを実行する
+	if in.Status.UnfreezeSignoffs != nil {
+		// スライスを新規アロケートして内容をコピーする
+		out.Status.UnfreezeSignoffs = make([]string, len(in.Status.UnfreezeSignoffs))
+		// 各 sign-off 文字列をコピーする
+		copy(out.Status.UnfreezeSignoffs, in.Status.UnfreezeSignoffs)
+	}
+	// TriggeredSignals スライスのディープコピーを実行する
+	if in.Status.TriggeredSignals != nil {
+		// スライスを新規アロケートして内容をコピーする
+		out.Status.TriggeredSignals = make([]string, len(in.Status.TriggeredSignals))
+		// 各 signal 名文字列をコピーする
+		copy(out.Status.TriggeredSignals, in.Status.TriggeredSignals)
+	}
 	// コピーした OSSInventory を返す
 	return out
 }
@@ -116,6 +158,26 @@ func (in *OSSInventoryList) DeepCopyObject() runtime.Object {
 				// 新しい Time 値を生成してポインタを設定する
 				t := *in.Items[i].Status.LastVerifiedAt
 				out.Items[i].Status.LastVerifiedAt = &t
+			}
+			// FrozenUntil ポインタをディープコピーする
+			if in.Items[i].Status.FrozenUntil != nil {
+				// 新しい Time 値を生成してポインタを設定する
+				t := *in.Items[i].Status.FrozenUntil
+				out.Items[i].Status.FrozenUntil = &t
+			}
+			// UnfreezeSignoffs スライスをディープコピーする
+			if in.Items[i].Status.UnfreezeSignoffs != nil {
+				// スライスを新規アロケートして内容をコピーする
+				out.Items[i].Status.UnfreezeSignoffs = make([]string, len(in.Items[i].Status.UnfreezeSignoffs))
+				// 各 sign-off 文字列をコピーする
+				copy(out.Items[i].Status.UnfreezeSignoffs, in.Items[i].Status.UnfreezeSignoffs)
+			}
+			// TriggeredSignals スライスをディープコピーする
+			if in.Items[i].Status.TriggeredSignals != nil {
+				// スライスを新規アロケートして内容をコピーする
+				out.Items[i].Status.TriggeredSignals = make([]string, len(in.Items[i].Status.TriggeredSignals))
+				// 各 signal 名文字列をコピーする
+				copy(out.Items[i].Status.TriggeredSignals, in.Items[i].Status.TriggeredSignals)
 			}
 		}
 	}

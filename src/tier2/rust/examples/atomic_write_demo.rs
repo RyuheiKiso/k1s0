@@ -148,11 +148,13 @@ async fn main() {
     println!();
 
     // ============================================================
-    // P1: SQL 生成デモ（実 DB 不要）
+    // P1: P3 事前検証デモ（実 DB 不要）
+    // build_triple_write_sql は raw SQL concat 禁止規律により削除済み
+    // 実際の三表書込は execute() が sqlx::query + placeholders で実行する
     // ============================================================
-    println!("--- P1: triple write SQL 生成デモ ---");
+    println!("--- P1: verify_tenant_id + verify_pii_audit_required デモ ---");
 
-    // TenantContext の SET LOCAL SQL を確認する
+    // TenantContext を生成する
     let ctx_demo = TenantContext::from_auth(
         tenant_a,
         "demo-actor-sql".to_string(),
@@ -160,25 +162,17 @@ async fn main() {
     );
     // AtomicTripleWrite を生成する（TenantContext と PgPool を渡す）
     let writer_demo = AtomicTripleWrite::new(ctx_demo, demo_pool.clone());
-    // SQL を生成する（実 DB 不要）
-    match writer_demo.build_triple_write_sql(&valid_change) {
-        Ok(sql) => {
-            // SQL が生成されたことを確認する
-            println!("  P1: triple write SQL 生成成功 ({} chars)", sql.len());
-            // BEGIN / domain_event / outbox_message / audit_event / COMMIT が含まれることを確認する
-            println!("    - BEGIN:         {}", sql.contains("BEGIN"));
-            println!("    - domain_event:  {}", sql.contains("domain_event"));
-            // outbox_message テーブル名を確認する（migration SoT: k1s0.outbox_message）
-            println!("    - outbox_message:{}", sql.contains("outbox_message"));
-            println!("    - audit_event:   {}", sql.contains("audit_event"));
-            println!("    - COMMIT:       {}", sql.contains("COMMIT"));
-            println!("    - app.tenant_id GUC 注入: {}", sql.contains("app.tenant_id"));
-        }
-        Err(e) => {
-            // SQL 生成失敗（P3 違反等）
-            println!("  P1: SQL 生成失敗: {}", e);
-        }
+    // P1: verify_tenant_id を実行して事前検証が成功することを確認する
+    match writer_demo.verify_tenant_id(&valid_change) {
+        // 検証成功: P1 の事前検証が通過したことを示す
+        Ok(_) => println!("  P1: verify_tenant_id 成功（書込前 P3 検証通過）"),
+        // 検証失敗: このデモでは発生しないはず
+        Err(e) => println!("  P1: verify_tenant_id 失敗（想定外）: {}", e),
     }
+    // P1: verify_pii_audit_required を実行して PII 監査必須フラグを確認する
+    let pii_check = writer_demo.verify_pii_audit_required(&valid_change);
+    // TenantScoped は PII audit 不要
+    println!("  P1: TenantScoped pii_audit_required = {} (expected: false)", pii_check);
 
     println!();
 

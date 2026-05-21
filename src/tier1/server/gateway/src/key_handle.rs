@@ -1,184 +1,22 @@
-// key_handle.rs — spec 05 鍵管理適合仕様: KeyHandle opaque 型
-// 04_認証適合仕様.md §v1 auth_class と 05_鍵管理適合仕様.md §v1 key_class に基づく。
-// 公開 API シグネチャに生 key bytes を露出しない opaque 型を実装する。
-// KeyMaterial は zeroize で drop 時にメモリをゼロクリアする。
-// OpenBaoTransitClient: OpenBao Transit API の sign/verify/wrap/unwrap ラッパーを実装する。
-// TenantTokenBucket: テナント容量適合仕様 09 の per-tenant token bucket を実装する。
+// key_handle.rs — k1s0 tier1 gateway: KeyClass / KeyHandle の canonical 再エクスポート
+// 独自定義を廃止し、k1s0-tier1-library の canonical 実装を参照する。
+// CLAUDE.md「重複実装は drift リスクで禁止」規律の物理化。
+// OpenBaoTransitClient は gateway 固有の HTTP クライアントとして本モジュールで提供する。
 
-// fmt: Display / Debug トレイト実装のための標準フォーマットモジュール
-use std::fmt;
-// serde: JSON シリアライズ / デシリアライズ（KeyHandle の HTTP 転送用）
-use serde::{Deserialize, Serialize};
-// zeroize: 機密データの drop 時ゼロクリア（KeyMaterial に適用）
-use zeroize::Zeroize;
-// base64: payload を OpenBao Transit API の input フィールド用に Base64 エンコードする
+// k1s0-tier1-library の KeyClass を canonical 実装から再エクスポートする
+pub use k1s0_tier1_library::key_handle::KeyClass;
+// k1s0-tier1-library の OpenBaoKeyHandle を KeyHandle として再エクスポートする
+// gateway の公開 API シグネチャ（handle: KeyHandle）との後方互換を保つ type alias
+pub use k1s0_tier1_library::key_handle::OpenBaoKeyHandle as KeyHandle;
+
+// base64: OpenBao Transit API の input フィールド用 Base64 エンコードに使用する
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 // std::env: 環境変数から OpenBao 接続設定を読み込む
 use std::env;
-// governor: per-tenant token bucket rate limiter（テナント容量適合仕様 09 の library_token_bucket）
-use governor::{Quota, RateLimiter, DefaultKeyedRateLimiter};
-// std::num::NonZeroU32: governor の Quota::per_second に必要な非ゼロ型
-use std::num::NonZeroU32;
-// std::sync::Arc: TenantTokenBucket の limiter を複数スレッドで共有する
-use std::sync::Arc;
 
-// KeyClass は 05_鍵管理適合仕様.md §v1 key_class セット（5 class）を宣言する。
-// class 1 値が key_usage / rotation_policy / storage_backend を一意に導出する。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum KeyClass {
-    // v1_data_dek: データ暗号化鍵（DEK）— テナントデータの AES-256-GCM 暗号化
-    V1DataDek,
-    // v1_data_kek: 鍵暗号化鍵（KEK）— DEK を wrap する HSM/OpenBao Transit 管理鍵
-    V1DataKek,
-    // v1_token_signing: トークン署名鍵 — JWT / DPoP proof 署名用 EC / EdDSA 秘密鍵
-    V1TokenSigning,
-    // v1_audit_root_signing: 監査ログ root 署名鍵 — audit chain の信頼アンカー
-    V1AuditRootSigning,
-    // v1_mtls_workload: workload mTLS 鍵 — SPIRE SVID 由来の TLS クライアント証明書秘密鍵
-    V1MtlsWorkload,
-}
-
-impl fmt::Display for KeyClass {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // KeyClass の文字列表現を返す（spec の class 名と 1:1 対応）
-        match self {
-            KeyClass::V1DataDek => write!(f, "v1_data_dek"),
-            KeyClass::V1DataKek => write!(f, "v1_data_kek"),
-            KeyClass::V1TokenSigning => write!(f, "v1_token_signing"),
-            KeyClass::V1AuditRootSigning => write!(f, "v1_audit_root_signing"),
-            KeyClass::V1MtlsWorkload => write!(f, "v1_mtls_workload"),
-        }
-    }
-}
-
-// KeyMaterial は実際の key bytes を保持する。drop 時に zeroize でゼロクリアする。
-// KeyHandle の内部にのみ存在し、公開 API から見えない。
-// Debug impl は key_bytes を "[REDACTED]" で隠蔽する。
-#[derive(Zeroize)]
-#[zeroize(drop)]
-struct KeyMaterial {
-    // key_bytes: 実際の暗号化鍵バイト列（AES-256 = 32 bytes, EC-P256 = 32 bytes etc.）
-    key_bytes: Vec<u8>,
-}
-
-impl fmt::Debug for KeyMaterial {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // key_bytes の内容を出力しない（[REDACTED] で隠蔽する）
-        f.debug_struct("KeyMaterial")
-            .field("key_bytes", &"[REDACTED]")
-            .finish()
-    }
-}
-
-// KeyHandle は生 key bytes を公開しない opaque 型。
-// 05_鍵管理適合仕様.md の "KeyHandle 必須型" 規律を Rust 型システムで実装する。
-// Serialize は handle_id / key_class のみを expose し、key_bytes は含まない。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KeyHandle {
-    // handle_id: OpenBao Transit の key version identifier（UUID v7 形式）
-    pub handle_id: String,
-    // key_class: 鍵の用途クラス（5 class のいずれか）
-    pub key_class: KeyClass,
-    // is_valid: OpenBao による鍵の有効性確認結果（revoke / rotate 後 false になる）
-    pub is_valid: bool,
-    // raw bytes は Serialize に含まれない（serde(skip) で隠蔽する）
-    #[serde(skip)]
-    _material: Option<Arc<KeyMaterial>>,
-}
-
-impl KeyHandle {
-    // from_remote_handle は OpenBao Transit が管理する鍵の handle を構築する。
-    // 生 key bytes は Gateway に渡らず OpenBao 内に閉じる（spec §5 層 defense-in-depth 層 A）。
-    // handle_id: OpenBao Transit key name（`/v1/transit/sign/{handle_id}` で参照する）。
-    pub fn from_remote_handle(key_class: KeyClass, handle_id: String) -> Self {
-        // _material は None: bytes は OpenBao 内に閉じるため Gateway は保持しない
-        Self {
-            // OpenBao Transit key name を handle_id として設定する
-            handle_id,
-            // 鍵の用途クラスを設定する
-            key_class,
-            // OpenBao Transit 経由で生成直後は有効と見なす
-            is_valid: true,
-            // Gateway は生 key bytes を保持しない（spec §公開 API 型保証）
-            _material: None,
-        }
-    }
-
-    // key_class_str は key_class の文字列表現を返す（Serialize 済みフィールドのヘルパー）
-    pub fn key_class_str(&self) -> String {
-        // Display impl を使って文字列に変換する
-        self.key_class.to_string()
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OpenBao Transit API レスポンス型（serde_json でデシリアライズする）
-// ─────────────────────────────────────────────────────────────────────────────
-
-// TransitSignResponse: POST /v1/{mount}/sign/{key} のレスポンス構造体
-#[derive(Debug, Deserialize)]
-struct TransitSignResponse {
-    // data: OpenBao Transit API レスポンスのデータオブジェクト
-    data: TransitSignData,
-}
-
-// TransitSignData: sign エンドポイントの data フィールド
-#[derive(Debug, Deserialize)]
-struct TransitSignData {
-    // signature: vault:v1:{base64} 形式の署名文字列
-    signature: String,
-}
-
-// TransitVerifyResponse: POST /v1/{mount}/verify/{key} のレスポンス構造体
-#[derive(Debug, Deserialize)]
-struct TransitVerifyResponse {
-    // data: OpenBao Transit API レスポンスのデータオブジェクト
-    data: TransitVerifyData,
-}
-
-// TransitVerifyData: verify エンドポイントの data フィールド
-#[derive(Debug, Deserialize)]
-struct TransitVerifyData {
-    // valid: 署名検証結果（true = 有効, false = 無効）
-    valid: bool,
-}
-
-// TransitEncryptResponse: POST /v1/{mount}/encrypt/{key} のレスポンス構造体
-#[derive(Debug, Deserialize)]
-struct TransitEncryptResponse {
-    // data: OpenBao Transit API レスポンスのデータオブジェクト
-    data: TransitEncryptData,
-}
-
-// TransitEncryptData: encrypt エンドポイントの data フィールド
-#[derive(Debug, Deserialize)]
-struct TransitEncryptData {
-    // ciphertext: vault:v1:{base64} 形式の暗号文字列
-    ciphertext: String,
-}
-
-// TransitDecryptResponse: POST /v1/{mount}/decrypt/{key} のレスポンス構造体
-#[derive(Debug, Deserialize)]
-struct TransitDecryptResponse {
-    // data: OpenBao Transit API レスポンスのデータオブジェクト
-    data: TransitDecryptData,
-}
-
-// TransitDecryptData: decrypt エンドポイントの data フィールド
-#[derive(Debug, Deserialize)]
-struct TransitDecryptData {
-    // plaintext: Base64 エンコードされた復号済みペイロード
-    plaintext: String,
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OpenBaoTransitClient: OpenBao Transit secrets engine の HTTP クライアント
-// ─────────────────────────────────────────────────────────────────────────────
-
-// OpenBaoTransitClient は OpenBao Transit API の sign/verify/wrap/unwrap を実装する。
+// OpenBaoTransitClient は gateway が OpenBao Transit API を呼び出す HTTP クライアント。
+// sign / verify / wrap / unwrap の 4 操作を提供する（05_鍵管理適合仕様.md §transit_client）。
 // TLS なし（envoy サービスメッシュが mTLS を終端する）で動作する。
-// 05_鍵管理適合仕様.md §transit_client の実装クラス。
 pub struct OpenBaoTransitClient {
     // base_url: OpenBao API base URL（例: http://openbao.svc:8200）
     base_url: String,
@@ -256,18 +94,22 @@ impl OpenBaoTransitClient {
             // anyhow::bail!: エラーを返す
             anyhow::bail!("OpenBao sign failed: HTTP {} — {}", status, body_text);
         }
-        // parsed: JSON レスポンスを TransitSignResponse 構造体にデシリアライズする
-        let parsed: TransitSignResponse = response.json().await?;
-        // signature_str: vault:v1:{base64} 形式の署名文字列
-        let signature_str = parsed.data.signature;
+        // parsed: JSON レスポンスを serde_json::Value にデシリアライズする
+        let parsed: serde_json::Value = response.json().await?;
+        // signature_str: vault:v1:{base64} 形式の署名文字列を取得する
+        let signature_str = parsed["data"]["signature"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("OpenBao sign: signature フィールドが存在しない"))?
+            .to_string();
         // raw_b64: "vault:v1:" プレフィックスを除去して Base64 部分を取得する
         let raw_b64 = signature_str
             // "vault:v1:" プレフィックスを除去する（存在しない場合は元の文字列を使う）
             .strip_prefix("vault:v1:")
             // unwrap_or: プレフィックスがない場合は元の文字列をそのまま使う
-            .unwrap_or(&signature_str);
+            .unwrap_or(&signature_str)
+            .to_string();
         // decoded: Base64 デコードして署名バイト列を取得する
-        let decoded = BASE64.decode(raw_b64)?;
+        let decoded = BASE64.decode(&raw_b64)?;
         // 署名バイト列を返す
         Ok(decoded)
     }
@@ -319,10 +161,10 @@ impl OpenBaoTransitClient {
             // anyhow::bail!: エラーを返す
             anyhow::bail!("OpenBao verify failed: HTTP {} — {}", status, body_text);
         }
-        // parsed: JSON レスポンスを TransitVerifyResponse 構造体にデシリアライズする
-        let parsed: TransitVerifyResponse = response.json().await?;
+        // parsed: JSON レスポンスを serde_json::Value にデシリアライズする
+        let parsed: serde_json::Value = response.json().await?;
         // valid フィールドの bool 値を返す（true = 署名有効, false = 無効）
-        Ok(parsed.data.valid)
+        Ok(parsed["data"]["valid"].as_bool().unwrap_or(false))
     }
 
     // wrap は Transit encryption で plaintext を暗号化する（DEK の KEK wrap に使用する）。
@@ -365,10 +207,13 @@ impl OpenBaoTransitClient {
             // anyhow::bail!: エラーを返す
             anyhow::bail!("OpenBao wrap (encrypt) failed: HTTP {} — {}", status, body_text);
         }
-        // parsed: JSON レスポンスを TransitEncryptResponse 構造体にデシリアライズする
-        let parsed: TransitEncryptResponse = response.json().await?;
+        // parsed: JSON レスポンスを serde_json::Value にデシリアライズする
+        let parsed: serde_json::Value = response.json().await?;
         // ciphertext_str: vault:v1:{base64} 形式の暗号文字列を取得する
-        let ciphertext_str = parsed.data.ciphertext;
+        let ciphertext_str = parsed["data"]["ciphertext"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("OpenBao wrap: ciphertext フィールドが存在しない"))?
+            .to_string();
         // 暗号文字列をバイト列に変換して返す（呼び出し元は vault:v1: プレフィックス込みで保存する）
         Ok(ciphertext_str.into_bytes())
     }
@@ -399,7 +244,7 @@ impl OpenBaoTransitClient {
         let response = self.http
             // POST リクエストを送信する
             .post(&url)
-            // X-Vault-Token ヘッダーに OpenBao API トークンをセットする
+            // X-Vault-Token ヘッダーに OpenBao API トークンをせっとする
             .header("X-Vault-Token", &self.token)
             // JSON body をセットする
             .json(&body)
@@ -415,63 +260,16 @@ impl OpenBaoTransitClient {
             // anyhow::bail!: エラーを返す
             anyhow::bail!("OpenBao unwrap (decrypt) failed: HTTP {} — {}", status, body_text);
         }
-        // parsed: JSON レスポンスを TransitDecryptResponse 構造体にデシリアライズする
-        let parsed: TransitDecryptResponse = response.json().await?;
+        // parsed: JSON レスポンスを serde_json::Value にデシリアライズする
+        let parsed: serde_json::Value = response.json().await?;
         // plaintext_b64: Base64 エンコードされた復号済みペイロードを取得する
-        let plaintext_b64 = parsed.data.plaintext;
+        let plaintext_b64 = parsed["data"]["plaintext"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("OpenBao unwrap: plaintext フィールドが存在しない"))?
+            .to_string();
         // decoded: Base64 デコードして平文バイト列を取得する
         let decoded = BASE64.decode(&plaintext_b64)?;
         // 平文バイト列を返す
         Ok(decoded)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TenantTokenBucket: テナント容量適合仕様 09 per-tenant token bucket
-// ─────────────────────────────────────────────────────────────────────────────
-
-// TenantTokenBucket はテナント容量適合仕様 09 の library_token_bucket を実装する。
-// governor crate の DefaultKeyedRateLimiter<String> を使って per-tenant rate を管理する。
-// check_and_consume は token 消費に成功した場合 true、rate limit 超過時 false を返す。
-pub struct TenantTokenBucket {
-    // limiter: テナント ID をキーとした per-tenant GCRA rate limiter
-    // DefaultKeyedRateLimiter<String> は DashMap をバックエンドとしてスレッドセーフに動作する
-    limiter: Arc<DefaultKeyedRateLimiter<String>>,
-}
-
-impl TenantTokenBucket {
-    // new は tokens_per_second を上限とする per-tenant token bucket を生成する。
-    // governor の Quota::per_second で 1 秒あたりのトークン上限を設定する。
-    pub fn new(
-        // tokens_per_second: テナントごとの 1 秒あたりのトークン許容数（0 は panic）
-        tokens_per_second: u32,
-    ) -> Self {
-        // nz: NonZeroU32 に変換する（0 は panic; caller が正値を保証する）
-        let nz = NonZeroU32::new(tokens_per_second)
-            // 0 が渡された場合は即 panic してミスコンフィグを検出する
-            .expect("tokens_per_second must be > 0");
-        // quota: 1 秒あたり tokens_per_second トークンの GCRA Quota を定義する
-        let quota = Quota::per_second(nz);
-        // keyed: テナント ID をキーとした DefaultKeyedRateLimiter を生成する
-        let keyed = RateLimiter::keyed(quota);
-        // limiter を Arc で包んで clone 可能にする
-        Self { limiter: Arc::new(keyed) }
-    }
-
-    // check_and_consume は tenant_id に対してトークンを 1 つ消費しようとする。
-    // 消費に成功（rate limit 内）なら true を返す。
-    // rate limit 超過なら false を返す（caller は HTTP 429 等を返す）。
-    pub async fn check_and_consume(
-        &self,
-        // tenant_id: トークンを消費するテナントの識別子（UUID v4 文字列等）
-        tenant_id: &str,
-    ) -> bool {
-        // check_key: tenant_id キーでトークンを 1 つ消費する
-        // Ok(()) = 消費成功, Err(_) = rate limit 超過
-        self.limiter
-            // String キーで check_key を呼び出す
-            .check_key(&tenant_id.to_string())
-            // is_ok(): Ok なら true, Err なら false を返す
-            .is_ok()
     }
 }

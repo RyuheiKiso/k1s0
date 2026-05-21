@@ -3,7 +3,8 @@ id: detail.tier1.tier1_enforcement
 axis: tier1
 phase: detail
 kind: enforcement
-status: draft
+status: published
+version: "1.0.0"
 depends_on:
   - arch.tier1.tier1_index
   - arch.tier1.feature_categories
@@ -31,7 +32,7 @@ covered_by:
 - protoc + Buf による単一 codegen pipeline（External / Internal Proto 両層）
 - 全 RPC method に必須 method annotation（`tier1.bidi.conformance_class` / `tier1.auth.auth_class` / `tier1.slo.slo_class` / `tier1.capacity.quota_class` / `tier1.observability.signal_class` / `field_pii` / `redaction_class`）
 - KeyHandle / AuthContext は必須引数化、生 key bytes / 生 access_token 不可視
-- build artifact（`capabilities.lock.yaml` / `dry_run.lock.yaml` / `instruments.lock.yaml` / `enforcement_points.lock.yaml` / `backends.lock.yaml` / `idp_capabilities.lock.yaml` / `oss_inventory.lock.yaml` / `registries.lock.yaml`）は手書き禁止
+- build artifact（`capabilities.lock.yaml` / `dry_run.lock.yaml` / `instruments.lock.yaml` / `enforcement_points.lock.yaml` / `backends.lock.yaml` / `idp_capabilities.lock.yaml` / `oss_inventory.lock.yaml` / `registries.lock.yaml` / `signals.lock.yaml`）は手書き禁止
 
 ### 層 B: lint（規約 check）
 - Buf custom lint（proto → 各適合仕様の `classes.yaml` 照合）

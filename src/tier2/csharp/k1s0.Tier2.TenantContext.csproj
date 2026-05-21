@@ -21,4 +21,8 @@
     <!-- Npgsql: PostgreSQL クライアント（NpgsqlTransaction による実 transaction に使用する） -->
     <PackageReference Include="Npgsql" Version="8.0.5" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- K1s0.HlcLib: wall-clock TTL 禁止規約 (src/CLAUDE.md §wall-clock TTL 禁止) に従い HLC wrapper を参照する -->
+    <ProjectReference Include="../../client/hlc_lib/csharp/HlcLib/HlcLib.csproj" />
+  </ItemGroup>
 </Project>

@@ -14,7 +14,12 @@ require (
 	// github.com/jackc/pgx/v5: PostgreSQL クライアント（実 transaction に使用する）
 	// stdlib サブパッケージを使って database/sql 互換インターフェースを提供する
 	github.com/jackc/pgx/v5 v5.7.2
+	// github.com/k1s0/hlc-lib-go: HLC クロック（wall-clock TTL 禁止規律に従い time.Now() の代替として使用する）
+	github.com/k1s0/hlc-lib-go v0.0.0-00010101000000-000000000000
 )
+
+// ローカル path への replace ディレクティブ（HLC lib は src/client/hlc_lib/go に配置されている）
+replace github.com/k1s0/hlc-lib-go => ../../../client/hlc_lib/go
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

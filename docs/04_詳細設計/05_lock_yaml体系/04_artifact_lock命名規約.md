@@ -31,7 +31,18 @@ covered_by:
   - `oss_inventory.lock.yaml`（tier1 OSS lifecycle 適合仕様）
   - `enforcement_points.lock.yaml`（tier1 テナント容量適合仕様）
   - `migration.lock.yaml`（tier2 テナント分離適合仕様）
+  - `abac_opa.lock.yaml`（tier2 テナント分離適合仕様 — ABAC OPA policy artifact）
+  - `api_neutrality.lock.yaml`（tier2 テナント分離適合仕様 — API neutrality check artifact）
+  - `quota.lock.yaml`（tier2 テナント分離適合仕様 — テナント quota enforcement artifact）
+  - `registry_pin.lock.yaml`（tier2 テナント分離適合仕様 — container registry pin artifact）
+  - `scheduler_argo.lock.yaml`（tier2 テナント分離適合仕様 — Argo Workflows scheduler artifact）
+  - `second_industry_stub.lock.yaml`（tier2 テナント分離適合仕様 — 第二業種 stub artifact）
+  - `weaver.lock.yaml`（tier2 テナント分離適合仕様 — OTel Weaver semconv artifact）
   - `conflict_tree.lock.yaml`（tier3 クライアント状態適合仕様）
+  - `forms_lint.lock.yaml`（tier3 クライアント状態適合仕様 — フォーム lint ルール artifact）
+  - `notifications_property.lock.yaml`（tier3 クライアント状態適合仕様 — 通知 property test artifact）
+  - `design_tokens_contrast.lock.yaml`（tier3 クライアント状態適合仕様 — デザイントークン contrast 検査 artifact）
+  - `forbidden_export_symbols.lock.yaml`（tier3 クライアント状態適合仕様 — 公開シンボル禁止リスト artifact）
   - `sdk_inventory.lock.yaml` / `capability_matrix.lock.yaml` / `sdk_conformance.lock.yaml`（client クライアント SDK 配布適合仕様）
   - `proof_inventory.lock.yaml` / `proof_status.lock.yaml` / `counter_example.lock.yaml` / `proof_review.lock.yaml` / `proof_matrix.lock.yaml` / `assumption.lock.yaml` / `mathlib_pin.lock.yaml` / `tla_apalache_pin.lock.yaml` / `kani_cbmc_pin.lock.yaml`（formal 形式検証適合仕様）
   - `cross_cutting_registry.lock.yaml`（cross-cutting cluster bundle map）
@@ -55,6 +66,30 @@ covered_by:
 - **build artifact（lock_artifacts に登録）**: `*.lock.yaml`、build script で生成、手書き禁止
 - **軸 enum / catalog**: `classes.yaml` / `scenarios.yaml` / `phases.yaml` / `test_matrix.yaml` 等、手書き、軸の単一の真
 - 区別の意図: 手書きと build artifact の混同を防ぐ
+
+## _input.yaml 系ファイルの位置づけ
+
+`_input.yaml` 系ファイルは `tools/lock_yaml_generator/` 配下に置く **generator の入力ファイル**（手書き）であり、`*.lock.yaml` build artifact とは明確に区別される。
+
+### 役割と命名規則
+- **命名パターン**: `<lock_stem>_input.yaml`（例: `capabilities_input.yaml`、`oss_inventory_input.yaml`）
+- **配置先**: `tools/lock_yaml_generator/inputs/` または各軸 generator のサブディレクトリ
+- **性質**: 手書き可・git 管理対象・frontmatter `lock_artifacts` には登録しない
+- **用途**: generator スクリプトが `_input.yaml` を読み込み、validation・enrichment を加えて `*.lock.yaml` を生成する
+
+### _input.yaml と .lock.yaml の対応関係
+
+| _input.yaml（手書き入力） | 生成される .lock.yaml（build artifact） |
+|---|---|
+| `capabilities_input.yaml` | `capabilities.lock.yaml` |
+| `oss_inventory_input.yaml` | `oss_inventory.lock.yaml` |
+| `instruments_input.yaml` | `instruments.lock.yaml` |
+| `proof_inventory_input.yaml` | `proof_inventory.lock.yaml` |
+
+### 不変条件
+- `_input.yaml` ファイルを `lock_artifacts` フィールドに登録することを禁止（build artifact ではないため）
+- `_input.yaml` を `*.lock.yaml` 拡張子で命名することを禁止（pattern 違反として CI fail）
+- generator を介さず `_input.yaml` から直接 `*.lock.yaml` へ手書きコピーすることを禁止
 
 ## CI 不変条件
 - 全 .md の frontmatter `lock_artifacts` フィールドが pattern 適合

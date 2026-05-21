@@ -5,6 +5,13 @@
 ```ts
 
 // @public
+export interface AutoResendWithChainedKeyAction {
+    readonly chainedFrom: string;
+    readonly newKey: string;
+    readonly subtypeAction: "auto_resend_with_chained_key";
+}
+
+// @public
 export interface ClientState<T, TPayload = unknown> {
     readonly optimisticLocal: OptimisticLocalEntry<T> | null;
     readonly pendingQueue: readonly PendingQueueEntry<TPayload>[];
@@ -141,6 +148,7 @@ export type ReducerAction =
     | { readonly type: "SEND_QUEUE_IN_ORDER" }
     | { readonly type: "PRESENT_BUSINESS_ERROR"; readonly errorCode: string }
     | { readonly type: "DISPATCH_CONFLICT_SUBTYPE"; readonly subtypeAction: string; readonly detail: unknown }
+    | { readonly type: "AUTO_RESEND_WITH_CHAINED_KEY"; readonly action: AutoResendWithChainedKeyAction }
     | { readonly type: "PRESENT_3WAY_MERGE_UI" }
     | { readonly type: "NOTIFY_SILENT_TOAST"; readonly message: string }
     | { readonly type: "HOLD_QUEUE" }

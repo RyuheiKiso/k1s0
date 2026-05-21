@@ -1,7 +1,8 @@
-// tier3 Playwright シナリオ S01: 発注承認 → server_truth_advance
-// 適合仕様: 11_クライアント状態適合仕様.md §製造業 pack stress test シナリオ 1
+// tier3 Playwright シナリオ S01b: 発注承認 → server_truth_advance
+// 適合仕様: 11_クライアント状態適合仕様.md §製造業 pack stress test シナリオ 1（conflict 系 01）
 // OL が存在する状態で server_truth_advance を受け取り OL が rollback されることを検証する
 // page.evaluate() でインライン reducer を実行し SPA bundle への依存を排除する
+// 命名規約: s01_25h_offline.spec.ts（オフライン系 S01）と区別するために S01b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from "@playwright/test";
@@ -53,8 +54,8 @@ function reduce(state, event) {
 }
 `;
 
-// S01: 発注承認 → server_truth_advance の状態遷移テスト
-test("S01: 発注承認が server_truth_advance 状態遷移を引き起こす", async ({ page }) => {
+// S01b: 発注承認 → server_truth_advance の状態遷移テスト（s01_25h_offline との命名重複を解消する）
+test("S01b: 発注承認が server_truth_advance 状態遷移を引き起こす", async ({ page }) => {
   // 空白ページを開く（SPA bundle に依存しない）
   await page.goto("about:blank");
 

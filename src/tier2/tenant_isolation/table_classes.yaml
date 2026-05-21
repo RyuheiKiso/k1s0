@@ -1,6 +1,8 @@
 # tier2 テーブルクラスカタログ（SoT: 手書き、10_テナント分離適合仕様.md と整合）
 # 4 class × 必須列 / RLS / 監査要件 / Outbox 要件 の純粋関数テーブル
 # generate_migration.py が本ファイルを読み込んで migration.lock.yaml を生成する
+# allowed_purpose 値集合: docs/04_詳細設計/01_適合仕様/04_認証適合仕様.md §app.purpose enum (SoT)
+# 正規 5 値: business_op / support / export / migration / emergency
 
 table_classes:
 
@@ -34,12 +36,12 @@ table_classes:
     description: "業務 entity / aggregate / Read Model"
     # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
     allowed_purpose:
-      # 主要業務処理（aggregate の読み書き）
-      - primary_business
-      # 分析用の読み取り専用アクセス
-      - analytics_readonly
-      # 監査イベントの emit（audit_local 書込）
-      - audit_emit
+      # business_op（主要業務操作）: aggregate の読み書き
+      - business_op
+      # export（データエクスポート・分析読み取り）: 分析用の読み取り専用アクセス
+      - export
+      # migration: 移行期間中の aggregate 変更も許可
+      - migration
 
   # ============================================================
   # tenant_master: テナントマスタ（role 制限付き）
@@ -66,10 +68,10 @@ table_classes:
     description: "テナント所有マスタ（通貨レート・製品カタログ等）"
     # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
     allowed_purpose:
-      # 主要業務処理（マスタの読み書き、master.admin role 必須）
-      - primary_business
-      # 監査イベントの emit（audit_local 書込）
-      - audit_emit
+      # business_op（主要業務操作）: マスタの読み書き（master.admin role 必須）
+      - business_op
+      # migration: 移行時のマスタ書込も許可
+      - migration
 
   # ============================================================
   # platform_global: プラットフォームグローバル（tenant 越境 read 可）
@@ -95,10 +97,12 @@ table_classes:
     description: "通貨 / 国 / 業界共通分類（全 tenant 参照可能）"
     # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
     allowed_purpose:
-      # 分析用の読み取り専用アクセス（全 tenant が参照可能）
-      - analytics_readonly
-      # プラットフォーム管理者による書込・メンテナンス（platform_admin role 必須）
-      - platform_admin
+      # export（データエクスポート・分析読み取り）: プラットフォームグローバルデータの読み取り（全 tenant 参照可能）
+      - export
+      # migration: 移行期間中のプラットフォームグローバルデータ変更
+      - migration
+      # emergency: 緊急対応時のプラットフォームグローバルデータ操作
+      - emergency
 
   # ============================================================
   # pii_segregated: PII 隔離（最高レベルのアクセス制限）
@@ -129,7 +133,9 @@ table_classes:
     description: "PII を含む user / partner（個人情報保護法・GDPR 対象）"
     # allowed_purpose: この class のテーブルが許可されるアクセス目的の一覧（spec 10 §purpose_check）
     allowed_purpose:
-      # PII アクセス（support_engineer role + purpose_check を通過した場合のみ許可）
-      - pii_access
-      # 監査イベントの emit（全アクセスを pgaudit + audit_local で記録）
-      - audit_emit
+      # support（サポート担当者によるアクセス）: support_engineer role + purpose_check を通過した場合のみ許可
+      - support
+      # export（データエクスポート）: PII を含む出力操作（redact 済み payload に限る）
+      - export
+      # emergency: 緊急対応時の PII データアクセス（pgaudit 全記録必須）
+      - emergency

@@ -62,8 +62,9 @@ public sealed class AuthContext
     private readonly string? _dpopJkt;
     // AttestationLevel: device attestation level（jwt_attested のみ設定される）
     private readonly string? _attestationLevel;
-    // StepUpProven: 最終 step_up challenge 済みフラグ
-    private readonly bool _stepUpProven;
+    // StepUpProvenAt: 最終 step_up challenge 時刻（04_認証適合仕様.md §AuthContext スキーマ SoT 準拠）
+    // null = 未証明（workload / federated 等 step_up 不要クラス）、non-null = challenge 完了時刻
+    private readonly DateTimeOffset? _stepUpProvenAt;
     // IsValid: token 検証が成功したかどうか
     private readonly bool _isValid;
 
@@ -79,7 +80,8 @@ public sealed class AuthContext
         IReadOnlyList<string> scopes,
         string? dpopJkt,
         string? attestationLevel,
-        bool stepUpProven,
+        // stepUpProvenAt: step_up challenge 完了時刻（null = 未証明）
+        DateTimeOffset? stepUpProvenAt,
         bool isValid)
     {
         // 全フィールドを初期化する
@@ -93,7 +95,7 @@ public sealed class AuthContext
         _scopes = scopes;
         _dpopJkt = dpopJkt;
         _attestationLevel = attestationLevel;
-        _stepUpProven = stepUpProven;
+        _stepUpProvenAt = stepUpProvenAt;
         _isValid = isValid;
     }
 
@@ -128,7 +130,8 @@ public sealed class AuthContext
         string tokenId,
         IReadOnlyList<string> scopes,
         string? dpopJkt,
-        bool stepUpProven)
+        // stepUpProvenAt: step_up challenge 完了時刻（未証明の場合は null）
+        DateTimeOffset? stepUpProvenAt)
     {
         // v1_human_session の固定属性を適用する（dimension override 禁止）
         return new AuthContext(
@@ -145,7 +148,7 @@ public sealed class AuthContext
             scopes: scopes,
             dpopJkt: dpopJkt,
             attestationLevel: null,
-            stepUpProven: stepUpProven,
+            stepUpProvenAt: stepUpProvenAt,
             isValid: true);
     }
 
@@ -175,8 +178,8 @@ public sealed class AuthContext
             scopes: new[] { "service.api" },
             dpopJkt: null,
             attestationLevel: null,
-            // workload は step_up が不要（never ポリシー）
-            stepUpProven: false,
+            // workload は step_up が不要（never ポリシー）。stepUpProvenAt は null
+            stepUpProvenAt: null,
             isValid: true);
     }
 
@@ -190,7 +193,8 @@ public sealed class AuthContext
         string tenantId,
         string tokenId,
         string attestationLevel,
-        bool stepUpProven)
+        // stepUpProvenAt: step_up challenge 完了時刻（未証明の場合は null）
+        DateTimeOffset? stepUpProvenAt)
     {
         // v1_device_attest の固定属性を適用する（dimension override 禁止）
         return new AuthContext(
@@ -210,7 +214,7 @@ public sealed class AuthContext
             dpopJkt: null,
             // attestationLevel: TPM / HSM / WebAuthn platform authenticator の種別
             attestationLevel: attestationLevel,
-            stepUpProven: stepUpProven,
+            stepUpProvenAt: stepUpProvenAt,
             isValid: true);
     }
 
@@ -241,8 +245,8 @@ public sealed class AuthContext
             scopes: new[] { "business_op" },
             dpopJkt: null,
             attestationLevel: null,
-            // federated exchange は step_up 不要（never ポリシー）
-            stepUpProven: false,
+            // federated exchange は step_up 不要（never ポリシー）。stepUpProvenAt は null
+            stepUpProvenAt: null,
             isValid: true);
     }
 
@@ -255,7 +259,9 @@ public sealed class AuthContext
         string subjectId,
         string tenantId,
         string tokenId,
-        string? dpopJkt)
+        string? dpopJkt,
+        // stepUpProvenAt: emergency factory では必須（always step_up ポリシーのため non-null 必須）
+        DateTimeOffset stepUpProvenAt)
     {
         // v1_emergency_step_up の固定属性を適用する（always step_up + purpose=emergency 強制）
         return new AuthContext(
@@ -274,7 +280,7 @@ public sealed class AuthContext
             dpopJkt: dpopJkt,
             attestationLevel: null,
             // v1_emergency_step_up は常に step_up 済みとして発行される（always ポリシー）
-            stepUpProven: true,
+            stepUpProvenAt: stepUpProvenAt,
             isValid: true);
     }
 
@@ -292,6 +298,12 @@ public sealed class AuthContext
             return Array.Empty<string>();
         }
         // 04_認証適合仕様.md §AuthContext スキーマの全 GUC 対応フィールドを SET LOCAL 文にする
+        // step_up_proven_at: null の場合は空文字列、non-null の場合は ISO 8601 形式で emit する
+        var stepUpProvenAtStr = _stepUpProvenAt.HasValue
+            // non-null: ISO 8601 / RFC 3339 形式でフォーマットする
+            ? _stepUpProvenAt.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            // null: 空文字列を emit する（GUC に空文字列を設定する）
+            : string.Empty;
         var setters = new List<string>
         {
             // auth_class GUC を設定する
@@ -306,8 +318,8 @@ public sealed class AuthContext
             $"SET LOCAL app.session_id = '{_sessionId}';",
             // audience GUC を設定する
             $"SET LOCAL app.audience = '{_audience.Replace("'", "''")}';",
-            // step_up_proven GUC を設定する
-            $"SET LOCAL app.step_up_proven = '{(_stepUpProven ? "true" : "false")}';",
+            // step_up_proven_at GUC を設定する（GUC 名を app.step_up_proven_at に変更）
+            $"SET LOCAL app.step_up_proven_at = '{stepUpProvenAtStr}';",
         };
         // dpop_jkt が null でない場合のみ GUC を設定する（dpop_bound_jwt のみ）
         if (_dpopJkt is not null)

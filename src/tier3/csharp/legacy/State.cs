@@ -298,6 +298,25 @@ namespace K1s0.Tier3.Legacy
         public PurgeAllLayersAction(PurgeReason reason) { Reason = reason; }
     }
 
+    // auto_resend_with_chained_key の型付きアクション（T3-4: string ではなく型で表現する）
+    // TypeScript の AutoResendWithChainedKeyAction と 4 言語等価強度を保つ
+    // string-formatted NotifySilentToastAction の代替として rebase_clean パスで使用する
+    public sealed class AutoResendWithChainedKeyReducerAction : ReducerAction
+    {
+        // chain 元の idempotency_key（rebase 前の key）
+        public readonly string ChainedFrom;
+        // chain 後の新しい idempotency_key
+        public readonly string NewKey;
+        // コンストラクター（chainedFrom と newKey を必須で設定する）
+        public AutoResendWithChainedKeyReducerAction(string chainedFrom, string newKey)
+        {
+            // chain 元の key を設定する
+            ChainedFrom = chainedFrom;
+            // chain 後の key を設定する
+            NewKey = newKey;
+        }
+    }
+
     // 4 layer client state（.NET 4.6.2 では immutable pattern を手動で実装する）
     public sealed class ClientState
     {
@@ -583,8 +602,9 @@ namespace K1s0.Tier3.Legacy
                         new RollbackOptimisticAction(),
                         // auto resend アクション
                         new SendQueueInOrderAction(),
-                        // chain した新 key を detail に含む silent toast
-                        new NotifySilentToastAction(string.Format("rebase_clean: auto resend with key={0}", newKey)),
+                        // 型付き AutoResendWithChainedKeyReducerAction（string-formatted action を排除する）
+                        // chainedFrom: 元の key、newKey: chain 後の新しい key
+                        new AutoResendWithChainedKeyReducerAction(baseKey, newKey),
                     }.AsReadOnly()
                 );
             }

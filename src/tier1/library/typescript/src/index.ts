@@ -166,3 +166,30 @@ export type {
   SecretRotationPolicy,
   SecretStore,
 } from "./secret.js";
+
+// Observability 実装: ObservabilityProvider の facade 実装を再エクスポートする
+export { createObservabilityProvider, StubLogger } from "./observabilityImpl.js";
+
+// Messaging 実装: in-memory stub 実装を再エクスポートする（テスト用）
+export {
+  InMemoryMessagingProducer,
+  InMemoryMessagingConsumer,
+  NoopOutboxRelay,
+} from "./messagingImpl.js";
+
+// Secret 実装: in-memory stub 実装を再エクスポートする（テスト用）
+export { InMemorySecretStore } from "./secretImpl.js";
+
+// Frontend Transport Negotiation: Companion 役割 B の 8 adapter capability negotiation
+export type {
+  ClientCapabilities,
+  BidiMessage,
+  BidiChannel,
+  TransportNegotiationClient,
+  NegotiationResult,
+} from "./frontend/transport_negotiation.js";
+export {
+  TransportKind,
+  defaultClientCapabilities,
+  InMemoryBidiChannel,
+} from "./frontend/transport_negotiation.js";

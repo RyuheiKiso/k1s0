@@ -2,6 +2,7 @@
 cosign_kyverno_check.py — cosign 署名検証 + Kyverno ポリシーチェック
 08_OSSライフサイクル適合仕様: 6 lifecycle_class × cosign 署名検証のシミュレーション
 subprocess で cosign / kubectl コマンドを呼び出す。コマンドが存在しない場合は pytest.mark.skipif でスキップする。
+lifecycle_class 名は 08_OSSライフサイクル適合仕様.md の canonical 名（v1_l1plus_primary 等）に統一する。
 """
 
 # 標準ライブラリのインポート: subprocess でコマンドを呼び出す
@@ -40,23 +41,23 @@ def has_cosign_and_kubectl() -> bool:
 
 
 # ============================================================
-# lifecycle_class 定義
+# lifecycle_class 定義（08_OSSライフサイクル適合仕様.md §lifecycle_class セット canonical 名）
 # ============================================================
 
-# 6 つの lifecycle_class を文字列定数として定義する（08_OSSライフサイクル適合仕様準拠）
+# spec canonical 6 値: 08_OSSライフサイクル適合仕様.md §lifecycle_class セットに完全準拠する
 LIFECYCLE_CLASSES = [
-    # L1_CRITICAL: 最重要 OSS（tier1 transport / auth 等）
-    "L1_CRITICAL",
-    # L2_IMPORTANT: 重要 OSS（tier1 server 依存主要 OSS）
-    "L2_IMPORTANT",
-    # L3_STANDARD: 標準 OSS（一般的なコンポーネント）
-    "L3_STANDARD",
-    # L4_DEV_TOOL: 開発支援ツール（build / test / lint）
-    "L4_DEV_TOOL",
-    # L5_SANDBOX: サンドボックス（PoC / 実験的使用）
-    "L5_SANDBOX",
-    # L6_DEPRECATED: 非推奨（移行待ち）
-    "L6_DEPRECATED",
+    # v1_l1plus_primary: 最重要 OSS（tier1 transport / auth 等、直接 RPC に使用する OSS）
+    "v1_l1plus_primary",
+    # v1_l2star_alt: 重要 OSS（tier1 server が依存する主要 OSS）
+    "v1_l2star_alt",
+    # v1_l3_generic: 標準 OSS（一般的なコンポーネント）
+    "v1_l3_generic",
+    # v1_l4_dev_tool: 開発支援ツール（build / test / lint に使用する OSS）
+    "v1_l4_dev_tool",
+    # v1_l5_sandbox: サンドボックス（PoC / 実験的使用）
+    "v1_l5_sandbox",
+    # v1_l6_deprecated: 非推奨（移行待ち）
+    "v1_l6_deprecated",
 ]
 
 
@@ -74,7 +75,7 @@ def simulate_cosign_verify(image_ref: str, lifecycle_class: str) -> dict:
     result = {
         # 検証対象の image 参照
         "image_ref": image_ref,
-        # 対象 OSS の lifecycle_class
+        # 対象 OSS の lifecycle_class（spec canonical 名）
         "lifecycle_class": lifecycle_class,
         # 署名検証の成否（シミュレーションでは True を返す）
         "cosign_verified": False,
@@ -91,8 +92,8 @@ def simulate_cosign_verify(image_ref: str, lifecycle_class: str) -> dict:
         # 未検証状態で返す
         return result
 
-    # L1_CRITICAL / L2_IMPORTANT は厳格な署名検証が必要（Fulcio + Rekor を使用する）
-    if lifecycle_class in ("L1_CRITICAL", "L2_IMPORTANT"):
+    # v1_l1plus_primary / v1_l2star_alt は厳格な署名検証が必要（Fulcio + Rekor を使用する）
+    if lifecycle_class in ("v1_l1plus_primary", "v1_l2star_alt"):
         # 厳格な cosign 検証コマンドを構築する（Rekor 透明性ログを必須とする）
         cmd = [
             # cosign バイナリを呼び出す
@@ -105,7 +106,7 @@ def simulate_cosign_verify(image_ref: str, lifecycle_class: str) -> dict:
             image_ref,
         ]
     else:
-        # L3 以下は基本的な署名確認（Rekor 不要）
+        # v1_l3_generic 以下は基本的な署名確認（Rekor 不要）
         cmd = [
             # cosign バイナリを呼び出す
             "cosign",
@@ -149,52 +150,52 @@ def simulate_cosign_verify(image_ref: str, lifecycle_class: str) -> dict:
 # pytest テスト群
 # ============================================================
 
-# ---- L1_CRITICAL lifecycle_class の cosign 検証テスト ----
+# ---- v1_l1plus_primary lifecycle_class の cosign 検証テスト ----
 
-# L1_CRITICAL: cosign が存在する場合のみ署名検証テストを実行する
-@pytest.mark.skipif(not has_cosign(), reason="cosign binary not found; skipping L1_CRITICAL test")
-def test_cosign_verify_l1_critical():
-    """L1_CRITICAL OSS の cosign 署名検証をシミュレートする"""
-    # L1_CRITICAL のテスト image 参照を定義する（実環境では実際の image を使う）
+# v1_l1plus_primary: cosign が存在する場合のみ署名検証テストを実行する
+@pytest.mark.skipif(not has_cosign(), reason="cosign binary not found; skipping v1_l1plus_primary test")
+def test_cosign_verify_v1_l1plus_primary():
+    """v1_l1plus_primary OSS の cosign 署名検証をシミュレートする"""
+    # v1_l1plus_primary のテスト image 参照を定義する（実環境では実際の image を使う）
     image_ref = "ghcr.io/k1s0/tier1-server:latest"
     # cosign 署名検証を実行する
-    result = simulate_cosign_verify(image_ref, "L1_CRITICAL")
+    result = simulate_cosign_verify(image_ref, "v1_l1plus_primary")
     # image_ref が結果に含まれることを確認する
     assert result["image_ref"] == image_ref, f"image_ref mismatch: {result}"
     # lifecycle_class が正しく記録されていることを確認する
-    assert result["lifecycle_class"] == "L1_CRITICAL", f"lifecycle_class mismatch: {result}"
+    assert result["lifecycle_class"] == "v1_l1plus_primary", f"lifecycle_class mismatch: {result}"
 
 
-# ---- L2_IMPORTANT lifecycle_class の cosign 検証テスト ----
+# ---- v1_l2star_alt lifecycle_class の cosign 検証テスト ----
 
-# L2_IMPORTANT: cosign が存在する場合のみ署名検証テストを実行する
-@pytest.mark.skipif(not has_cosign(), reason="cosign binary not found; skipping L2_IMPORTANT test")
-def test_cosign_verify_l2_important():
-    """L2_IMPORTANT OSS の cosign 署名検証をシミュレートする"""
-    # L2_IMPORTANT のテスト image 参照を定義する
+# v1_l2star_alt: cosign が存在する場合のみ署名検証テストを実行する
+@pytest.mark.skipif(not has_cosign(), reason="cosign binary not found; skipping v1_l2star_alt test")
+def test_cosign_verify_v1_l2star_alt():
+    """v1_l2star_alt OSS の cosign 署名検証をシミュレートする"""
+    # v1_l2star_alt のテスト image 参照を定義する
     image_ref = "docker.io/library/postgres:16"
     # cosign 署名検証を実行する
-    result = simulate_cosign_verify(image_ref, "L2_IMPORTANT")
+    result = simulate_cosign_verify(image_ref, "v1_l2star_alt")
     # image_ref が結果に含まれることを確認する
     assert result["image_ref"] == image_ref, f"image_ref mismatch: {result}"
     # lifecycle_class が正しく記録されていることを確認する
-    assert result["lifecycle_class"] == "L2_IMPORTANT", f"lifecycle_class mismatch: {result}"
+    assert result["lifecycle_class"] == "v1_l2star_alt", f"lifecycle_class mismatch: {result}"
 
 
-# ---- L3_STANDARD lifecycle_class の cosign 検証テスト ----
+# ---- v1_l3_generic lifecycle_class の cosign 検証テスト ----
 
-# L3_STANDARD: cosign が存在する場合のみ署名検証テストを実行する
-@pytest.mark.skipif(not has_cosign(), reason="cosign binary not found; skipping L3_STANDARD test")
-def test_cosign_verify_l3_standard():
-    """L3_STANDARD OSS の cosign 署名検証をシミュレートする"""
-    # L3_STANDARD のテスト image 参照を定義する
+# v1_l3_generic: cosign が存在する場合のみ署名検証テストを実行する
+@pytest.mark.skipif(not has_cosign(), reason="cosign binary not found; skipping v1_l3_generic test")
+def test_cosign_verify_v1_l3_generic():
+    """v1_l3_generic OSS の cosign 署名検証をシミュレートする"""
+    # v1_l3_generic のテスト image 参照を定義する
     image_ref = "docker.io/library/redis:7"
     # cosign 署名検証を実行する
-    result = simulate_cosign_verify(image_ref, "L3_STANDARD")
+    result = simulate_cosign_verify(image_ref, "v1_l3_generic")
     # image_ref が結果に含まれることを確認する
     assert result["image_ref"] == image_ref, f"image_ref mismatch: {result}"
     # lifecycle_class が正しく記録されていることを確認する
-    assert result["lifecycle_class"] == "L3_STANDARD", f"lifecycle_class mismatch: {result}"
+    assert result["lifecycle_class"] == "v1_l3_generic", f"lifecycle_class mismatch: {result}"
 
 
 # ---- シミュレーションのみのテスト（cosign 不要: 常時 pass）----

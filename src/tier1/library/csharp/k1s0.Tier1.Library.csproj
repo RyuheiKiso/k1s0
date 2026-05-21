@@ -48,5 +48,11 @@
     <PackageReference Include="AWSSDK.S3" Version="3.7.307.32" />
     <!-- Temporalio: IWorkflowClient / IWorkflowRun 実装に使用する（L1+ ラップ: public API 非露出） -->
     <PackageReference Include="Temporalio" Version="0.1.0-beta5" />
+    <!-- Microsoft.CodeAnalysis.PublicApiAnalyzers: 公開 API snapshot drift 検出（tier1強制機構.md §整合 6 対応） -->
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4">
+      <!-- Analyzers のみ使用する（ライブラリ DLL は不要） -->
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

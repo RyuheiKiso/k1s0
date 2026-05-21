@@ -13,8 +13,8 @@ use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 // エラー型定義ライブラリ
 use thiserror::Error;
-// 日時ライブラリ
-use chrono::{DateTime, Utc};
+// HLC クロック（wall-clock TTL 禁止規律: Utc::now() の代替として HlcClock を使用する）
+use k1s0_hlc::{HlcClock, HlcTimestamp};
 // sqlx PostgreSQL クライアント（PgPool で接続プールを管理する）
 use sqlx::PgPool;
 // sqlx Postgres トランザクション型（BEGIN / COMMIT / ROLLBACK に使用する）
@@ -76,8 +76,8 @@ pub struct TripleWriteResult {
     pub outbox_id: Uuid,
     // 書込んだ audit_event の ID
     pub audit_event_id: Uuid,
-    // 書込完了日時
-    pub committed_at: DateTime<Utc>,
+    // 書込完了 HLC タイムスタンプ（wall-clock TTL 禁止規律に従い HlcTimestamp を使用する）
+    pub committed_at: HlcTimestamp,
 }
 
 // atomic 三表書込の実行エンジン
@@ -169,8 +169,14 @@ impl AtomicTripleWrite {
         let outbox_id = Uuid::new_v4();
         // audit_event の ID を生成する（domain_event と audit_event で共有する）
         let audit_event_id = Uuid::new_v4();
-        // 書込完了日時を記録する（3 INSERT で統一した timestamp を使用する / audit 用途のため wall-clock を使用する）
-        let committed_at: DateTime<Utc> = Utc::now();
+        // HLC クロックを生成する（wall-clock TTL 禁止規律: Utc::now() の代替）
+        let hlc_clock = HlcClock::from_env();
+        // HLC タイムスタンプを取得する（3 INSERT で統一した論理時刻を使用する）
+        let committed_at: HlcTimestamp = hlc_clock.now();
+        // sqlx への bind 用に HLC の wall_ms から DateTime<Utc> を生成する（DB 列型は TIMESTAMPTZ）
+        let committed_at_db = chrono::DateTime::from_timestamp_millis(committed_at.wall_ms as i64)
+            // wall_ms が範囲外の場合は epoch を使用する（理論上は発生しない）
+            .unwrap_or(chrono::DateTime::UNIX_EPOCH);
 
         // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
         // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
@@ -191,8 +197,8 @@ impl AtomicTripleWrite {
         .bind(&change.payload)
         // aggregate バージョンをバインドする（楽観的ロックに使用する）
         .bind(change.version)
-        // 書込完了日時をバインドする
-        .bind(committed_at)
+        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+        .bind(committed_at_db)
         // 同一 transaction で実行する（P1 の atomic 書込を保証する）
         .execute(&mut *tx)
         .await
@@ -215,8 +221,8 @@ impl AtomicTripleWrite {
         .bind(change.aggregate_id)
         // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
         .bind(&change.payload)
-        // 書込完了日時をバインドする
-        .bind(committed_at)
+        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+        .bind(committed_at_db)
         // 同一 transaction で実行する（P2 の rollback 要件を満たす）
         .execute(&mut *tx)
         .await
@@ -245,8 +251,8 @@ impl AtomicTripleWrite {
         .bind(format!("{:?}", change.table_class))
         // ペイロードを jsonb 型としてバインドする
         .bind(&change.payload)
-        // 書込完了日時をバインドする
-        .bind(committed_at)
+        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+        .bind(committed_at_db)
         // 同一 transaction で実行する（P4 の audit 必須要件を満たす）
         .execute(&mut *tx)
         .await
@@ -266,7 +272,7 @@ impl AtomicTripleWrite {
             outbox_id,
             // 書込んだ audit_event の ID を返す
             audit_event_id,
-            // 書込完了日時を返す
+            // 書込完了 HLC タイムスタンプを返す
             committed_at,
         })
     }
@@ -332,8 +338,14 @@ impl AtomicTripleWrite {
         let outbox_id = Uuid::new_v4();
         // audit_event の ID を生成する（domain_event と audit_event で共有する）
         let audit_event_id = Uuid::new_v4();
-        // 書込完了日時を記録する（3 INSERT で統一した timestamp を使用する / audit 用途のため wall-clock を使用する）
-        let committed_at: DateTime<Utc> = Utc::now();
+        // HLC クロックを生成する（wall-clock TTL 禁止規律: Utc::now() の代替）
+        let hlc_clock = HlcClock::from_env();
+        // HLC タイムスタンプを取得する（3 INSERT で統一した論理時刻を使用する）
+        let committed_at: HlcTimestamp = hlc_clock.now();
+        // sqlx への bind 用に HLC の wall_ms から DateTime<Utc> を生成する（DB 列型は TIMESTAMPTZ）
+        let committed_at_db = chrono::DateTime::from_timestamp_millis(committed_at.wall_ms as i64)
+            // wall_ms が範囲外の場合は epoch を使用する（理論上は発生しない）
+            .unwrap_or(chrono::DateTime::UNIX_EPOCH);
 
         // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
         // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
@@ -354,8 +366,8 @@ impl AtomicTripleWrite {
         .bind(&change.payload)
         // aggregate バージョンをバインドする（楽観的ロックに使用する）
         .bind(change.version)
-        // 書込完了日時をバインドする
-        .bind(committed_at)
+        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+        .bind(committed_at_db)
         // 同一 transaction で実行する（P1 の atomic 書込を保証する）
         .execute(&mut **tx)
         .await
@@ -378,8 +390,8 @@ impl AtomicTripleWrite {
         .bind(change.aggregate_id)
         // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
         .bind(&change.payload)
-        // 書込完了日時をバインドする
-        .bind(committed_at)
+        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+        .bind(committed_at_db)
         // 同一 transaction で実行する（P2 の rollback 要件を満たす）
         .execute(&mut **tx)
         .await
@@ -408,8 +420,8 @@ impl AtomicTripleWrite {
         .bind(format!("{:?}", change.table_class))
         // ペイロードを jsonb 型としてバインドする
         .bind(&change.payload)
-        // 書込完了日時をバインドする
-        .bind(committed_at)
+        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+        .bind(committed_at_db)
         // 同一 transaction で実行する（P4 の audit 必須要件を満たす）
         .execute(&mut **tx)
         .await
@@ -424,7 +436,7 @@ impl AtomicTripleWrite {
             outbox_id,
             // 書込んだ audit_event の ID を返す
             audit_event_id,
-            // 書込完了日時を返す
+            // 書込完了 HLC タイムスタンプを返す
             committed_at,
         })
     }
@@ -449,51 +461,6 @@ impl AtomicTripleWrite {
     pub fn verify_pii_audit_required(&self, change: &StateChange) -> bool {
         // pii_segregated の場合は必ず audit_event を記録する（true を返す）
         change.table_class == TableClass::PiiSegregated
-    }
-
-    // 三表書込に必要な SQL 文字列を生成する（P1 の atomic write の SQL 骨格）
-    // 実際の DB 実行は execute() が sqlx::Transaction 経由で行う
-    // このメソッドは単体テスト・デバッグ用に SQL 骨格を確認するために残す
-    pub fn build_triple_write_sql(&self, change: &StateChange) -> Result<String, AtomicWriteError> {
-        // P3: tenant_id 一致を事前検証する
-        self.verify_tenant_id(change)?;
-        // outbox / audit event の ID を生成する
-        let outbox_id = Uuid::new_v4();
-        let audit_id = Uuid::new_v4();
-        let now = Utc::now().to_rfc3339();
-        // SET LOCAL GUC 注入 SQL を取得する（4 GUC 全て）
-        let set_guc = self.context.to_set_local_sql();
-        // P1: state_change + outbox + audit_event を BEGIN 〜 COMMIT の間に書く
-        let sql = format!(
-            r#"
-BEGIN;
-{set_guc}
-
--- P1: state_change (aggregate テーブルへの書込)
-INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
-VALUES ('{audit_id}', '{agg_id}', current_setting('app.tenant_id')::uuid, 'StateChange', '{payload}'::jsonb, {version}, '{now}');
-
--- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)
-INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)
-VALUES ('{outbox_id}', '{agg_id}', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '{payload}'::jsonb, '{now}');
-
--- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
-INSERT INTO k1s0.audit_event (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
-VALUES ('{audit_id}', '{agg_id}', current_setting('app.tenant_id')::uuid, current_setting('app.actor_id'), current_setting('app.purpose'), '{table_class}', '{payload}'::jsonb, '{now}');
-
-COMMIT;
-"#,
-            set_guc    = set_guc,
-            agg_id     = change.aggregate_id,
-            outbox_id  = outbox_id,
-            audit_id   = audit_id,
-            payload    = change.payload.to_string().replace('\'', "''"),
-            version    = change.version,
-            now        = now,
-            table_class = format!("{:?}", change.table_class),
-        );
-        // 生成した SQL 文字列を返す
-        Ok(sql)
     }
 
     // P2: Outbox 失敗シミュレーション（テスト専用、production では使用しない）
@@ -587,29 +554,6 @@ mod tests {
         // tenant_scoped では pgaudit は不要（通常 audit_event のみ）
         let normal_change = make_state_change(tenant_id, TableClass::TenantScoped);
         assert!(!writer.verify_pii_audit_required(&normal_change));
-    }
-
-    #[tokio::test]
-    // P1: 三表書込 SQL が state_change / outbox / audit_event を全て含むことを確認する
-    async fn test_p1_triple_write_sql_contains_all_tables() {
-        // TenantContext と StateChange を生成する
-        let tenant_id = Uuid::new_v4();
-        let ctx = make_context(tenant_id);
-        // テスト用 PgPool を生成する
-        let pool = make_pool_for_test().await;
-        let writer = AtomicTripleWrite::new(ctx, pool);
-        let change = make_state_change(tenant_id, TableClass::TenantScoped);
-        // SQL を生成する
-        let sql = writer.build_triple_write_sql(&change).unwrap();
-        // BEGIN と COMMIT の間に 3 つの INSERT が含まれることを確認する
-        assert!(sql.contains("BEGIN"));
-        assert!(sql.contains("domain_event"));
-        // outbox_message テーブル名が SQL に含まれることを確認する（migration SoT: k1s0.outbox_message）
-        assert!(sql.contains("outbox_message"));
-        assert!(sql.contains("audit_event"));
-        assert!(sql.contains("COMMIT"));
-        // GUC 注入が含まれることを確認する
-        assert!(sql.contains("app.tenant_id"));
     }
 
     #[test]

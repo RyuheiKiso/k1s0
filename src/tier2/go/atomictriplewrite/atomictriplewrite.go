@@ -18,15 +18,15 @@ import (
 	"database/sql"
 	// errors パッケージ: エラー生成に使用する
 	"errors"
-	// fmt パッケージ: SQL 文字列フォーマットに使用する
+	// fmt パッケージ: エラーメッセージのフォーマットに使用する
 	"fmt"
-	// strings パッケージ: SQL エスケープに使用する
-	"strings"
-	// time パッケージ: committed_at の記録に使用する
+	// time パッケージ: TripleWriteResult の CommittedAt フィールドに HLC wall_ms から変換した time.Time を格納する
 	"time"
 
 	// uuid パッケージ: aggregate_id / outbox_id / audit_event_id に使用する
 	"github.com/google/uuid"
+	// hlc パッケージ: HLC クロック（wall-clock TTL 禁止規律に従い time.Now() の代替として使用する）
+	"github.com/k1s0/hlc-lib-go"
 	// tenantcontext パッケージ: TenantContext を受け取る
 	"github.com/k1s0/tier2/tenantcontext"
 	// pgx stdlib ドライバ: database/sql 互換ドライバとして pgx を登録する
@@ -116,8 +116,8 @@ type TripleWriteResult struct {
 	OutboxID uuid.UUID
 	// 書込んだ audit_event の ID
 	AuditEventID uuid.UUID
-	// 書込完了日時
-	CommittedAt time.Time
+	// 書込完了 HLC タイムスタンプ（wall-clock TTL 禁止規律に従い HlcTimestamp を使用する）
+	CommittedAt hlc.HlcTimestamp
 }
 
 // AtomicTripleWrite: atomic 三表書込の実行エンジン
@@ -151,52 +151,6 @@ func (a *AtomicTripleWrite) VerifyTenantID(change *StateChange) error {
 func (a *AtomicTripleWrite) VerifyPiiAuditRequired(change *StateChange) bool {
 	// PiiSegregated の場合は必ず audit_event を記録する（true を返す）
 	return change.TableClass == TableClassPiiSegregated
-}
-
-// BuildTripleWriteSQL: P1 の atomic write に必要な SQL 文字列を生成する（デバッグ・テスト用）
-// 実際の DB 実行は Execute() が *sql.Tx 経由で行う
-func (a *AtomicTripleWrite) BuildTripleWriteSQL(change *StateChange) (string, error) {
-	// P3: tenant_id 一致を事前検証する
-	if err := a.VerifyTenantID(change); err != nil {
-		// 検証失敗の場合は空文字とエラーを返す
-		return "", err
-	}
-	// outbox エントリの ID を生成する
-	outboxID := uuid.New()
-	// audit_event の ID を生成する
-	auditID := uuid.New()
-	// 現在時刻を RFC3339 形式で取得する
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	// SET LOCAL GUC 注入 SQL を取得する（4 GUC 全て）
-	setGUC := a.context.ToSetLocalSQL()
-	// payload の single quote をエスケープする（SQL injection 対策）
-	escapedPayload := strings.ReplaceAll(change.Payload, "'", "''")
-	// P1: state_change + outbox + audit_event を BEGIN 〜 COMMIT の間に書く
-	sql := fmt.Sprintf(`
-BEGIN;
-%s
-
--- P1: state_change (aggregate テーブルへの書込)
-INSERT INTO k1s0.domain_event (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
-VALUES ('%s', '%s', current_setting('app.tenant_id')::uuid, 'StateChange', '%s'::jsonb, %d, '%s');
-
--- P1: outbox_message (Debezium CDC 経由で Kafka に転送される)
-INSERT INTO k1s0.outbox_message (id, aggregate_id, tenant_id, event_kind, payload, created_at)
-VALUES ('%s', '%s', current_setting('app.tenant_id')::uuid, 'OutboxRelay', '%s'::jsonb, '%s');
-
--- P1 + P4: audit_event (全操作で記録、pii_segregated は pgaudit も併用)
-INSERT INTO k1s0.audit_event (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
-VALUES ('%s', '%s', current_setting('app.tenant_id')::uuid, current_setting('app.actor_id'), current_setting('app.purpose'), '%s', '%s'::jsonb, '%s');
-
-COMMIT;
-`,
-		setGUC,
-		auditID.String(), change.AggregateID.String(), escapedPayload, change.Version, now,
-		outboxID.String(), change.AggregateID.String(), escapedPayload, now,
-		auditID.String(), change.AggregateID.String(), change.TableClass.String(), escapedPayload, now,
-	)
-	// 生成した SQL 文字列を返す
-	return sql, nil
 }
 
 // Execute: P1-P4 — atomic 三表書込を実行する非同期メソッド（実 *sql.Tx を使用する）
@@ -237,8 +191,12 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *Sta
 	outboxID := uuid.New()
 	// audit_event の ID を生成する（domain_event と audit_event で共有する）
 	auditEventID := uuid.New()
-	// 書込完了日時を記録する（3 INSERT で統一した timestamp を使用する）
-	committedAt := time.Now().UTC()
+	// HLC クロックを生成する（wall-clock TTL 禁止規律: time.Now() の代替）
+	hlcClock := hlc.NewHlcClockFromEnv()
+	// HLC タイムスタンプを取得する（3 INSERT で統一した論理時刻を使用する）
+	committedAt := hlcClock.Now()
+	// DB への bind 用に HLC の WallMs から time.Time を生成する（DB 列型は TIMESTAMPTZ）
+	committedAtDB := time.UnixMilli(int64(committedAt.WallMs)).UTC()
 
 	// P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
 	// current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
@@ -258,8 +216,8 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *Sta
 		change.Payload,
 		// aggregate バージョンをバインドする（楽観的ロックに使用する）
 		change.Version,
-		// 書込完了日時をバインドする
-		committedAt,
+		// HLC WallMs から変換した TIMESTAMPTZ をバインドする
+		committedAtDB,
 	); err != nil {
 		// domain_event INSERT 失敗はトランザクションエラーとして返す
 		return nil, fmt.Errorf("%w: domain_event insert failed: %v", ErrTransactionFailed, err)
@@ -281,8 +239,8 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *Sta
 		change.AggregateID,
 		// ペイロードを jsonb 文字列としてバインドする（PII は redact 済みのみ含む）
 		change.Payload,
-		// 書込完了日時をバインドする
-		committedAt,
+		// HLC WallMs から変換した TIMESTAMPTZ をバインドする
+		committedAtDB,
 	); err != nil {
 		// P2: outbox INSERT 失敗は ErrOutboxInsertFailed にマッピングして rollback を促す
 		return nil, fmt.Errorf("%w: %v", ErrOutboxInsertFailed, err)
@@ -309,8 +267,8 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *Sta
 		change.TableClass.String(),
 		// ペイロードを jsonb 文字列としてバインドする
 		change.Payload,
-		// 書込完了日時をバインドする
-		committedAt,
+		// HLC WallMs から変換した TIMESTAMPTZ をバインドする
+		committedAtDB,
 	); err != nil {
 		// P4: audit_event INSERT 失敗は ErrPiiAuditFailed にマッピングして rollback を促す
 		return nil, fmt.Errorf("%w: %v", ErrPiiAuditFailed, err)
@@ -324,7 +282,7 @@ func (a *AtomicTripleWrite) Execute(ctx context.Context, tx *sql.Tx, change *Sta
 		OutboxID: outboxID,
 		// 書込んだ audit_event の ID を返す
 		AuditEventID: auditEventID,
-		// 書込完了日時を返す
+		// 書込完了 HLC タイムスタンプを返す
 		CommittedAt: committedAt,
 	}, nil
 }

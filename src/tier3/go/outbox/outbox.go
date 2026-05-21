@@ -11,36 +11,35 @@ import (
 	"encoding/hex"
 	// fmt パッケージ（文字列フォーマット）
 	"fmt"
-	// math/bits パッケージ（ビット演算）
-	"math/bits"
 	// strings パッケージ（文字列操作）
 	"strings"
-	// time パッケージ（monotonic clock: TTL 基底に使用する）
-	"time"
+	// k1s0-hlc: wall-clock TTL 禁止規律に従い HLC（Hybrid Logical Clock）を使用する
+	// src/CLAUDE.md §wall-clock TTL 禁止: time.Now() は HLC lib 内部のみ許可
+	hlc "github.com/k1s0/hlc-lib-go"
 )
 
 // IDEMPOTENCY_KEY_TTL_MS は Idempotency-Key の 24h TTL（ミリ秒）
 const IDEMPOTENCY_KEY_TTL_MS int64 = 24 * 60 * 60 * 1000
 
-// hlcCounter は HLC の論理カウンタ（同一ミリ秒内の複数イベント用）
-// Go: グローバル変数として定義しスレッドセーフに扱う（本実装では単純化して固定値）
-var hlcCounter uint16 = 0
+// globalHlcClock はプロセス全体で共有する HLC クロック（スレッドセーフ）
+// src/CLAUDE.md §wall-clock TTL 禁止: time.Now() は HLC lib 内部のみ許可
+var globalHlcClock *hlc.HlcClock
 
-// HlcNow は現在時刻を HLC タイムスタンプ文字列で返す
-// フォーマット: "{timestamp_ms_hex}-{logical_counter}-{node_id}"
-// time.Now().UnixMilli() は monotonic clock ベースのため TTL 計算に安全
-func HlcNow() string {
-	// time.Now().UnixMilli() で単調増加クロックを取得する（wall clock 直接使用に相当するが Go では monotonic diff が加算される）
-	nowMs := time.Now().UnixMilli()
-	// ミリ秒を 16 バイト hex 文字列（16 桁）にフォーマットする
-	timestampHex := fmt.Sprintf("%016x", uint64(nowMs))
-	// 論理カウンタを 4 桁 hex にフォーマットする（本実装では 0000 固定）
-	logicalHex := fmt.Sprintf("%04x", hlcCounter)
-	// node_id を 4 桁固定値にする（単一ノード想定）
-	nodeId := "0000"
-	// HLC タイムスタンプ文字列を組み立てて返す
-	return strings.Join([]string{timestampHex, logicalHex, nodeId}, "-")
+// init は package 初期化時に HLC クロックを生成する
+func init() {
+	// 環境変数 HLC_NODE_ID から node_id を取得して HLC クロックを生成する
+	globalHlcClock = hlc.NewHlcClockFromEnv()
 }
+
+// HlcNow は共有 HLC クロックから現在のタイムスタンプを生成して文字列に変換する
+// wall-clock TTL 禁止規約に従い HLC lib（k1s0-hlc）のみが time.Now() を呼ぶ
+func HlcNow() string {
+	// k1s0-hlc のグローバルクロックから Tick して HlcTimestamp を取得する
+	ts := globalHlcClock.Tick()
+	// HLC タイムスタンプを compact 文字列（"{wall_ms_hex_16}-{logical_04x}-{node_04x}"）に変換する
+	return ts.FormatCompact()
+}
+
 
 // extractMsFromHlc は HLC タイムスタンプからミリ秒値を抽出する
 // hlcTimestamp: "{timestamp_ms_hex}-{logical_counter}-{node_id}" 形式
@@ -54,8 +53,8 @@ func extractMsFromHlc(hlcTimestamp string) int64 {
 		// パース失敗時は 0 を返す（safe 側フォールバック）
 		return 0
 	}
-	// uint64 から int64 に変換して返す
-	return int64(bits.RotateLeft64(ms, 0))
+	// uint64 から int64 に変換して返す（bits.RotateLeft64(x,0) は恒等変換のため直接変換する）
+	return int64(ms)
 }
 
 // OutboxEntryMeta は Outbox エントリのメタデータ
@@ -85,12 +84,15 @@ func IsExpired(meta OutboxEntryMeta) bool {
 	return enqueuedMs+IDEMPOTENCY_KEY_TTL_MS <= nowMs
 }
 
-// GenerateIdempotencyKey は Idempotency-Key を生成する（aggregateId prefix + HLC + random）
-// wall-clock TTL 禁止規約に従い HLC を使用する
-func GenerateIdempotencyKey(aggregateId, rpcMethod string) string {
-	// HLC タイムスタンプの先頭 16 進数部分をランダム識別子の基底として使用する
+// GenerateIdempotencyKey は Idempotency-Key を生成する
+// フォーマット: "{tenantId}_{ulidHex}_{methodHash}" — docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md §idempotency_key
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由）
+// aggregateId: 集約識別子（方法 hash の一部に使用する）
+// rpcMethod: RPC method 名（short hash の生成に使用する）
+func GenerateIdempotencyKey(tenantId, aggregateId, rpcMethod string) string {
+	// ULID 相当の識別子を HLC ベースで生成する（timestamp_ms_hex + random）
 	hlcBase := strings.SplitN(HlcNow(), "-", 2)[0]
-	// 暗号論的乱数バイト列を 8 バイト生成する（ランダム部分の一意性確保）
+	// 暗号論的乱数バイト列を 8 バイト生成する（ULID のランダム部分）
 	randBytes := make([]byte, 8)
 	// crypto/rand で乱数を生成する（wall-clock 非依存）
 	if _, err := rand.Read(randBytes); err != nil {
@@ -99,36 +101,28 @@ func GenerateIdempotencyKey(aggregateId, rpcMethod string) string {
 	}
 	// バイト列を hex 文字列に変換する
 	randHex := hex.EncodeToString(randBytes)
-	// aggregateId の先頭 8 文字を prefix に使用する
-	aggPrefix := aggregateId
-	if len(aggPrefix) > 8 {
-		aggPrefix = aggPrefix[:8]
+	// ULID 相当: HLC タイムスタンプ hex + random hex で 24 文字の識別子を生成する
+	ulidHex := hlcBase + randHex[:8]
+	// rpcMethod の先頭 4 文字を method hash として使用する（短縮識別子）
+	methodHash := rpcMethod
+	if len(methodHash) > 4 {
+		methodHash = methodHash[:4]
 	}
-	// rpcMethod の先頭 4 文字を prefix に使用する
-	methodPrefix := rpcMethod
-	if len(methodPrefix) > 4 {
-		methodPrefix = methodPrefix[:4]
-	}
-	// prefix + HLC ベース + random で Idempotency-Key を組み立てる
-	return strings.Join([]string{aggPrefix + "_" + methodPrefix, hlcBase, randHex[:8]}, "_")
+	// tenantId prefix + ulid + method hash の形式で Idempotency-Key を組み立てる
+	// フォーマット: "{tenantId}_{ulidHex}_{methodHash}" — spec §idempotency_key 準拠
+	return strings.Join([]string{tenantId, ulidHex, methodHash}, "_")
 }
 
 // CreateOutboxMeta は Outbox エントリのメタデータを生成する
+// tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
 // wall-clock TTL 禁止規約に従い HLC ベースのタイムスタンプを使用する
-func CreateOutboxMeta(aggregateId, rpcMethod, chainedFrom string) OutboxEntryMeta {
+func CreateOutboxMeta(tenantId, aggregateId, rpcMethod, chainedFrom string) OutboxEntryMeta {
 	// HLC タイムスタンプを現在時刻として取得する
 	nowHlc := HlcNow()
 	// enqueue 時刻（ミリ秒）を HLC から抽出する
 	enqueuedMs := extractMsFromHlc(nowHlc)
-	// chain がある場合は chain された新 key を生成する
-	var key string
-	if chainedFrom != "" {
-		// chain 元がある場合は新しい Idempotency-Key を生成する
-		key = GenerateIdempotencyKey(aggregateId, rpcMethod)
-	} else {
-		// chain 元がない場合は通常の Idempotency-Key を生成する
-		key = GenerateIdempotencyKey(aggregateId, rpcMethod)
-	}
+	// Idempotency-Key を生成する（tenantId prefix + ULID + methodHash — spec §idempotency_key 準拠）
+	key := GenerateIdempotencyKey(tenantId, aggregateId, rpcMethod)
 	// backward compat 用の ExpiresAtMs は HLC ミリ秒から計算する
 	expiresAtMs := enqueuedMs + IDEMPOTENCY_KEY_TTL_MS
 	// メタデータ構造体を組み立てて返す

@@ -66,7 +66,8 @@ fn make_state_change(tenant_id: Uuid, table_class: TableClass) -> StateChange {
     }
 }
 
-// P1 invariant: 三表書込が成功し SQL に三表全てが含まれることを検証する
+// P1 invariant: AtomicTripleWrite の生成と P3/P4 事前検証が成功することを検証する
+// (build_triple_write_sql は raw SQL concat 禁止規律により削除済み)
 #[tokio::test]
 async fn test_p1_atomic_triple_write_succeeds() {
     // テスト用テナント ID を生成する
@@ -80,22 +81,20 @@ async fn test_p1_atomic_triple_write_succeeds() {
     // TenantScoped の StateChange を生成する（P1 の atomic 三表書込の対象）
     let change = make_state_change(tenant_id, TableClass::TenantScoped);
 
-    // P1: build_triple_write_sql が domain_event / outbox / audit_event を全て含むことを確認する
-    let sql = writer.build_triple_write_sql(&change)
-        .expect("P1: build_triple_write_sql must succeed with matching tenant_id");
-    // BEGIN と COMMIT で transaction が囲まれていることを確認する
-    assert!(sql.contains("BEGIN"), "P1: SQL must contain BEGIN");
-    // P1: domain_event 書込が含まれることを確認する
-    assert!(sql.contains("domain_event"), "P1: SQL must contain domain_event INSERT");
-    // P1: outbox_message 書込が含まれることを確認する（migration SoT: k1s0.outbox_message）
-    assert!(sql.contains("outbox_message"), "P1: SQL must contain outbox_message INSERT");
-    // P1: audit_event 書込が含まれることを確認する
-    assert!(sql.contains("audit_event"), "P1: SQL must contain audit_event INSERT");
-    // COMMIT で transaction が完了することを確認する
-    assert!(sql.contains("COMMIT"), "P1: SQL must contain COMMIT");
+    // P1: verify_tenant_id が matching tenant_id で Ok を返すことを確認する
+    assert!(
+        writer.verify_tenant_id(&change).is_ok(),
+        "P1: verify_tenant_id must succeed with matching tenant_id"
+    );
+    // P4: PiiSegregated でない場合は audit_required が false であることを確認する
+    assert!(
+        !writer.verify_pii_audit_required(&change),
+        "P1: TenantScoped must not require pii audit flag"
+    );
 }
 
 // P2 invariant: tenant_id が全行で一致することを検証する
+// (build_triple_write_sql は raw SQL concat 禁止規律により削除済み: GUC 注入は execute() の sqlx::query 内で保証)
 #[tokio::test]
 async fn test_p2_tenant_id_consistent() {
     // テスト用テナント ID を生成する
@@ -112,12 +111,12 @@ async fn test_p2_tenant_id_consistent() {
     // P2: verify_tenant_id が同一 tenant_id で Ok を返すことを確認する
     let result = writer.verify_tenant_id(&change);
     assert!(result.is_ok(), "P2: same tenant_id must pass verify_tenant_id");
-
-    // P2: SQL に current_setting('app.tenant_id') が含まれることを確認する（GUC 経由で一致を保証する）
-    let sql = writer.build_triple_write_sql(&change).unwrap();
+    // P2: 異なる tenant_id の StateChange は TenantIdMismatch を返すことを確認する
+    let other_tenant = Uuid::new_v4();
+    let cross_change = make_state_change(other_tenant, TableClass::TenantScoped);
     assert!(
-        sql.contains("app.tenant_id"),
-        "P2: SQL must use app.tenant_id GUC to ensure tenant_id consistency across all tables"
+        matches!(writer.verify_tenant_id(&cross_change), Err(AtomicWriteError::TenantIdMismatch { .. })),
+        "P2: different tenant_id must return TenantIdMismatch"
     );
 }
 
@@ -137,7 +136,8 @@ async fn test_p3_rollback_atomicity() {
 }
 
 // P4 invariant: idempotency key が重複した場合に二重書込が発生しないことを検証する
-// DB 層の UNIQUE 制約で保証するため、アプリ層では aggregate_id の重複を検出する
+// DB 層の UNIQUE 制約で保証するため、アプリ層では aggregate_id と version の一致を検出する
+// (build_triple_write_sql は raw SQL concat 禁止規律により削除済み)
 #[tokio::test]
 async fn test_p4_idempotency_key_deduplication() {
     // テスト用テナント ID を生成する
@@ -169,17 +169,15 @@ async fn test_p4_idempotency_key_deduplication() {
         version: 1,
     };
 
-    // P4: 1 回目の書込が成功すること（SQL 生成レベルで確認する）
-    let sql_v1 = writer.build_triple_write_sql(&change_v1).unwrap();
-    assert!(sql_v1.contains("domain_event"), "P4: first write must generate domain_event INSERT");
-
-    // P4: 2 回目の重複書込の SQL が生成されるが、DB 層で UNIQUE 制約エラーになることを示す
-    // アプリ層では aggregate_id + version の UNIQUE 制約が domain_event テーブルに存在する
-    let sql_v1_dup = writer.build_triple_write_sql(&change_v1_dup).unwrap();
-    // SQL 自体は生成されるが、同一 aggregate_id + version の INSERT が DB で reject される
+    // P4: 1 回目の書込が P3 検証を通過することを確認する（DB は integration test でカバー）
     assert!(
-        sql_v1_dup.contains("domain_event"),
-        "P4: duplicate write generates SQL but DB UNIQUE constraint prevents actual double-write"
+        writer.verify_tenant_id(&change_v1).is_ok(),
+        "P4: first write must pass tenant_id verification"
+    );
+    // P4: 2 回目の重複書込も P3 検証は通過する（DB 層の UNIQUE 制約で reject される）
+    assert!(
+        writer.verify_tenant_id(&change_v1_dup).is_ok(),
+        "P4: duplicate write passes tenant_id verification but DB UNIQUE constraint prevents double-write"
     );
     // P4: aggregate_id が同一であることを確認する（重複検出の根拠）
     assert_eq!(change_v1.aggregate_id, change_v1_dup.aggregate_id, "P4: duplicate has same aggregate_id");

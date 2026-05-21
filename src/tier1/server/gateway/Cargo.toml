@@ -72,6 +72,9 @@ base64 = { workspace = true }
 # k1s0-hlc: Hybrid Logical Clock（wall-clock TTL 禁止規律の物理機構）
 # webhook adapter の idempotency-key 24h TTL 管理に使用する
 k1s0-hlc = { path = "../../../client/hlc_lib/rust" }
+# k1s0-tier1-library: tier1 canonical 型（KeyHandle / KeyClass 等）の共有ライブラリ
+# gateway 独自の KeyClass / KeyHandle 定義を削除し canonical 実装を参照するために追加する
+k1s0-tier1-library = { workspace = true }
 
 [dev-dependencies]
 # reqwest: 統合テスト用 HTTP クライアント（HTTP/2 + rustls-tls で pkg-config 不要）

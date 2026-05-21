@@ -1,36 +1,38 @@
 // k1s0 tier3 IndexedDB encrypted outbox（Rust 等価強度実装）
 // TypeScript primary の outbox.ts と同等の抽象を Rust で実装する
 // PII strip on enqueue / Idempotency-Key 24h TTL を強制する
-// wall-clock TTL 禁止規約に従い monotonic clock（std::time::Instant）でTTL を計算する
+// wall-clock TTL 禁止規約に従い src/client/hlc_lib/rust（k1s0-hlc）を使用する
 
-// 標準ライブラリの時刻型を使用する
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+// k1s0-hlc: wall-clock TTL 禁止規律に従い HLC を使用する（SystemTime::now() は HLC lib 内部のみ許可）
+use k1s0_hlc::{HlcClock, HlcTimestamp};
+// 標準ライブラリの時刻型（Instant のみ使用: TTL 計算の補助）
+use std::time::{Duration, Instant};
 // UUID 生成（idempotency key のランダム部分）
 use uuid::Uuid;
+// lazy_static で HLC クロックをプロセス全体で共有する
+use std::sync::OnceLock;
+
+// GLOBAL_HLC_CLOCK は tier3 Rust モジュール全体で共有する HLC クロック
+// src/CLAUDE.md §wall-clock TTL 禁止: SystemTime::now() は k1s0-hlc 経由のみ許可
+static GLOBAL_HLC_CLOCK: OnceLock<HlcClock> = OnceLock::new();
+
+// get_hlc_clock は共有 HLC クロックへの参照を返す
+fn get_hlc_clock() -> &'static HlcClock {
+    // 初回呼び出し時にのみ環境変数 HLC_NODE_ID から node_id を取得して初期化する
+    GLOBAL_HLC_CLOCK.get_or_init(|| HlcClock::from_env())
+}
+
+// hlc_now はグローバル HLC クロックから現在のタイムスタンプを生成して文字列に変換する
+// wall-clock TTL 禁止規約に従い HLC lib のみが SystemTime::now() を呼ぶ
+pub fn hlc_now() -> String {
+    // k1s0-hlc のグローバルクロックから tick して HlcTimestamp を取得する
+    let ts: HlcTimestamp = get_hlc_clock().tick();
+    // HLC タイムスタンプを compact 文字列（"{wall_ms_hex_16}-{logical_04x}-{node_04x}"）に変換する
+    ts.format_compact()
+}
 
 // IDEMPOTENCY_KEY_TTL_MS は Idempotency-Key の 24h TTL（ミリ秒）
 pub const IDEMPOTENCY_KEY_TTL_MS: u64 = 24 * 60 * 60 * 1000;
-
-/// hlc_now は現在時刻を HLC タイムスタンプ文字列で返す
-/// フォーマット: "{timestamp_ms_hex}-{logical_counter}-{node_id}"
-/// SystemTime::UNIX_EPOCH からのオフセット（ミリ秒）で壁時計を読む（Rust: HLC 基底）
-/// TTL 計算には Instant（monotonic）を使用する（下記 is_expired 参照）
-pub fn hlc_now() -> String {
-    // UNIX_EPOCH からの経過時間をミリ秒で取得する（HLC の物理クロック基底）
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        // UNIX_EPOCH より前の時刻は panic する（実環境では発生しない）
-        .expect("SystemTime before UNIX_EPOCH")
-        .as_millis() as u64;
-    // ミリ秒を 16 桁 hex 文字列にフォーマットする
-    let timestamp_hex = format!("{:016x}", ms);
-    // logical_counter は本実装では 0000 固定（同一ミリ秒内の複数イベントが不要なため）
-    let logical_counter = "0000";
-    // node_id は本実装では 0000 固定（単一ノード想定）
-    let node_id = "0000";
-    // HLC タイムスタンプ文字列を組み立てて返す
-    format!("{}-{}-{}", timestamp_hex, logical_counter, node_id)
-}
 
 /// extract_ms_from_hlc は HLC タイムスタンプからミリ秒値を抽出する
 /// hlc_timestamp: "{timestamp_ms_hex}-{logical_counter}-{node_id}" 形式
@@ -71,28 +73,27 @@ pub fn is_expired(meta: &OutboxEntryMeta) -> bool {
 }
 
 /// generate_idempotency_key は Idempotency-Key を生成する
-/// wall-clock TTL 禁止規約に従い HLC を使用する
-pub fn generate_idempotency_key(aggregate_id: &str, rpc_method: &str) -> String {
-    // HLC タイムスタンプの先頭 16 進数部分をランダム識別子の基底として使用する
+/// フォーマット: "{tenant_id}_{ulid_hex}_{method_hash}" — docs §idempotency_key 準拠
+/// tenant_id: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
+pub fn generate_idempotency_key(tenant_id: &str, _aggregate_id: &str, rpc_method: &str) -> String {
+    // HLC タイムスタンプの先頭 16 進数部分を ULID の時刻部分として使用する
     let hlc_base = hlc_now().split('-').next().unwrap_or("0000000000000000").to_string();
-    // UUID v4 でランダムサフィックスを生成する
-    let random_suffix = Uuid::new_v4().to_string().replace('-', "");
-    // aggregateId の先頭 8 文字を prefix に使用する（長すぎる場合は切り詰める）
-    let agg_prefix = &aggregate_id[..aggregate_id.len().min(8)];
-    // rpcMethod の先頭 4 文字を prefix に使用する（長すぎる場合は切り詰める）
-    let method_prefix = &rpc_method[..rpc_method.len().min(4)];
-    // prefix + HLC ベース + random suffix で Idempotency-Key を組み立てる
-    format!("{}_{}_{}_{}",
-        agg_prefix,
-        method_prefix,
-        hlc_base,
-        &random_suffix[..16]
-    )
+    // UUID v4 でランダムサフィックスを生成する（ULID のランダム部分）
+    let random_part = &Uuid::new_v4().to_string().replace('-', "")[..8];
+    // ULID 相当: HLC タイムスタンプ hex + random で識別子を生成する
+    let ulid_hex = format!("{}{}", hlc_base, random_part);
+    // rpcMethod の先頭 4 文字を method hash として使用する（短縮識別子）
+    let method_hash = &rpc_method[..rpc_method.len().min(4)];
+    // tenantId prefix + ulid + method hash の形式で Idempotency-Key を組み立てる
+    // フォーマット: "{tenant_id}_{ulid_hex}_{method_hash}" — spec §idempotency_key 準拠
+    format!("{}_{}_{}", tenant_id, ulid_hex, method_hash)
 }
 
 /// create_outbox_meta は Outbox エントリのメタデータを生成する
+/// tenant_id: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
 /// wall-clock TTL 禁止規約に従い HLC + Instant（monotonic）を使用する
 pub fn create_outbox_meta(
+    tenant_id: &str,
     aggregate_id: &str,
     rpc_method: &str,
     chained_from: Option<String>,
@@ -103,8 +104,8 @@ pub fn create_outbox_meta(
     let enqueued_ms = extract_ms_from_hlc(&now_hlc);
     // monotonic clock の現在時点を記録する（TTL 計算に使用する）
     let enqueued_instant = Instant::now();
-    // chain がある場合は chain された新 key を生成する
-    let key = generate_idempotency_key(aggregate_id, rpc_method);
+    // Idempotency-Key を生成する（tenantId prefix + ULID + methodHash — spec 準拠）
+    let key = generate_idempotency_key(tenant_id, aggregate_id, rpc_method);
     // backward compat 用の expires_at_ms は HLC ミリ秒から計算する
     let expires_at_ms = enqueued_ms + IDEMPOTENCY_KEY_TTL_MS;
     // メタデータ構造体を組み立てて返す

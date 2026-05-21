@@ -160,3 +160,24 @@ scenarios:
     status: defined
     # 実装ファイルパス
     implementation_path: "src/tier3/typescript/spa/tests/playwright/s08_logout_full_purge_audit_emit.spec.ts"
+
+  # シナリオ 9: tier1 Bidi transport ストレステスト
+  - scenario_id: s09_bidi_stress
+    # シナリオ名
+    title: "Bidi ストレステスト"
+    # シナリオ説明
+    description: "tier1 Bidi transport の stress scenario"
+    # 対象 layer
+    layers: [server_truth, optimistic_local, pending_queue]
+    # 対象 event
+    event: server_truth_advance
+    # 対象 subtype
+    subtype: none
+    # テスト実行方法
+    runner: playwright_headless
+    # 期待結果
+    expected: bidi_transport_stress_pass
+    # ステータス
+    status: defined
+    # 実装ファイルパス
+    implementation_path: "src/tier3/typescript/spa/tests/playwright/bidi_stress.spec.ts"

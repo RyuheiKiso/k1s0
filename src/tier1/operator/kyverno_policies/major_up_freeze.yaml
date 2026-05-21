@@ -1,0 +1,82 @@
+# major_up_freeze.yaml — major_up signal で Pod admission を deny する ClusterPolicy
+# 08_OSSライフサイクル適合仕様.md §signal: major_up に準拠する
+# OSSInventory の status.triggeredSignals に major_up が含まれる OSS を image とする Pod を block する
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case: oss signal 名に対応する）
+  name: k1s0-oss-major-up-freeze
+  # ポリシーの説明アノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "OSS Major Version Up Freeze"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "OSS Lifecycle Enforcement"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      major_up signal がトリガーされた OSS パッケージを image として使用する Pod を deny する。
+      08_OSSライフサイクル適合仕様.md §signal: major_up に準拠する。
+      OSSInventory リソースの status.triggeredSignals に "major_up" が含まれる場合に deny を発動する。
+      メジャーバージョンアップが利用可能な状態で古いバージョンを使用し続けることを防止する。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # Pod の image が major_up signal を持つ OSS パッケージに紐づく場合に deny する
+    - name: deny-pod-with-major-up-signal
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind を列挙する
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system / k1s0-system 名前空間は除外する
+      exclude:
+        any:
+          - resources:
+              # kyverno の system namespace を除外する（自己 deny 防止）
+              namespaces:
+                - kyverno
+                - kube-system
+                - k1s0-system
+      # コンテキスト: major_up signal がトリガーされた OSSInventory リソース一覧を参照する
+      context:
+        # major_up signal がトリガーされた OSSInventory リソース一覧を取得する
+        - name: ossInventories
+          # Kubernetes API から OSSInventory リソースを取得する
+          apiCall:
+            # OSSInventory の API パス（namespace スコープ）
+            urlPath: "/apis/tier1.k1s0.io/v1/namespaces/{{request.object.metadata.namespace}}/ossinventories"
+            # jmesPath: major_up signal を持つ OSSInventory を抽出する
+            jmesPath: "items[?contains(status.triggeredSignals, 'major_up')]"
+      # 検証条件: major_up signal がトリガーされた OSSInventory が存在する場合に deny する
+      validate:
+        # deny メッセージ: major_up signal の原因と対処方法をオペレーターに伝える
+        message: >
+          この Pod の image は major_up signal がトリガーされた OSS パッケージに紐づいています。
+          メジャーバージョンアップを適用して OSSInventory の status.triggeredSignals から
+          "major_up" が除去されるまで Pod の作成 / 更新は禁止されています
+          (08_OSSライフサイクル適合仕様.md §signal: major_up)。
+        # 検証条件: major_up signal を持つ OSSInventory が 0 件であることを確認する
+        deny:
+          conditions:
+            all:
+              # ossInventories の件数が 1 件以上の場合は deny する
+              - key: "{{ length(ossInventories) }}"
+                # 演算子: 以上
+                operator: GreaterThanOrEquals
+                # 値: 1 件以上の場合に deny する
+                value: "1"

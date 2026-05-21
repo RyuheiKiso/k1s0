@@ -1,8 +1,11 @@
 // k1s0 tier3 IndexedDB encrypted outbox（C# .NET 8+ 等価強度実装）
 // TypeScript primary の outbox.ts と同等の抽象を C# で実装する
 // PII strip on enqueue / Idempotency-Key 24h TTL を強制する
-// wall-clock TTL 禁止規約に従い DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() を HLC 基底に使用する
-// 注意: 理想は monotonic clock（Stopwatch.GetTimestamp()）だが HLC 相互運用のため UTC ミリ秒を物理クロック基底とする
+// wall-clock TTL 禁止規約に従い K1s0.HlcLib.HlcClock（src/client/hlc_lib/csharp）を使用する
+// DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() は HLC lib 内部のみ許可
+
+// K1s0.HlcLib: wall-clock TTL 禁止規律に従い HLC（Hybrid Logical Clock）を使用する
+using K1s0.HlcLib;
 
 namespace K1s0.Tier3.Outbox;
 
@@ -29,35 +32,29 @@ public sealed record OutboxEntryMeta(
     string? ChainedFrom = null
 );
 
-// HlcClock は HLC タイムスタンプ生成を担当するクラス
-public static class HlcClock
+// OutboxHlc は K1s0.HlcLib.HlcClock のプロセス全体共有 singleton ラッパ
+// DateTimeOffset.UtcNow は K1s0.HlcLib 内部のみ許可（Outbox.cs 内での直接使用禁止）
+internal static class OutboxHlc
 {
-    // HlcNow は現在時刻を HLC タイムスタンプ文字列で返す
-    // フォーマット: "{timestamp_ms_hex}-{logical_counter}-{node_id}"
-    // 注意: monotonic clock が理想だが HLC 相互運用のため DateTimeOffset.UtcNow を使用する
+    // _clock は K1s0.HlcLib の HlcClock（環境変数 HLC_NODE_ID から node_id を取得する）
+    private static readonly HlcClock _clock = HlcClock.FromEnv();
+
+    // HlcNow は現在の HLC タイムスタンプを compact 文字列で返す
+    // K1s0.HlcLib.HlcClock.Now() 経由でのみ時刻を取得する（DateTimeOffset.UtcNow 直接使用禁止）
     public static string HlcNow()
     {
-        // DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() で UTC ミリ秒を取得する
-        // 注意: 理想は Stopwatch ベースの monotonic clock だが HLC 相互運用のため UTC を使用する
-        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        // ミリ秒を 16 桁 hex 文字列にフォーマットする
-        var timestampHex = ((ulong)nowMs).ToString("x16");
-        // logical_counter は本実装では 0000 固定（同一ミリ秒内の複数イベントが不要なため）
-        const string logicalCounter = "0000";
-        // node_id は本実装では 0000 固定（単一ノード想定）
-        const string nodeId = "0000";
-        // HLC タイムスタンプ文字列を組み立てて返す
-        return $"{timestampHex}-{logicalCounter}-{nodeId}";
+        // HlcClock.Now() から HlcTimestamp を取得して compact 文字列に変換する
+        return _clock.Now().FormatCompact();
     }
 
     // ExtractMsFromHlc は HLC タイムスタンプからミリ秒値を抽出する
-    // hlcTimestamp: "{timestamp_ms_hex}-{logical_counter}-{node_id}" 形式
+    // hlcTimestamp: "{wall_ms_hex_16}-{logical_04x}-{node_04x}" 形式
     public static long ExtractMsFromHlc(string hlcTimestamp)
     {
-        // ハイフン区切りの先頭部分が 16 進数ミリ秒タイムスタンプ
-        var hexPart = hlcTimestamp.Split('-')[0];
-        // 16 進数文字列を long に変換する（パース失敗時は 0 を返す）
-        return long.TryParse(hexPart, System.Globalization.NumberStyles.HexNumber, null, out var ms) ? ms : 0L;
+        // HlcTimestamp.ParseCompact で構造的に解析する（文字列 split より安全）
+        var ts = HlcTimestamp.ParseCompact(hlcTimestamp);
+        // パース成功時は wall_ms を返す、失敗時は 0 を返す（safe フォールバック）
+        return ts.HasValue ? (long)ts.Value.WallMs : 0L;
     }
 }
 
@@ -65,34 +62,38 @@ public static class HlcClock
 public static class OutboxService
 {
     // GenerateIdempotencyKey は Idempotency-Key を生成する
+    // フォーマット: "{tenantId}_{ulidHex}_{methodHash}" — docs §idempotency_key 準拠
+    // tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
     // wall-clock TTL 禁止規約に従い HLC を使用する
-    public static string GenerateIdempotencyKey(string aggregateId, string rpcMethod)
+    public static string GenerateIdempotencyKey(string tenantId, string aggregateId, string rpcMethod)
     {
-        // HLC タイムスタンプの先頭 16 進数部分を Idempotency-Key の基底として使用する
-        var hlcBase = HlcClock.HlcNow().Split('-')[0];
+        // HLC タイムスタンプの先頭 16 進数部分を ULID の時刻部分として使用する
+        var hlcBase = OutboxHlc.HlcNow().Split('-')[0];
         // GUID でランダムサフィックスを生成する（Guid.NewGuid は暗号論的に安全）
-        var randomSuffix = Guid.NewGuid().ToString("N")[..16];
-        // aggregateId の先頭 8 文字を prefix に使用する（長すぎる場合は切り詰める）
-        var aggPrefix = aggregateId.Length > 8 ? aggregateId[..8] : aggregateId;
-        // rpcMethod の先頭 4 文字を prefix に使用する（長すぎる場合は切り詰める）
-        var methodPrefix = rpcMethod.Length > 4 ? rpcMethod[..4] : rpcMethod;
-        // prefix + HLC ベース + random suffix で Idempotency-Key を組み立てる
-        return $"{aggPrefix}_{methodPrefix}_{hlcBase}_{randomSuffix}";
+        var randomPart = Guid.NewGuid().ToString("N")[..8];
+        // ULID 相当: HLC タイムスタンプ hex + random で識別子を生成する
+        var ulidHex = $"{hlcBase}{randomPart}";
+        // rpcMethod の先頭 4 文字を method hash として使用する（短縮識別子）
+        var methodHash = rpcMethod.Length > 4 ? rpcMethod[..4] : rpcMethod;
+        // tenantId prefix + ulid + method hash の形式で Idempotency-Key を組み立てる
+        return $"{tenantId}_{ulidHex}_{methodHash}";
     }
 
     // CreateOutboxMeta は Outbox エントリのメタデータを生成する
+    // tenantId: BFF cookie から取得したテナント識別子（tenant_id_injector 経由で渡す）
     // wall-clock TTL 禁止規約に従い HLC ベースのタイムスタンプを使用する
     public static OutboxEntryMeta CreateOutboxMeta(
+        string tenantId,
         string aggregateId,
         string rpcMethod,
         string? chainedFrom = null)
     {
         // HLC タイムスタンプを現在時刻として取得する
-        var nowHlc = HlcClock.HlcNow();
+        var nowHlc = OutboxHlc.HlcNow();
         // enqueue 時刻（ミリ秒）を HLC から抽出する
-        var enqueuedMs = HlcClock.ExtractMsFromHlc(nowHlc);
-        // 新しい Idempotency-Key を生成する
-        var key = GenerateIdempotencyKey(aggregateId, rpcMethod);
+        var enqueuedMs = OutboxHlc.ExtractMsFromHlc(nowHlc);
+        // 新しい Idempotency-Key を生成する（tenantId prefix 付き）
+        var key = GenerateIdempotencyKey(tenantId, aggregateId, rpcMethod);
         // backward compat 用の ExpiresAtMs は HLC ミリ秒から計算する
         var expiresAtMs = enqueuedMs + OutboxConstants.IdempotencyKeyTtlMs;
         // メタデータ record を組み立てて返す
@@ -117,9 +118,9 @@ public static class OutboxService
     public static bool IsExpired(OutboxEntryMeta meta)
     {
         // enqueue 時刻（ミリ秒）を HLC タイムスタンプから抽出する
-        var enqueuedMs = HlcClock.ExtractMsFromHlc(meta.EnqueuedAt);
+        var enqueuedMs = OutboxHlc.ExtractMsFromHlc(meta.EnqueuedAt);
         // 現在時刻（HLC ベースのミリ秒）を取得する
-        var nowMs = HlcClock.ExtractMsFromHlc(HlcClock.HlcNow());
+        var nowMs = OutboxHlc.ExtractMsFromHlc(OutboxHlc.HlcNow());
         // enqueue 時刻 + TTL が現在時刻以下であれば TTL 超過と判定する
         return enqueuedMs + OutboxConstants.IdempotencyKeyTtlMs <= nowMs;
     }

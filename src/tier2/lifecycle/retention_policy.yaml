@@ -6,10 +6,11 @@
 
 # カテゴリ別デフォルト保持日数（日単位）
 categories:
-  # audit: 監査ログ — GDPR Article 5(2) 説明責任要件 + 業務監査 7 年
+  # audit: 監査ログ — GDPR Article 5(2) 説明責任要件 + 業務監査 10 年
+  # docs/03_概要設計/03_tier2設計方針/17_データ保持.md §デフォルト retention: audit は 10 年要求
   - category: audit
-    retention_days: 2555
-    legal_basis: "GDPR Art.5(2), 会社法 419 条（業務帳簿 7 年保存）"
+    retention_days: 3650
+    legal_basis: "GDPR Art.5(2), 会社法 419 条（業務帳簿 10 年保存）, ISO 27001 §A.12.4.1"
     immutable: true
     doc_ref: "docs/03_概要設計/03_tier2設計方針/08_業務エラー監査コンプライアンス.md"
 

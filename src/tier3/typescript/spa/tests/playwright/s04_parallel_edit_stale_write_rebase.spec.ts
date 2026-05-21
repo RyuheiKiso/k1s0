@@ -1,8 +1,9 @@
-// tier3 Playwright シナリオ S04: 並行編集 (disjoint field) → stale_write → field-level rebase → auto resend
-// 適合仕様: 11_クライアント状態適合仕様.md §製造業 pack stress test シナリオ 4
+// tier3 Playwright シナリオ S04b: 並行編集 (disjoint field) → stale_write → field-level rebase → auto resend
+// 適合仕様: 11_クライアント状態適合仕様.md §製造業 pack stress test シナリオ 4（conflict 系 S04b）
 // stale_write conflict で 3way merge UI + HoldQueue が発動することを検証する
 // disjoint field の場合は field-level rebase で自動解決できることを確認する
 // page.evaluate() でインライン reducer を実行し SPA bundle への依存を排除する
+// 命名規約: s04_chained_resend.spec.ts（オフライン系 S04）と区別するために S04b とする
 
 // @playwright/test の test / expect をインポートする
 import { test, expect } from "@playwright/test";
@@ -71,7 +72,8 @@ function reduce(state, event) {
 `;
 
 // S04: 並行編集 (disjoint field) → stale_write → field-level rebase → auto resend のテスト
-test("S04: disjoint field stale_write が field-level rebase で自動解決される", async ({ page }) => {
+// テスト名: S04b を使用して s04_chained_resend の S04 との重複を回避する
+test("S04b: disjoint field stale_write が field-level rebase で自動解決される", async ({ page }) => {
   // 空白ページを開く（SPA bundle に依存しない）
   await page.goto("about:blank");
 

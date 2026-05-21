@@ -1,0 +1,84 @@
+# new_tier3_procurement.yaml — Backstage SoftwareTemplate: 発注 tier3 screen 追加
+# 設計方針 32_開発者体験: Backstage Software Template
+# 発注 tier3 SPA（調達ドメイン UI）に新しい screen を scaffold するテンプレート
+apiVersion: scaffolder.backstage.io/v1beta3
+# Backstage テンプレートリソース種別
+kind: Template
+metadata:
+  # テンプレート識別子
+  name: k1s0-new-tier3-procurement-screen
+  # 表示タイトル
+  title: "新 発注 tier3 Screen 追加"
+  # テンプレートの説明
+  description: "発注 tier3 SPA（調達ドメイン UI）に新しい業務 screen を scaffold する"
+spec:
+  # テンプレートオーナー（platform-team が管理する）
+  owner: platform-team
+  # テンプレートの種類
+  type: screen
+  # パラメータ定義
+  parameters:
+    # Step 1: Screen の基本情報
+    - title: Screen 基本情報
+      # 必須フィールド定義
+      required: [screen_name, scenario_id]
+      properties:
+        # screen 名（PascalCase 必須）
+        screen_name:
+          title: Screen 名（PascalCase）
+          type: string
+          description: "追加する screen のコンポーネント名（例: NewProcurementScreen）"
+        # 対応業務シナリオ ID
+        scenario_id:
+          title: 業務シナリオ ID
+          type: string
+          # 調達ドメインのシナリオに限定する
+          enum:
+            - scenario_6_purchase_order
+            - scenario_6_inspection_acceptance
+            - scenario_7_sales_order
+            - scenario_8_shipping
+          # シナリオ ID の日本語説明
+          enumNames:
+            - "scenario 6: 発注 / 検収"
+            - "scenario 6: 検収サブフロー"
+            - "scenario 7: 受注 sub（基幹連携）"
+            - "scenario 8: 出荷指示双方向確認"
+        # screen の説明（日本語コメント用）
+        description_ja:
+          title: Screen の説明（日本語）
+          type: string
+          description: "コメントに使用する日本語説明"
+  # scaffold ステップ定義
+  steps:
+    # テンプレートを fetch する
+    - id: fetch-template
+      # テンプレートアクション
+      action: fetch:template
+      input:
+        # skeleton テンプレートのパスを指定する
+        url: ./skeleton/screen
+        # テンプレート変数を渡す
+        values:
+          screen_name: ${{ parameters.screen_name }}
+          scenario_id: ${{ parameters.scenario_id }}
+          description_ja: ${{ parameters.description_ja }}
+          # 配置先ディレクトリを procurement に固定する
+          deployment: procurement
+    # GitHub Pull Request を作成する
+    - id: create-pr
+      # PR 作成アクション
+      action: publish:github:pull-request
+      input:
+        # PR タイトルを設定する
+        title: "feat(tier3-procurement): ${{ parameters.screen_name }} screen 追加"
+        # PR 説明を設定する
+        description: |
+          ## 概要
+          発注 tier3 SPA に ${{ parameters.screen_name }} screen を追加する。
+
+          ## 対応シナリオ
+          ${{ parameters.scenario_id }}
+
+          ## 説明
+          ${{ parameters.description_ja }}
