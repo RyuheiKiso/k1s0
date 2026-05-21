@@ -85,6 +85,36 @@ TOPO_ORDER: list[str] = [
     "sbom_catalog",
     "sbom_triage",
     "oss_conformance_check",
+    # infra 時刻整合 generators (v1.0.0 追加: spec13 published 化対応)
+    "clock_drill",
+    "clock_inventory",
+    "clock_skew_matrix",
+    # security 脅威モデル generators (v1.0.0 追加: spec15 published 化対応)
+    "drill_progress",
+    "mitigation_bindings",
+    "pii_classification",
+    "scenario_catalog",
+    # security build_provenance generators (v1.0.0 追加: spec16 published 化対応)
+    "provenance_attestation",
+    "reproducibility_matrix",
+    # ops 運用ループ generators (v1.0.0 追加: spec17 published 化対応)
+    "alert_catalog",
+    "budget_action_bindings",
+    "ops_ownership_table",
+    "runbook_catalog",
+    # test 検証規律 generators (v1.0.0 追加: spec19 published 化対応)
+    "chaos_blueprints",
+    "flaky_quarantine",
+    "mutation_score",
+    "performance_baseline",
+    "performance_scenarios",
+    "snapshot_masks",
+    # formal 形式検証 generators (v1.0.0 追加: spec20 published 化対応)
+    "proof_matrix",
+    "mathlib_pin",
+    "tla_apalache_pin",
+    "kani_cbmc_pin",
+    "formal_ownership_table",
     "release_gate",
 ]
 
@@ -161,6 +191,36 @@ def get_generator(name: str) -> type | None:
         "sbom_catalog": ("tools.lock_yaml_generator.generate_sbom_catalog", "SbomCatalogGenerator"),
         "sbom_triage": ("tools.lock_yaml_generator.generate_sbom_triage", "SbomTriageGenerator"),
         "oss_conformance_check": ("tools.lock_yaml_generator.generate_oss_conformance_check", "OssConformanceCheckGenerator"),
+        # infra 時刻整合 generators (v1.0.0 追加: spec13 published 化対応)
+        "clock_drill": ("tools.lock_yaml_generator.generate_clock_drill", "ClockDrillGenerator"),
+        "clock_inventory": ("tools.lock_yaml_generator.generate_clock_inventory", "ClockInventoryGenerator"),
+        "clock_skew_matrix": ("tools.lock_yaml_generator.generate_clock_skew_matrix", "ClockSkewMatrixGenerator"),
+        # security 脅威モデル generators (v1.0.0 追加: spec15 published 化対応)
+        "drill_progress": ("tools.lock_yaml_generator.generate_drill_progress", "DrillProgressGenerator"),
+        "mitigation_bindings": ("tools.lock_yaml_generator.generate_mitigation_bindings", "MitigationBindingsGenerator"),
+        "pii_classification": ("tools.lock_yaml_generator.generate_pii_classification", "PiiClassificationGenerator"),
+        "scenario_catalog": ("tools.lock_yaml_generator.generate_scenario_catalog", "ScenarioCatalogGenerator"),
+        # security build_provenance generators (v1.0.0 追加: spec16 published 化対応)
+        "provenance_attestation": ("tools.lock_yaml_generator.generate_provenance_attestation", "ProvenanceAttestationGenerator"),
+        "reproducibility_matrix": ("tools.lock_yaml_generator.generate_reproducibility_matrix", "ReproducibilityMatrixGenerator"),
+        # ops 運用ループ generators (v1.0.0 追加: spec17 published 化対応)
+        "alert_catalog": ("tools.lock_yaml_generator.generate_alert_catalog", "AlertCatalogGenerator"),
+        "budget_action_bindings": ("tools.lock_yaml_generator.generate_budget_action_bindings", "BudgetActionBindingsGenerator"),
+        "ops_ownership_table": ("tools.lock_yaml_generator.generate_ops_ownership_table", "OpsOwnershipTableGenerator"),
+        "runbook_catalog": ("tools.lock_yaml_generator.generate_runbook_catalog", "RunbookCatalogGenerator"),
+        # test 検証規律 generators (v1.0.0 追加: spec19 published 化対応)
+        "chaos_blueprints": ("tools.lock_yaml_generator.generate_chaos_blueprints", "ChaosBlueprintsGenerator"),
+        "flaky_quarantine": ("tools.lock_yaml_generator.generate_flaky_quarantine", "FlakyQuarantineGenerator"),
+        "mutation_score": ("tools.lock_yaml_generator.generate_mutation_score", "MutationScoreGenerator"),
+        "performance_baseline": ("tools.lock_yaml_generator.generate_performance_baseline", "PerformanceBaselineGenerator"),
+        "performance_scenarios": ("tools.lock_yaml_generator.generate_performance_scenarios", "PerformanceScenariosGenerator"),
+        "snapshot_masks": ("tools.lock_yaml_generator.generate_snapshot_masks", "SnapshotMasksGenerator"),
+        # formal 形式検証 generators (v1.0.0 追加: spec20 published 化対応)
+        "proof_matrix": ("tools.lock_yaml_generator.generate_proof_matrix", "ProofMatrixGenerator"),
+        "mathlib_pin": ("tools.lock_yaml_generator.generate_mathlib_pin", "MathlibPinGenerator"),
+        "tla_apalache_pin": ("tools.lock_yaml_generator.generate_tla_apalache_pin", "TlaApalachePinGenerator"),
+        "kani_cbmc_pin": ("tools.lock_yaml_generator.generate_kani_cbmc_pin", "KaniCbmcPinGenerator"),
+        "formal_ownership_table": ("tools.lock_yaml_generator.generate_formal_ownership_table", "FormalOwnershipTableGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }
     if name not in module_map:

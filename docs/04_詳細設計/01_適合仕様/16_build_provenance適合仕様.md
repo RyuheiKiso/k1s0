@@ -3,7 +3,8 @@ id: detail.security.build_provenance_conformance
 axis: security
 phase: detail
 kind: conformance_spec
-status: draft
+status: published
+version: "1.0.0"
 depends_on:
   - arch.security.security_index
   - arch.security.threat_model_policy
