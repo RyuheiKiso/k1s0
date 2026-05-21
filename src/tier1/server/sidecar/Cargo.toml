@@ -32,3 +32,5 @@ rskafka = { workspace = true }
 uuid = { workspace = true }
 # chrono: Kafka Record の timestamp に使用する
 chrono = { workspace = true }
+# serde_yaml: Envoy jwt_authn filter 設定 YAML 生成に使用する（envoy_jwt_authn_config.rs）
+serde_yaml = { workspace = true }

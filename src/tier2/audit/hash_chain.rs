@@ -60,17 +60,44 @@ pub struct HashChainInput {
     pub payload_json: String,
     // 書込日時（RFC 3339 形式）
     pub created_at_rfc3339: String,
-    // 直前のエントリの hash_digest（チェーンの先頭は空文字列）
-    pub prev_digest: String,
+    // 直前のエントリの hash_digest（チェーンの先頭は None、DB 側の hash_digest TEXT NULL と整合する）
+    // None = chain head（先頭エントリ）、Some(digest) = 前エントリの hash_digest
+    pub prev_digest: Option<String>,
     // テナント内での連番
     pub chain_sequence: i64,
 }
 
 // compute_digest: HashChainInput の SHA-256 ダイジェストを計算する
 // チェーン不変量: hash_digest = SHA-256(JSON serialize(entry) + prev_digest)
+// prev_digest が None の場合（chain head）は空文字列を sentinel として使用する
 pub fn compute_digest(input: &HashChainInput) -> String {
+    // prev_digest を計算前に解決する（None = chain head → 空文字列を sentinel として使用する）
+    let prev_digest_str: String = input.prev_digest.clone().unwrap_or_default();
+    // prev_digest を解決した一時的な入力を構築する（JSON シリアライズに使用する）
+    let resolved_input = HashChainInput {
+        // 元の入力フィールドをそのままコピーする
+        id: input.id,
+        // aggregate の ID をコピーする
+        aggregate_id: input.aggregate_id,
+        // テナント ID をコピーする
+        tenant_id: input.tenant_id,
+        // アクター識別子をコピーする
+        actor_id: input.actor_id.clone(),
+        // セッション目的をコピーする
+        purpose: input.purpose.clone(),
+        // テーブルクラスをコピーする
+        table_class: input.table_class.clone(),
+        // ペイロード JSON をコピーする
+        payload_json: input.payload_json.clone(),
+        // 書込日時をコピーする
+        created_at_rfc3339: input.created_at_rfc3339.clone(),
+        // None の場合は空文字列を sentinel として使用する（chain head の不変量）
+        prev_digest: Some(prev_digest_str),
+        // テナント内での連番をコピーする
+        chain_sequence: input.chain_sequence,
+    };
     // JSON シリアライズして文字列に変換する
-    let canonical_str = serde_json::to_string(input)
+    let canonical_str = serde_json::to_string(&resolved_input)
         .unwrap_or_default();
     // SHA-256 ハッシュを計算する
     let mut hasher = Sha256::new();
@@ -90,7 +117,8 @@ pub fn verify_chain(entries: &[AuditEventEntry]) -> Result<(), VerifyChainError>
     }
 
     // 連番が昇順であることを確認する（chain_sequence の連続性）
-    let mut prev_digest = String::new();
+    // chain head の先頭は None（chain head sentinel）として初期化する
+    let mut prev_digest: Option<String> = None;
     for (idx, entry) in entries.iter().enumerate() {
         // chain_sequence が設定されているエントリのみ検証する
         let chain_seq = match entry.chain_sequence {
@@ -123,7 +151,7 @@ pub fn verify_chain(entries: &[AuditEventEntry]) -> Result<(), VerifyChainError>
             payload_json: serde_json::to_string(&entry.payload).unwrap_or_default(),
             // 書込日時を RFC 3339 形式に変換する
             created_at_rfc3339: entry.created_at.to_rfc3339(),
-            // 直前のエントリの hash_digest（チェーン先頭は空文字列）
+            // 直前のエントリの hash_digest（チェーン先頭は None / chain head）
             prev_digest: prev_digest.clone(),
             // テナント内での連番
             chain_sequence: chain_seq,
@@ -144,8 +172,8 @@ pub fn verify_chain(entries: &[AuditEventEntry]) -> Result<(), VerifyChainError>
                 actual: stored_digest,
             });
         }
-        // 検証済みダイジェストを next の prev_digest として使用する
-        prev_digest = stored_digest;
+        // 検証済みダイジェストを next の prev_digest として使用する（Option<String> に格納する）
+        prev_digest = Some(stored_digest);
     }
     // 全エントリが整合している場合は OK を返す
     Ok(())
@@ -211,8 +239,8 @@ mod tests {
             payload_json: r#"{"test":true}"#.to_string(),
             // テスト用の書込日時を設定する
             created_at_rfc3339: "2026-01-01T00:00:00Z".to_string(),
-            // 直前のダイジェストを設定する（先頭は空文字列）
-            prev_digest: prev_digest.clone().unwrap_or_default(),
+            // 直前のダイジェストを設定する（先頭は None → unwrap_or_default() で空文字列に変換する）
+            prev_digest: prev_digest.clone(),
             // テナント内での連番を設定する
             chain_sequence: seq,
         };
@@ -247,7 +275,8 @@ mod tests {
             table_class: "TenantScoped".to_string(),
             payload_json: r#"{"test":true}"#.to_string(),
             created_at_rfc3339: "2026-01-01T00:00:00Z".to_string(),
-            prev_digest: "".to_string(),
+            // chain head の場合は None を設定する（prev_digest: String から Option<String> に変更）
+            prev_digest: None,
             chain_sequence: 1,
         };
         // 同一入力で 2 回計算して一致することを確認する

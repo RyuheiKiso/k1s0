@@ -275,3 +275,268 @@ mod tests {
         assert_eq!(cell.cell_id, "v1_interactive__grpc_native");
     }
 }
+
+// ============================================================
+// 製造業 pack 10 RPC stress test fixture
+// spec 01 §v1_bulk_upload: 製造業 pack 10 RPC × 5 conformance class のストレス試験
+// 製造業ドメイン（FA / 品質検査 / 調達 / SCADA テレメトリ）の RPC を網羅的に宣言する
+// ============================================================
+
+/// 製造業 pack の 10 RPC 定義。
+/// スキーマ進化仕様の aggregate_qualified_name と整合させて命名する。
+/// 各 RPC は CONFORMANCE_CLASSES のいずれかに属し、
+/// adapter capability matrix に基づいて stress fixture を生成する。
+// MANUFACTURING_RPCS: 製造業 pack 10 RPC の aggregate_qualified_name を宣言する定数スライス
+pub const MANUFACTURING_RPCS: &[&str] = &[
+    // 1. 製造指示（FA 工程）: 作業指示の作成（v1_interactive 双方向対話）
+    "manufacturing.fa.work_order.CreateWorkOrder",
+    // 2. 製造指示（FA 工程）: 作業指示の更新（v1_interactive 双方向対話）
+    "manufacturing.fa.work_order.UpdateWorkOrder",
+    // 3. 品質検査: 検査結果の記録（v1_interactive — 操作員との対話）
+    "manufacturing.inspection.InspectionResult.RecordInspectionResult",
+    // 4. 品質検査: 検査結果のストリーム配信（v1_event_feed — 品質検査結果配信）
+    "manufacturing.inspection.InspectionResult.StreamInspectionResults",
+    // 5. 調達: 発注書の作成（v1_interactive — 双方向確認フロー）
+    "manufacturing.procurement.PurchaseOrder.CreatePurchaseOrder",
+    // 6. 調達: 納品確認（v1_interactive — 双方向確認フロー）
+    "manufacturing.procurement.PurchaseOrder.ConfirmDelivery",
+    // 7. SCADA テレメトリ: 設備状態の一括アップロード（v1_bulk_upload）
+    "manufacturing.fa.machine.ReportMachineStatus",
+    // 8. 設備アラート: アラートストリーム配信（v1_alert — 設備異常通知）
+    "manufacturing.fa.machine.StreamMachineAlerts",
+    // 9. 品質イベント: 品質イベントの記録（v1_interactive — 操作員との対話）
+    "manufacturing.quality.QualityEvent.RecordQualityEvent",
+    // 10. 品質イベントフィード: 品質イベントのストリーム配信（v1_event_feed）
+    "manufacturing.quality.QualityEvent.StreamQualityFeed",
+];
+
+/// ManufacturingStressFixture は製造業 pack RPC のストレステスト fixture を表す構造体。
+/// rpc_name × expected_class × adapter の三つ組で 1 テストケースを表現する。
+/// message_count と expected_latency_ms は spec 01 §v1_bulk_upload の SLA 要件に基づく。
+// ManufacturingStressFixture 構造体: 1 つのストレステストケースを保持する
+#[derive(Debug, Clone)]
+pub struct ManufacturingStressFixture {
+    // rpc_name: 製造業 pack RPC の aggregate_qualified_name
+    pub rpc_name: String,
+    // expected_class: この RPC が属する conformance class（CONFORMANCE_CLASSES の値）
+    pub expected_class: String,
+    // adapter: テスト対象の transport adapter 名（ADAPTERS の値）
+    pub adapter: String,
+    // message_count: 1 ストレスセッションで送受信するメッセージ数
+    pub message_count: u32,
+    // expected_latency_ms: 許容最大レイテンシ（ミリ秒）。spec 01 §max_msg_lag_ms に準拠する
+    pub expected_latency_ms: u64,
+}
+
+// RPC 名と conformance class の対応を宣言する静的マッピング
+// spec 01 §v1 conformance_class セット と製造業 pack の RPC catalog を紐づける
+const MANUFACTURING_RPC_CLASS_MAP: &[(&str, &str)] = &[
+    // 作業指示作成: 操作員との双方向対話のため v1_interactive
+    ("manufacturing.fa.work_order.CreateWorkOrder",                     "v1_interactive"),
+    // 作業指示更新: 操作員との双方向対話のため v1_interactive
+    ("manufacturing.fa.work_order.UpdateWorkOrder",                     "v1_interactive"),
+    // 検査結果記録: 操作員との双方向確認のため v1_interactive
+    ("manufacturing.inspection.InspectionResult.RecordInspectionResult", "v1_interactive"),
+    // 検査結果ストリーム: 品質検査結果の継続配信のため v1_event_feed
+    ("manufacturing.inspection.InspectionResult.StreamInspectionResults", "v1_event_feed"),
+    // 発注書作成: 双方向確認フローのため v1_interactive
+    ("manufacturing.procurement.PurchaseOrder.CreatePurchaseOrder",     "v1_interactive"),
+    // 納品確認: 双方向確認フローのため v1_interactive
+    ("manufacturing.procurement.PurchaseOrder.ConfirmDelivery",         "v1_interactive"),
+    // 設備状態一括アップロード: client→server 大容量転送のため v1_bulk_upload
+    ("manufacturing.fa.machine.ReportMachineStatus",                    "v1_bulk_upload"),
+    // アラートストリーム: server→client 警報配信のため v1_alert
+    ("manufacturing.fa.machine.StreamMachineAlerts",                    "v1_alert"),
+    // 品質イベント記録: 操作員との双方向確認のため v1_interactive
+    ("manufacturing.quality.QualityEvent.RecordQualityEvent",           "v1_interactive"),
+    // 品質イベントフィード: Domain Event 継続配信のため v1_event_feed
+    ("manufacturing.quality.QualityEvent.StreamQualityFeed",            "v1_event_feed"),
+];
+
+/// 製造業 pack 10 RPC × 8 adapter の stress fixtures を生成する関数。
+/// MANUFACTURING_RPC_CLASS_MAP と ADAPTERS の直積から全 80 fixture を構築する。
+/// message_count=100 / expected_latency_ms は各 conformance class の max_msg_lag_ms に準拠する。
+// generate_manufacturing_stress_fixtures: 10 RPC × 8 adapter = 80 fixture を生成する
+pub fn generate_manufacturing_stress_fixtures() -> Vec<ManufacturingStressFixture> {
+    // 全 fixture を格納するベクターを初期化する（capacity: 10 RPC × 8 adapter = 80）
+    let mut fixtures = Vec::with_capacity(MANUFACTURING_RPC_CLASS_MAP.len() * ADAPTERS.len());
+    // 各 RPC と conformance class の組み合わせを順に処理する
+    for &(rpc, class) in MANUFACTURING_RPC_CLASS_MAP {
+        // 各 adapter に対して 1 fixture を生成する
+        for &adapter in ADAPTERS {
+            // conformance class の max_msg_lag_ms を expected_latency_ms として採用する
+            // spec 01 §v1 conformance_class セット の lag(ms) 列に準拠する
+            let expected_latency_ms = match class {
+                // v1_interactive: max_msg_lag_ms = 200ms
+                "v1_interactive" => 200,
+                // v1_alert: max_msg_lag_ms = 200ms
+                "v1_alert" => 200,
+                // v1_event_feed: max_msg_lag_ms = 5000ms
+                "v1_event_feed" => 5000,
+                // v1_live_snapshot: max_msg_lag_ms = 500ms
+                "v1_live_snapshot" => 500,
+                // v1_bulk_upload: max_msg_lag_ms = 0ms（best-effort、lag 検査除外）
+                "v1_bulk_upload" => 0,
+                // 未知の class は保守的に 5000ms を設定する
+                _ => 5000,
+            };
+            // ManufacturingStressFixture を構築してベクターに追加する
+            fixtures.push(ManufacturingStressFixture {
+                // rpc_name を String に変換して格納する
+                rpc_name: rpc.to_string(),
+                // expected_class を String に変換して格納する
+                expected_class: class.to_string(),
+                // adapter 名を String に変換して格納する
+                adapter: adapter.to_string(),
+                // spec 01 §v1_bulk_upload ストレス基準: 1 セッション 100 メッセージ
+                message_count: 100,
+                // class に応じた max_msg_lag_ms を設定する
+                expected_latency_ms,
+            });
+        }
+    }
+    // 全 fixture を返す
+    fixtures
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 製造業 pack stress test ユニットテスト
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 製造業 pack stress test のユニットテストモジュール
+#[cfg(test)]
+mod manufacturing_stress_tests {
+    // 親モジュールの全シンボルをインポートする
+    use super::*;
+
+    // 全製造業 RPC が CONFORMANCE_CLASSES に属する conformance class を持つことを確認する
+    #[test]
+    fn all_manufacturing_rpcs_have_conformance_class() {
+        // 全 fixture を生成する
+        let fixtures = generate_manufacturing_stress_fixtures();
+        // fixture が 1 件以上存在することを確認する
+        assert!(!fixtures.is_empty(), "generate_manufacturing_stress_fixtures が空のリストを返した");
+        // 全 fixture の expected_class が CONFORMANCE_CLASSES に含まれることを確認する
+        for f in &fixtures {
+            // rpc_name が空でないことを確認する
+            assert!(!f.rpc_name.is_empty(), "ManufacturingStressFixture の rpc_name が空である");
+            // expected_class が CONFORMANCE_CLASSES に含まれることを確認する
+            assert!(
+                CONFORMANCE_CLASSES.contains(&f.expected_class.as_str()),
+                "rpc '{}' の expected_class '{}' は CONFORMANCE_CLASSES に存在しない",
+                f.rpc_name,
+                f.expected_class
+            );
+        }
+    }
+
+    // MANUFACTURING_RPCS の件数が spec 要件の 10 件と一致することを確認する
+    #[test]
+    fn manufacturing_rpc_count_matches_spec() {
+        // spec 01 §製造業 pack は正確に 10 RPC を要求する
+        assert_eq!(
+            MANUFACTURING_RPCS.len(),
+            10,
+            "spec requires exactly 10 manufacturing RPCs; got {}",
+            MANUFACTURING_RPCS.len()
+        );
+    }
+
+    // generate_manufacturing_stress_fixtures が 10 RPC × 8 adapter = 80 件を返すことを確認する
+    #[test]
+    fn fixture_count_is_10_rpc_times_8_adapter() {
+        // 10 RPC × 8 adapter = 80 fixture を期待する
+        let fixtures = generate_manufacturing_stress_fixtures();
+        // fixture 件数が 10 × 8 = 80 であることを確認する
+        assert_eq!(
+            fixtures.len(),
+            MANUFACTURING_RPC_CLASS_MAP.len() * ADAPTERS.len(),
+            "fixture 件数が 10 RPC × 8 adapter の積と一致しない"
+        );
+    }
+
+    // MANUFACTURING_RPC_CLASS_MAP の件数が MANUFACTURING_RPCS と一致することを確認する
+    #[test]
+    fn rpc_class_map_matches_rpcs_const() {
+        // MANUFACTURING_RPC_CLASS_MAP と MANUFACTURING_RPCS の件数が一致することを確認する
+        assert_eq!(
+            MANUFACTURING_RPC_CLASS_MAP.len(),
+            MANUFACTURING_RPCS.len(),
+            "MANUFACTURING_RPC_CLASS_MAP と MANUFACTURING_RPCS の件数が不一致"
+        );
+        // MANUFACTURING_RPC_CLASS_MAP の全 rpc_name が MANUFACTURING_RPCS に含まれることを確認する
+        for &(rpc, _) in MANUFACTURING_RPC_CLASS_MAP {
+            // MANUFACTURING_RPCS に rpc が含まれることを確認する
+            assert!(
+                MANUFACTURING_RPCS.contains(&rpc),
+                "MANUFACTURING_RPC_CLASS_MAP の rpc '{}' が MANUFACTURING_RPCS に存在しない",
+                rpc
+            );
+        }
+    }
+
+    // v1_bulk_upload クラスの expected_latency_ms が 0 であることを確認する
+    #[test]
+    fn bulk_upload_latency_is_zero_best_effort() {
+        // 全 fixture を生成する
+        let fixtures = generate_manufacturing_stress_fixtures();
+        // v1_bulk_upload クラスの fixture を検索する
+        let bulk_fixtures: Vec<_> = fixtures.iter()
+            .filter(|f| f.expected_class == "v1_bulk_upload")
+            .collect();
+        // v1_bulk_upload fixture が存在することを確認する
+        assert!(!bulk_fixtures.is_empty(), "v1_bulk_upload クラスの fixture が存在しない");
+        // 全 v1_bulk_upload fixture の expected_latency_ms が 0 であることを確認する
+        for f in &bulk_fixtures {
+            // spec 01: v1_bulk_upload の max_msg_lag_ms = 0（best-effort、lag 検査除外）
+            assert_eq!(
+                f.expected_latency_ms,
+                0,
+                "v1_bulk_upload の expected_latency_ms は 0 であるべき (rpc={}, adapter={})",
+                f.rpc_name,
+                f.adapter
+            );
+        }
+    }
+
+    // v1_interactive クラスの expected_latency_ms が 200ms であることを確認する
+    #[test]
+    fn interactive_latency_is_200ms() {
+        // 全 fixture を生成する
+        let fixtures = generate_manufacturing_stress_fixtures();
+        // v1_interactive クラスの grpc_native adapter fixture を検索する
+        let interactive_grpc: Vec<_> = fixtures.iter()
+            .filter(|f| f.expected_class == "v1_interactive" && f.adapter == "grpc_native")
+            .collect();
+        // v1_interactive × grpc_native fixture が存在することを確認する
+        assert!(!interactive_grpc.is_empty(), "v1_interactive × grpc_native の fixture が存在しない");
+        // 全 v1_interactive × grpc_native fixture の expected_latency_ms が 200 であることを確認する
+        for f in &interactive_grpc {
+            // spec 01: v1_interactive の max_msg_lag_ms = 200ms
+            assert_eq!(
+                f.expected_latency_ms,
+                200,
+                "v1_interactive の expected_latency_ms は 200ms であるべき (rpc={})",
+                f.rpc_name
+            );
+        }
+    }
+
+    // message_count が全 fixture で 100 に設定されていることを確認する
+    #[test]
+    fn message_count_is_100_for_all_fixtures() {
+        // 全 fixture を生成する
+        let fixtures = generate_manufacturing_stress_fixtures();
+        // 全 fixture の message_count が 100 であることを確認する
+        for f in &fixtures {
+            // spec 01 §v1_bulk_upload ストレス基準: 1 セッション 100 メッセージ
+            assert_eq!(
+                f.message_count,
+                100,
+                "message_count は 100 であるべき (rpc={}, adapter={})",
+                f.rpc_name,
+                f.adapter
+            );
+        }
+    }
+}

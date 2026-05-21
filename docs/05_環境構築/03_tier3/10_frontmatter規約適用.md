@@ -3,7 +3,7 @@ id: env.tier3.tier3_frontmatter
 axis: tier3
 phase: env_setup
 kind: convention
-status: draft
+status: published
 depends_on:
   - env.tier3.tier3_docs_lint
 covered_by:
@@ -47,7 +47,7 @@ id: env.tier3.tier3_<slug>
 axis: tier3
 phase: env_setup
 kind: <responsibility|policy|enforcement|convention|index>
-status: draft
+status: published
 depends_on:
   - <依存先 id>
 covered_by:

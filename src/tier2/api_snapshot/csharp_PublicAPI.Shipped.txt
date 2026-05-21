@@ -1,7 +1,94 @@
 # tier2 C# shipped public API snapshot (v1.0.0)
 # API アナライザーが drift を検出するための baseline として使用する
-# BannedApiAnalyzers / PublicApiAnalyzers の入力ファイル
-TenantRepository
-Projector
-QuotaEnforcer
-AuditLogger
+# Microsoft.CodeAnalysis.PublicApiAnalyzers (PublicApiAnalyzers) の入力ファイル形式
+# 各行: 完全修飾シンボル名（1 シンボル 1 行）
+#nullable enable
+
+# --- K1s0.Tier2.SessionPurpose (enum) ---
+K1s0.Tier2.SessionPurpose
+K1s0.Tier2.SessionPurpose.BusinessOp = 0 -> K1s0.Tier2.SessionPurpose
+K1s0.Tier2.SessionPurpose.Support = 1 -> K1s0.Tier2.SessionPurpose
+K1s0.Tier2.SessionPurpose.Export = 2 -> K1s0.Tier2.SessionPurpose
+K1s0.Tier2.SessionPurpose.Migration = 3 -> K1s0.Tier2.SessionPurpose
+K1s0.Tier2.SessionPurpose.Emergency = 4 -> K1s0.Tier2.SessionPurpose
+
+# --- K1s0.Tier2.TenantContext (sealed class) ---
+K1s0.Tier2.TenantContext
+K1s0.Tier2.TenantContext.Create(tenantId: System.Guid, actorId: string!, purpose: K1s0.Tier2.SessionPurpose) -> K1s0.Tier2.TenantContext!
+K1s0.Tier2.TenantContext.WithDelegation(delegatorId: string!) -> K1s0.Tier2.TenantContext!
+K1s0.Tier2.TenantContext.ToSetLocalSql() -> string!
+
+# --- K1s0.Tier2.TableClass (enum) ---
+K1s0.Tier2.TableClass
+K1s0.Tier2.TableClass.TenantScoped = 0 -> K1s0.Tier2.TableClass
+K1s0.Tier2.TableClass.TenantMaster = 1 -> K1s0.Tier2.TableClass
+K1s0.Tier2.TableClass.PlatformGlobal = 2 -> K1s0.Tier2.TableClass
+K1s0.Tier2.TableClass.PiiSegregated = 3 -> K1s0.Tier2.TableClass
+
+# --- K1s0.Tier2.StateChange (sealed record) ---
+K1s0.Tier2.StateChange
+K1s0.Tier2.StateChange.StateChange(AggregateId: System.Guid, TenantId: System.Guid, TableClass: K1s0.Tier2.TableClass, Payload: string!, Version: long) -> K1s0.Tier2.StateChange!
+K1s0.Tier2.StateChange.AggregateId.get -> System.Guid
+K1s0.Tier2.StateChange.TenantId.get -> System.Guid
+K1s0.Tier2.StateChange.TableClass.get -> K1s0.Tier2.TableClass
+K1s0.Tier2.StateChange.Payload.get -> string!
+K1s0.Tier2.StateChange.Version.get -> long
+
+# --- K1s0.Tier2.TripleWriteResult (sealed record) ---
+K1s0.Tier2.TripleWriteResult
+K1s0.Tier2.TripleWriteResult.TripleWriteResult(AggregateId: System.Guid, OutboxId: System.Guid, AuditEventId: System.Guid, CommittedAt: System.DateTimeOffset) -> K1s0.Tier2.TripleWriteResult!
+K1s0.Tier2.TripleWriteResult.AggregateId.get -> System.Guid
+K1s0.Tier2.TripleWriteResult.OutboxId.get -> System.Guid
+K1s0.Tier2.TripleWriteResult.AuditEventId.get -> System.Guid
+K1s0.Tier2.TripleWriteResult.CommittedAt.get -> System.DateTimeOffset
+
+# --- K1s0.Tier2.IAtomicTripleWrite (interface) ---
+K1s0.Tier2.IAtomicTripleWrite
+K1s0.Tier2.IAtomicTripleWrite.VerifyTenantId(change: K1s0.Tier2.StateChange!) -> void
+K1s0.Tier2.IAtomicTripleWrite.VerifyPiiAuditRequired(change: K1s0.Tier2.StateChange!) -> bool
+K1s0.Tier2.IAtomicTripleWrite.ExecuteAsync(change: K1s0.Tier2.StateChange!, transaction: Npgsql.NpgsqlTransaction!, cancellationToken: System.Threading.CancellationToken) -> System.Threading.Tasks.Task<K1s0.Tier2.TripleWriteResult!>!
+
+# --- K1s0.Tier2.AtomicTripleWrite (sealed class) ---
+K1s0.Tier2.AtomicTripleWrite
+K1s0.Tier2.AtomicTripleWrite.AtomicTripleWrite(context: K1s0.Tier2.TenantContext!) -> K1s0.Tier2.AtomicTripleWrite!
+K1s0.Tier2.AtomicTripleWrite.VerifyTenantId(change: K1s0.Tier2.StateChange!) -> void
+K1s0.Tier2.AtomicTripleWrite.VerifyPiiAuditRequired(change: K1s0.Tier2.StateChange!) -> bool
+K1s0.Tier2.AtomicTripleWrite.ExecuteAsync(change: K1s0.Tier2.StateChange!, transaction: Npgsql.NpgsqlTransaction!, cancellationToken: System.Threading.CancellationToken) -> System.Threading.Tasks.Task<K1s0.Tier2.TripleWriteResult!>!
+
+# --- K1s0.Tier2.RlsBypassException (sealed class) ---
+K1s0.Tier2.RlsBypassException
+K1s0.Tier2.RlsBypassException.RlsBypassException(entityTenantId: System.Guid, contextTenantId: System.Guid) -> K1s0.Tier2.RlsBypassException!
+K1s0.Tier2.RlsBypassException.EntityTenantId.get -> System.Guid
+K1s0.Tier2.RlsBypassException.ContextTenantId.get -> System.Guid
+
+# --- K1s0.Tier2.ITenantScopedEntity (interface) ---
+K1s0.Tier2.ITenantScopedEntity
+K1s0.Tier2.ITenantScopedEntity.Id.get -> System.Guid
+K1s0.Tier2.ITenantScopedEntity.TenantId.get -> System.Guid
+K1s0.Tier2.ITenantScopedEntity.Version.get -> long
+
+# --- K1s0.Tier2.IRepository<T> (interface) ---
+K1s0.Tier2.IRepository<T>
+K1s0.Tier2.IRepository<T>.FindByIdAsync(id: System.Guid, cancellationToken: System.Threading.CancellationToken) -> System.Threading.Tasks.Task<T?>!
+K1s0.Tier2.IRepository<T>.FindByTenantIdAsync(cancellationToken: System.Threading.CancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<T>!>!
+K1s0.Tier2.IRepository<T>.SaveAsync(entity: T, cancellationToken: System.Threading.CancellationToken) -> System.Threading.Tasks.Task!
+K1s0.Tier2.IRepository<T>.DeleteAsync(id: System.Guid, cancellationToken: System.Threading.CancellationToken) -> System.Threading.Tasks.Task!
+
+# --- K1s0.Tier2.RepositoryContext (sealed class) ---
+K1s0.Tier2.RepositoryContext
+K1s0.Tier2.RepositoryContext.RepositoryContext(tenantContext: K1s0.Tier2.TenantContext!) -> K1s0.Tier2.RepositoryContext!
+K1s0.Tier2.RepositoryContext.TenantContext.get -> K1s0.Tier2.TenantContext!
+K1s0.Tier2.RepositoryContext.SetLocalSql() -> string!
+K1s0.Tier2.RepositoryContext.VerifySelectResult(entity: K1s0.Tier2.ITenantScopedEntity!) -> void
+
+# --- K1s0.Tier2.OutboxPayload (sealed record) ---
+K1s0.Tier2.OutboxPayload
+K1s0.Tier2.OutboxPayload.OutboxPayload(AggregateType: string!, Data: string!, Metadata: string!) -> K1s0.Tier2.OutboxPayload!
+K1s0.Tier2.OutboxPayload.AggregateType.get -> string!
+K1s0.Tier2.OutboxPayload.Data.get -> string!
+K1s0.Tier2.OutboxPayload.Metadata.get -> string!
+
+# --- K1s0.Tier2.Redaction (static class) ---
+K1s0.Tier2.Redaction
+K1s0.Tier2.Redaction.Redact(src: System.Collections.Generic.Dictionary<string!, object?>!) -> System.Collections.Generic.Dictionary<string!, object?>!
+K1s0.Tier2.Redaction.RedactJson(json: string!) -> string!

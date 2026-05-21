@@ -4,6 +4,7 @@
   "roots": ["tier2/abac"],
   "policies": [
     "tier2/abac/delegation.rego",
-    "tier2/abac/deny_root.rego"
+    "tier2/abac/deny_root.rego",
+    "tier2/abac/tenant-boundary-check.rego"
   ]
 }

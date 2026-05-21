@@ -3,7 +3,8 @@ id: detail.cross_edge.companion_otel_extension
 axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.client.observability_auto_instrumentation_policy
   - detail.client.sdk_distribution_conformance

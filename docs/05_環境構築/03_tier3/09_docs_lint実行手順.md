@@ -3,7 +3,7 @@ id: env.tier3.tier3_docs_lint
 axis: tier3
 phase: env_setup
 kind: enforcement
-status: draft
+status: published
 depends_on:
   - env.tier3.tier3_lint_format
 covered_by:

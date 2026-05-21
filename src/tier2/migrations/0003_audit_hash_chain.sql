@@ -1,6 +1,9 @@
 -- k1s0 tier2 migration: 0003_audit_hash_chain
--- audit hash chain 用のカラムを audit_event テーブルに追加する
--- 業務エラー監査 08 の hash chain 要件を物理化する
+-- migration_id: 0003_audit_hash_chain
+-- description: audit hash chain 用カラムを audit_event テーブルに追加する（業務エラー監査 08 の hash chain 要件）
+-- safety_level: safe
+-- table_class: tenant_scoped
+-- applied_at: 2026-05-17T00:00:00Z
 --
 -- 実行方法:
 --   sqlx migrate run --database-url $DATABASE_URL --source src/tier2/migrations/

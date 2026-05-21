@@ -41,7 +41,7 @@ const ${{values.screen_name}}: React.FC<${{values.screen_name}}Props> = ({
     // エラー状態をリセットする
     setError(null);
     try {
-      // TODO: tier2 SDK 経由でデータを取得する
+      // SCAFFOLD: tier2 SDK 経由でデータを取得する（テンプレート生成後に実装する）
       // const data = await tier2Sdk.${{values.domain}}.get(entityId);
       void entityId; // 未使用変数の型チェックを通過させる（実装時に削除する）
     } catch (err) {
@@ -86,7 +86,7 @@ const ${{values.screen_name}}: React.FC<${{values.screen_name}}Props> = ({
       </h1>
       {/* メインコンテンツ領域（実装時にビジネスロジックを追加する） */}
       <section aria-label={t('${{values.screen_name}}.content_label')}>
-        {/* TODO: ビジネスコンテンツを実装する */}
+        {/* SCAFFOLD: ビジネスコンテンツを実装する（テンプレート生成後に実装する） */}
       </section>
     </main>
   );

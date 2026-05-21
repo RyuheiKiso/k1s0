@@ -69,6 +69,8 @@ governor = { workspace = true }
 reqwest = { workspace = true }
 # base64: OpenBao Transit API の input / plaintext フィールド用 Base64 エンコード
 base64 = { workspace = true }
+# serde_yaml: capabilities.lock.yaml を起動時に deserialize するために使用する
+serde_yaml = { workspace = true }
 # k1s0-hlc: Hybrid Logical Clock（wall-clock TTL 禁止規律の物理機構）
 # webhook adapter の idempotency-key 24h TTL 管理に使用する
 k1s0-hlc = { path = "../../../client/hlc_lib/rust" }

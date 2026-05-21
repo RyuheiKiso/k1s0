@@ -184,6 +184,24 @@ CI は次の関係性を全数検査:
 - `SESSION_ORDERED + NONE` / `UNORDERED + REQUIRED` の組合せ
 - TLS バージョン依存 scenario assertion
 
+## 関連実装パターン
+
+### Library frontend/core/backend 三層分割（src/tier1/library/rust/src/）
+
+tier1 Library の Rust 実装は `frontend/`（公開 API facade） / `core/`（ビジネスロジック） / `backend/`（外部 OSS アダプタ）の三層で構成する。この分割は Bidi 適合仕様の「生 token 不可視・生 SQL 不可視」compile 強制と同型の構造を Library 層でも物理化するための実装パターン。
+
+### Conformance CRD（tier1 enforcement 層 D）
+
+`src/tier1/operator/api/v1/tier1_conformance_types.go` が宣言する `Tier1ConformanceClass` CRD は、tier1 enforcement §層 D の「全 RPC method に必須 method annotation」を Kubernetes CustomResource として宣言するための型定義。
+
+### Gateway event bus（src/tier1/server/gateway/src/event_bus.rs）
+
+`event_bus.rs` は tier1 gateway 内の bidi セッション間でイベントを配信する internal pub/sub バス。
+
+### Provided functions category mapping（src/tier1/schema/categories/categories.yaml）
+
+tier1 が提供する機能カテゴリ（Authentication / Schema Registry / Bidi Transport 等）を `categories.yaml` に宣言し、Client SDK classes.yaml から参照する。
+
 ## 関連参照
 - [Server 系](../../03_概要設計/02_tier1設計方針/01_Server系.md)
 - [tier1 強制機構](../02_強制機構/01_tier1強制機構.md)

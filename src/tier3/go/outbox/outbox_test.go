@@ -68,7 +68,7 @@ func TestGenerateIdempotencyKeyUniqueness(t *testing.T) {
 	keys := make(map[string]struct{}, 100)
 	for i := 0; i < 100; i++ {
 		// Idempotency-Key を生成する
-		key := GenerateIdempotencyKey("aggregate1", "create")
+		key := GenerateIdempotencyKey("tenant-001", "aggregate1", "create")
 		// 既に同じ key が生成されていた場合はテスト失敗
 		if _, exists := keys[key]; exists {
 			t.Errorf("GenerateIdempotencyKey() 重複 key: %q", key)
@@ -79,20 +79,26 @@ func TestGenerateIdempotencyKeyUniqueness(t *testing.T) {
 }
 
 // TestGenerateIdempotencyKeyPrefix は GenerateIdempotencyKey() が正しい prefix を含むことを確認する
+// フォーマット: "{tenantId}_{ulidHex}_{methodHash}" — 11_クライアント状態適合仕様 §idempotency_key
 func TestGenerateIdempotencyKeyPrefix(t *testing.T) {
-	// aggregateId の先頭 8 文字を prefix とした key が生成されることを確認する
-	key := GenerateIdempotencyKey("aggregate123456789", "createMethod")
-	// key が "aggregat_crea" で始まることを確認する
-	if !strings.HasPrefix(key, "aggregat_crea") {
+	// tenantId を prefix とした key が生成されることを確認する
+	key := GenerateIdempotencyKey("tenant-001", "aggregate123456789", "createMethod")
+	// key が "tenant-001_" で始まることを確認する（tenantId が先頭 prefix）
+	if !strings.HasPrefix(key, "tenant-001_") {
 		// prefix が不正な場合はテスト失敗
-		t.Errorf("GenerateIdempotencyKey() prefix 不正: got %q, want prefix 'aggregat_crea'", key)
+		t.Errorf("GenerateIdempotencyKey() prefix 不正: got %q, want prefix 'tenant-001_'", key)
+	}
+	// key が "_crea" で終わることを確認する（rpcMethod の先頭 4 文字）
+	if !strings.HasSuffix(key, "_crea") {
+		// suffix が不正な場合はテスト失敗
+		t.Errorf("GenerateIdempotencyKey() suffix 不正: got %q, want suffix '_crea'", key)
 	}
 }
 
 // TestCreateOutboxMetaExpiresAtMs は CreateOutboxMeta() の ExpiresAtMs が TTL 後になることを確認する
 func TestCreateOutboxMetaExpiresAtMs(t *testing.T) {
 	// メタデータを生成する
-	meta := CreateOutboxMeta("agg-001", "create", "")
+	meta := CreateOutboxMeta("tenant-001", "agg-001", "create", "")
 	// ExpiresAtMs が 0 より大きいことを確認する
 	if meta.ExpiresAtMs <= 0 {
 		// ExpiresAtMs が不正な場合はテスト失敗
@@ -111,7 +117,7 @@ func TestCreateOutboxMetaExpiresAtMs(t *testing.T) {
 // TestCreateOutboxMetaEnqueuedAtHlcFormat は CreateOutboxMeta() の EnqueuedAt が HLC フォーマットであることを確認する
 func TestCreateOutboxMetaEnqueuedAtHlcFormat(t *testing.T) {
 	// メタデータを生成する
-	meta := CreateOutboxMeta("agg-001", "create", "")
+	meta := CreateOutboxMeta("tenant-001", "agg-001", "create", "")
 	// EnqueuedAt がハイフン区切りで 3 部分に分かれることを確認する
 	parts := strings.Split(meta.EnqueuedAt, "-")
 	// パーツ数が 3 であることを確認する
@@ -124,7 +130,7 @@ func TestCreateOutboxMetaEnqueuedAtHlcFormat(t *testing.T) {
 // TestIsExpiredFalseForFreshEntry は生成直後のエントリが TTL 超過でないことを確認する
 func TestIsExpiredFalseForFreshEntry(t *testing.T) {
 	// 生成直後のメタデータを作成する
-	meta := CreateOutboxMeta("agg-001", "create", "")
+	meta := CreateOutboxMeta("tenant-001", "agg-001", "create", "")
 	// 生成直後は TTL 超過でないことを確認する
 	if IsExpired(meta) {
 		// 生成直後に TTL 超過と判定された場合はテスト失敗
@@ -224,7 +230,7 @@ func TestStripPiiFields(t *testing.T) {
 // TestCreateOutboxMetaWithChainedFrom は ChainedFrom が設定される場合のメタデータ生成を確認する
 func TestCreateOutboxMetaWithChainedFrom(t *testing.T) {
 	// chain 元 key を設定してメタデータを生成する
-	meta := CreateOutboxMeta("agg-001", "update", "original-key-001")
+	meta := CreateOutboxMeta("tenant-001", "agg-001", "update", "original-key-001")
 	// ChainedFrom が設定されていることを確認する
 	if meta.ChainedFrom != "original-key-001" {
 		// ChainedFrom が不正な場合はテスト失敗

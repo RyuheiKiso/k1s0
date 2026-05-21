@@ -8,16 +8,22 @@ edition = "2021"
 # バージョン
 version = "0.1.0"
 
+[features]
+# hsm_integration: SoftHSM2 / 物理 HSM が存在する環境でのみ有効化する
+# cargo test --features hsm_integration で PKCS#11 統合テストを実行する
+# cryptoki crate が optional dependency として有効化される
+hsm_integration = ["dep:cryptoki"]
+
 [dependencies]
 # serde: シリアライズ/デシリアライズ（derive feature を有効化する）
 serde = { version = "1", features = ["derive"] }
 # anyhow: エラーハンドリング（Result 型の統一）
 anyhow = "1"
-# zeroize: 機密データのゼロクリア（KeyHandle drop 時にメモリをゼロクリアする）
+# zeroize: 機密データのゼロクリア（KeyHandle drop 時・Pkcs11Backend pin のゼロクリアに使用する）
 zeroize = { version = "1", features = ["derive"] }
-# uuid: UUID v4 生成（セッション ID / トークン ID に使用する）
+# uuid: UUID v4 生成（セッション ID / トークン ID / RFC 3161 nonce 生成に使用する）
 uuid = { version = "1", features = ["v4"] }
-# chrono: 日時ライブラリ（step_up_proven_at タイムスタンプに使用する）
+# chrono: 日時ライブラリ（step_up_proven_at タイムスタンプ / TimestampToken.time に使用する）
 chrono = { version = "0.4", features = ["serde"] }
 # sqlx: compile-time 型安全 SQL（PgRepository の DB アクセスに使用する）
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
@@ -27,7 +33,15 @@ serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 # async-trait: async fn in trait を安定版で使用するためのマクロ
 async-trait = "0.1"
-# reqwest: HTTP クライアント（OpenBao Transit API 呼び出しに使用する）
+# reqwest: HTTP クライアント（OpenBao Transit API / TSA / Rekor API 呼び出しに使用する）
 reqwest = { workspace = true }
 # base64: OpenBao Transit API の input / signature フィールド用 Base64 エンコード
 base64 = { workspace = true }
+# sha2: RFC 3161 の MessageImprint / Rekor の artifact hash 計算に使用する
+sha2 = { workspace = true }
+# hex: Rekor の artifact hash を hex 文字列に変換するために使用する
+hex = "0.4"
+# thiserror: エラー型 derive macro（カスタムエラー型に使用する）
+thiserror = { workspace = true }
+# cryptoki: PKCS#11 Rust バインディング（optional: hsm_integration feature のみ有効化する）
+cryptoki = { version = "0.7", optional = true, default-features = false }

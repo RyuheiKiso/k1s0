@@ -37,9 +37,8 @@ public sealed class AdminBoundaryGuardImpl : IAdminBoundaryGuard
         // デュアル承認が必要な操作の場合、単独呼び出しは拒否する
         if (RequiresDualApproval(operationKind))
         {
-            // デュアル承認が必要な操作では承認チェックを強制する
-            // TODO: 実際の承認ストアとの連携（P11 phase で実装する）
-            // 現在は骨格実装として未承認状態をデフォルトにする
+            // 骨格実装の制約: 承認ストアとの結線は dual_signoff 完了後の P11 物理化フェーズで実施する
+            // 本骨格は DualApprovalRequired を throw する契約のみを保証し、承認済み状態は受け付けない
             throw new AdminBoundaryException(
                 AdminBoundaryErrorKind.DualApprovalRequired,
                 $"デュアル承認未完了: 操作 {operationKind} には 2 件以上の承認が必要です");
@@ -60,7 +59,8 @@ public sealed class AdminBoundaryGuardImpl : IAdminBoundaryGuard
         ArgumentNullException.ThrowIfNull(request);
 
         // 監査ログへの記録は必須（audit_recorded = true を保証する）
-        // TODO: 実際の監査ログ書込（AtomicTripleWrite 経由で P11 phase で実装する）
+        // 骨格実装の制約: 監査ログの AtomicTripleWrite 経由書込は P11 物理化フェーズで実施する
+        // 本骨格は AuditRecorded=true を返す契約のみを保証し、実際の DB 書込は行わない
 
         // TenantProvision 操作の骨格処理
         if (request.OperationKind == AdminOperationKind.TenantProvision)

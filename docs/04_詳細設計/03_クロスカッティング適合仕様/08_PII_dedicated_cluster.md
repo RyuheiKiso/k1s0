@@ -3,7 +3,8 @@ id: detail.cross_pii.pii_dedicated_cluster
 axis: cross_pii
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.data.preservation_policy
   - arch.data.encryption_policy

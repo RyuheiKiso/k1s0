@@ -128,7 +128,7 @@ impl AtomicTripleWrite {
         let set_guc_sql = self.context.to_set_local_sql();
 
         // SET LOCAL GUC を実行する（transaction スコープのみ有効、COMMIT で自動破棄される）
-        // sqlx prepare 実行後は query! マクロに置き換えること
+        // SET LOCAL は動的文字列なため sqlx::query（ランタイム文字列版）を使用する（compile-time 検証不可）
         sqlx::query(&set_guc_sql)
             // トランザクション内で SET LOCAL を実行する
             .execute(&mut *tx)
@@ -136,7 +136,7 @@ impl AtomicTripleWrite {
             .map_err(|e| AtomicWriteError::TransactionError(e.to_string()))?;
 
         // P3: SHOW app.tenant_id で GUC の実際値を読み取り aggregate の tenant_id と照合する
-        // sqlx prepare 実行後は query! マクロに置き換えること
+        // SHOW は動的パラメータ不要だが sqlx::query! での compile-time 検証は非対応のためランタイム版を使用する
         let guc_row: (String,) = sqlx::query_as(
             // SHOW コマンドで現在の GUC 値を取得する
             "SHOW app.tenant_id",
@@ -180,25 +180,25 @@ impl AtomicTripleWrite {
 
         // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
         // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
-        // sqlx prepare 実行後は query! マクロに置き換えること
-        sqlx::query(
+        // sqlx::query! マクロを使用して compile-time 型検証を行う（SQLX_OFFLINE=true で .sqlx/ キャッシュを使用する）
+        sqlx::query!(
             r#"
             INSERT INTO k1s0.domain_event
                 (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
             VALUES
                 ($1, $2, current_setting('app.tenant_id')::uuid, 'StateChange', $3, $4, $5)
             "#,
+            // audit_event_id を domain_event の主キーとして使用する
+            audit_event_id,
+            // 変更対象の aggregate ID をバインドする
+            change.aggregate_id,
+            // ペイロードを jsonb 型としてバインドする
+            change.payload,
+            // aggregate バージョンをバインドする（楽観的ロックに使用する）
+            change.version,
+            // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+            committed_at_db,
         )
-        // audit_event_id を domain_event の主キーとして使用する
-        .bind(audit_event_id)
-        // 変更対象の aggregate ID をバインドする
-        .bind(change.aggregate_id)
-        // ペイロードを jsonb 型としてバインドする
-        .bind(&change.payload)
-        // aggregate バージョンをバインドする（楽観的ロックに使用する）
-        .bind(change.version)
-        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
-        .bind(committed_at_db)
         // 同一 transaction で実行する（P1 の atomic 書込を保証する）
         .execute(&mut *tx)
         .await
@@ -206,23 +206,23 @@ impl AtomicTripleWrite {
 
         // P1: k1s0.outbox_message テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
         // P2: この INSERT が失敗した場合は OutboxInsertFailed を返し、呼び出し元が rollback する
-        // sqlx prepare 実行後は query! マクロに置き換えること
-        sqlx::query(
+        // sqlx::query! マクロを使用して compile-time 型検証を行う（SQLX_OFFLINE=true で .sqlx/ キャッシュを使用する）
+        sqlx::query!(
             r#"
             INSERT INTO k1s0.outbox_message
                 (id, aggregate_id, tenant_id, event_kind, payload, created_at)
             VALUES
                 ($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3, $4)
             "#,
+            // outbox エントリの ID をバインドする
+            outbox_id,
+            // 変更対象の aggregate ID をバインドする
+            change.aggregate_id,
+            // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
+            change.payload,
+            // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+            committed_at_db,
         )
-        // outbox エントリの ID をバインドする
-        .bind(outbox_id)
-        // 変更対象の aggregate ID をバインドする
-        .bind(change.aggregate_id)
-        // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
-        .bind(&change.payload)
-        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
-        .bind(committed_at_db)
         // 同一 transaction で実行する（P2 の rollback 要件を満たす）
         .execute(&mut *tx)
         .await
@@ -231,8 +231,10 @@ impl AtomicTripleWrite {
 
         // P1+P4: k1s0.audit_event テーブルに INSERT する（全操作を監査記録する）
         // P4: pii_segregated は pgaudit も併用するが、アプリ層からも必ず audit_event を書く
-        // sqlx prepare 実行後は query! マクロに置き換えること
-        sqlx::query(
+        // sqlx::query! マクロを使用して compile-time 型検証を行う（SQLX_OFFLINE=true で .sqlx/ キャッシュを使用する）
+        // table_class は Debug フォーマットで文字列化してバインドする
+        let table_class_str = format!("{:?}", change.table_class);
+        sqlx::query!(
             r#"
             INSERT INTO k1s0.audit_event
                 (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
@@ -242,17 +244,17 @@ impl AtomicTripleWrite {
                  current_setting('app.purpose'),
                  $3, $4, $5)
             "#,
+            // audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
+            audit_event_id,
+            // 変更対象の aggregate ID をバインドする
+            change.aggregate_id,
+            // テーブルクラスを文字列としてバインドする
+            table_class_str,
+            // ペイロードを jsonb 型としてバインドする
+            change.payload,
+            // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+            committed_at_db,
         )
-        // audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
-        .bind(audit_event_id)
-        // 変更対象の aggregate ID をバインドする
-        .bind(change.aggregate_id)
-        // テーブルクラスを文字列としてバインドする
-        .bind(format!("{:?}", change.table_class))
-        // ペイロードを jsonb 型としてバインドする
-        .bind(&change.payload)
-        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
-        .bind(committed_at_db)
         // 同一 transaction で実行する（P4 の audit 必須要件を満たす）
         .execute(&mut *tx)
         .await
@@ -293,14 +295,14 @@ impl AtomicTripleWrite {
         let set_guc_sql = self.context.to_set_local_sql();
 
         // SET LOCAL GUC を実行する（transaction スコープのみ有効、COMMIT で自動破棄される）
-        // sqlx prepare 実行後は query! マクロに置き換えること
+        // SET LOCAL は動的文字列なため sqlx::query（ランタイム文字列版）を使用する（compile-time 検証不可）
         sqlx::query(&set_guc_sql)
             .execute(&mut **tx)
             .await
             .map_err(|e| AtomicWriteError::TransactionError(e.to_string()))?;
 
         // P3: SHOW app.tenant_id で GUC の実際値を読み取り aggregate の tenant_id と照合する
-        // sqlx prepare 実行後は query! マクロに置き換えること
+        // SHOW は動的パラメータ不要だが sqlx::query! での compile-time 検証は非対応のためランタイム版を使用する
         let guc_row: (String,) = sqlx::query_as(
             // SHOW コマンドで現在の GUC 値を取得する
             "SHOW app.tenant_id",
@@ -349,25 +351,25 @@ impl AtomicTripleWrite {
 
         // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
         // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
-        // sqlx prepare 実行後は query! マクロに置き換えること
-        sqlx::query(
+        // sqlx::query! マクロを使用して compile-time 型検証を行う（SQLX_OFFLINE=true で .sqlx/ キャッシュを使用する）
+        sqlx::query!(
             r#"
             INSERT INTO k1s0.domain_event
                 (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
             VALUES
                 ($1, $2, current_setting('app.tenant_id')::uuid, 'StateChange', $3, $4, $5)
             "#,
+            // audit_event_id を domain_event の主キーとして使用する
+            audit_event_id,
+            // 変更対象の aggregate ID をバインドする
+            change.aggregate_id,
+            // ペイロードを jsonb 型としてバインドする
+            change.payload,
+            // aggregate バージョンをバインドする（楽観的ロックに使用する）
+            change.version,
+            // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+            committed_at_db,
         )
-        // audit_event_id を domain_event の主キーとして使用する
-        .bind(audit_event_id)
-        // 変更対象の aggregate ID をバインドする
-        .bind(change.aggregate_id)
-        // ペイロードを jsonb 型としてバインドする
-        .bind(&change.payload)
-        // aggregate バージョンをバインドする（楽観的ロックに使用する）
-        .bind(change.version)
-        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
-        .bind(committed_at_db)
         // 同一 transaction で実行する（P1 の atomic 書込を保証する）
         .execute(&mut **tx)
         .await
@@ -375,23 +377,23 @@ impl AtomicTripleWrite {
 
         // P1: k1s0.outbox_message テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
         // P2: この INSERT が失敗した場合は OutboxInsertFailed を返し、呼び出し元が rollback する
-        // sqlx prepare 実行後は query! マクロに置き換えること
-        sqlx::query(
+        // sqlx::query! マクロを使用して compile-time 型検証を行う（SQLX_OFFLINE=true で .sqlx/ キャッシュを使用する）
+        sqlx::query!(
             r#"
             INSERT INTO k1s0.outbox_message
                 (id, aggregate_id, tenant_id, event_kind, payload, created_at)
             VALUES
                 ($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3, $4)
             "#,
+            // outbox エントリの ID をバインドする
+            outbox_id,
+            // 変更対象の aggregate ID をバインドする
+            change.aggregate_id,
+            // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
+            change.payload,
+            // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+            committed_at_db,
         )
-        // outbox エントリの ID をバインドする
-        .bind(outbox_id)
-        // 変更対象の aggregate ID をバインドする
-        .bind(change.aggregate_id)
-        // ペイロードを jsonb 型としてバインドする（PII は redact 済みのみ含む）
-        .bind(&change.payload)
-        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
-        .bind(committed_at_db)
         // 同一 transaction で実行する（P2 の rollback 要件を満たす）
         .execute(&mut **tx)
         .await
@@ -400,8 +402,10 @@ impl AtomicTripleWrite {
 
         // P1+P4: k1s0.audit_event テーブルに INSERT する（全操作を監査記録する）
         // P4: pii_segregated は pgaudit も併用するが、アプリ層からも必ず audit_event を書く
-        // sqlx prepare 実行後は query! マクロに置き換えること
-        sqlx::query(
+        // sqlx::query! マクロを使用して compile-time 型検証を行う（SQLX_OFFLINE=true で .sqlx/ キャッシュを使用する）
+        // table_class は Debug フォーマットで文字列化してバインドする
+        let table_class_str = format!("{:?}", change.table_class);
+        sqlx::query!(
             r#"
             INSERT INTO k1s0.audit_event
                 (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
@@ -411,17 +415,17 @@ impl AtomicTripleWrite {
                  current_setting('app.purpose'),
                  $3, $4, $5)
             "#,
+            // audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
+            audit_event_id,
+            // 変更対象の aggregate ID をバインドする
+            change.aggregate_id,
+            // テーブルクラスを文字列としてバインドする
+            table_class_str,
+            // ペイロードを jsonb 型としてバインドする
+            change.payload,
+            // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
+            committed_at_db,
         )
-        // audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
-        .bind(audit_event_id)
-        // 変更対象の aggregate ID をバインドする
-        .bind(change.aggregate_id)
-        // テーブルクラスを文字列としてバインドする
-        .bind(format!("{:?}", change.table_class))
-        // ペイロードを jsonb 型としてバインドする
-        .bind(&change.payload)
-        // HLC wall_ms から変換した TIMESTAMPTZ をバインドする
-        .bind(committed_at_db)
         // 同一 transaction で実行する（P4 の audit 必須要件を満たす）
         .execute(&mut **tx)
         .await

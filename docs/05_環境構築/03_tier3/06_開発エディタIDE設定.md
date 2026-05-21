@@ -3,7 +3,7 @@ id: env.tier3.tier3_editor_ide
 axis: tier3
 phase: env_setup
 kind: enforcement
-status: draft
+status: published
 depends_on:
   - env.tier3.tier3_oss_install
 covered_by:

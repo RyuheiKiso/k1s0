@@ -1,0 +1,119 @@
+# redaction.yaml — k1s0 tier1 OTel Collector PII redaction processor 設定
+# docs/04_詳細設計/01_適合仕様/03_観測適合仕様.md §PII redaction は単一の真 + Collector 強制 に準拠する。
+# signals.lock.yaml の 5 signal class（logs / metrics / traces / profiles / audit）の redaction 要件を物理化する。
+# OTTL（OpenTelemetry Transformation Language）で各 signal 種別ごとに PII フィールドを delete_key で除去する。
+# このファイルは observability_collector.yaml の processors セクションに include して使用する補完設定である。
+
+# OTel Collector processors 定義（OTTL transform processor 群）
+processors:
+  # === logs 向け PII redaction processor ===
+  # logs signal (SoR: clickhouse_logs) の log record attribute から PII フィールドを物理削除する。
+  # pii_redact_required attribute が true の log record のみを対象にして過剰削除を防ぐ。
+  transform/redact_pii_logs:
+    # log_statements: OTTL log record コンテキストでの変換ステートメント群
+    log_statements:
+      # log record コンテキストで PII フィールドを削除する
+      - context: log
+        # statements: pii_redact_required == true の場合に各 PII フィールドを delete する
+        statements:
+          # email: 個人メールアドレスを削除する
+          - delete_key(attributes, "email") where attributes["pii_redact_required"] == true
+          # phone: 電話番号を削除する
+          - delete_key(attributes, "phone") where attributes["pii_redact_required"] == true
+          # address: 住所情報を削除する
+          - delete_key(attributes, "address") where attributes["pii_redact_required"] == true
+          # name: 氏名を削除する
+          - delete_key(attributes, "name") where attributes["pii_redact_required"] == true
+          # tax_id: 納税者番号を削除する
+          - delete_key(attributes, "tax_id") where attributes["pii_redact_required"] == true
+          # birth_date: 生年月日を削除する
+          - delete_key(attributes, "birth_date") where attributes["pii_redact_required"] == true
+          # card_number: クレジットカード番号を削除する
+          - delete_key(attributes, "card_number") where attributes["pii_redact_required"] == true
+          # ssn: 社会保障番号を削除する
+          - delete_key(attributes, "ssn") where attributes["pii_redact_required"] == true
+          # passport_number: パスポート番号を削除する
+          - delete_key(attributes, "passport_number") where attributes["pii_redact_required"] == true
+          # bank_account: 銀行口座番号を削除する
+          - delete_key(attributes, "bank_account") where attributes["pii_redact_required"] == true
+
+  # === traces 向け PII redaction processor ===
+  # traces signal (SoR: clickhouse_traces) の span attribute から PII フィールドを物理削除する。
+  # pii_redact_required attribute が true の span のみを対象にして業務属性の意図しない削除を防ぐ。
+  transform/redact_pii_spans:
+    # trace_statements: OTTL span コンテキストでの変換ステートメント群
+    trace_statements:
+      # span コンテキストで PII フィールドを削除する
+      - context: span
+        # statements: pii_redact_required == true の場合に各 PII フィールドを delete する
+        statements:
+          # email: 個人メールアドレスを削除する
+          - delete_key(attributes, "email") where attributes["pii_redact_required"] == true
+          # phone: 電話番号を削除する
+          - delete_key(attributes, "phone") where attributes["pii_redact_required"] == true
+          # address: 住所情報を削除する
+          - delete_key(attributes, "address") where attributes["pii_redact_required"] == true
+          # name: 氏名を削除する
+          - delete_key(attributes, "name") where attributes["pii_redact_required"] == true
+          # tax_id: 納税者番号を削除する
+          - delete_key(attributes, "tax_id") where attributes["pii_redact_required"] == true
+          # birth_date: 生年月日を削除する
+          - delete_key(attributes, "birth_date") where attributes["pii_redact_required"] == true
+          # card_number: クレジットカード番号を削除する
+          - delete_key(attributes, "card_number") where attributes["pii_redact_required"] == true
+          # ssn: 社会保障番号を削除する
+          - delete_key(attributes, "ssn") where attributes["pii_redact_required"] == true
+          # passport_number: パスポート番号を削除する
+          - delete_key(attributes, "passport_number") where attributes["pii_redact_required"] == true
+          # bank_account: 銀行口座番号を削除する
+          - delete_key(attributes, "bank_account") where attributes["pii_redact_required"] == true
+
+  # === metrics 向け PII redaction processor ===
+  # metrics signal (SoR: prometheus) の datapoint attribute から PII フィールドを物理削除する。
+  # metrics は低 cardinality 要件があるため PII を attribute に付与すること自体が設計違反だが、
+  # 防御的に processor で削除して二重防御を構成する（defense-in-depth layer D / E の補完）。
+  transform/redact_pii_metrics:
+    # metric_statements: OTTL datapoint コンテキストでの変換ステートメント群
+    metric_statements:
+      # datapoint コンテキストで PII フィールドを削除する
+      - context: datapoint
+        # statements: pii_redact_required == true の場合に各 PII フィールドを delete する
+        statements:
+          # email: 個人メールアドレスを削除する
+          - delete_key(attributes, "email") where attributes["pii_redact_required"] == true
+          # phone: 電話番号を削除する
+          - delete_key(attributes, "phone") where attributes["pii_redact_required"] == true
+          # address: 住所情報を削除する
+          - delete_key(attributes, "address") where attributes["pii_redact_required"] == true
+          # name: 氏名を削除する
+          - delete_key(attributes, "name") where attributes["pii_redact_required"] == true
+          # tax_id: 納税者番号を削除する
+          - delete_key(attributes, "tax_id") where attributes["pii_redact_required"] == true
+          # birth_date: 生年月日を削除する
+          - delete_key(attributes, "birth_date") where attributes["pii_redact_required"] == true
+          # card_number: クレジットカード番号を削除する
+          - delete_key(attributes, "card_number") where attributes["pii_redact_required"] == true
+          # ssn: 社会保障番号を削除する
+          - delete_key(attributes, "ssn") where attributes["pii_redact_required"] == true
+          # passport_number: パスポート番号を削除する
+          - delete_key(attributes, "passport_number") where attributes["pii_redact_required"] == true
+          # bank_account: 銀行口座番号を削除する
+          - delete_key(attributes, "bank_account") where attributes["pii_redact_required"] == true
+
+# === pipeline 統合ガイド ===
+# このファイルを observability_collector.yaml の processors セクションに merge して使用する。
+# 段1（DaemonSet gateway）のパイプラインに組み込む場合の pipeline 定義例:
+#   pipelines:
+#     logs:
+#       receivers: [otlp]
+#       processors: [memory_limiter, transform/redact_pii_logs, batch]
+#       exporters: [loadbalancing]
+#     traces:
+#       receivers: [otlp]
+#       processors: [memory_limiter, transform/redact_pii_spans, batch]
+#       exporters: [loadbalancing]
+#     metrics:
+#       receivers: [otlp]
+#       processors: [memory_limiter, transform/redact_pii_metrics, batch]
+#       exporters: [loadbalancing]
+# profiles と audit は SoR への経路が異なるため別途設定する（Parca agent / audit_relay 経由）。

@@ -249,8 +249,22 @@ pub async fn handle_bidi_stream(
 // main.rs で .nest("/grpc", grpc_native::router()) として使用する。
 pub fn router() -> Router {
     // BidiService/OpenBidiStream パスを any メソッドで登録する
+    // TODO: buf generate 実行後（CI が生成する）、以下の hardcoded 文字列を削除し、
+    // proto 生成物の定数 BidiService_OpenBidiStream_FullMethodName を使用すること。
+    // proto SoT: src/tier1/schema/bidi/tier1/bidi/v1/service.proto
+    // 生成後の参照例（Go codegen）:
+    //   bidiv1.BidiService_OpenBidiStream_FullMethodName
+    //   => "/tier1.bidi.v1.BidiService/OpenBidiStream"
+    // 生成後の参照例（Rust tonic codegen）:
+    //   tier1_bidi_v1::bidi_service_server::BidiService::NAME を使うか、
+    //   tonic::server::NamedService::NAME で取得する。
+    // 手書き文字列 "/k1s0.tier1.bidi.v1.BidiService/OpenBidiStream" は buf generate 後に削除する。
     Router::new()
         // gRPC bidi streaming エンドポイントを登録する（POST / any）
+        // FIXME(proto-sot): パッケージ名が現在 "k1s0.tier1.bidi.v1" で hardcoded されているが、
+        // service.proto のパッケージ "tier1.bidi.v1" から buf generate されると
+        // "/tier1.bidi.v1.BidiService/OpenBidiStream" になる。
+        // buf generate 後は生成定数に差し替え、この文字列を削除すること（CI diff check で検出される）。
         .route(
             "/k1s0.tier1.bidi.v1.BidiService/OpenBidiStream",
             any(handle_bidi_stream),

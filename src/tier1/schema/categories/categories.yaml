@@ -10,6 +10,9 @@ design_policy_ref: "docs/03_概要設計/02_tier1設計方針/04_提供機能カ
 # 適合仕様参照
 spec_ref: "docs/04_詳細設計/01_適合仕様/08_OSSライフサイクル適合仕様.md"
 
+# mapping table: lib.rs モジュール名との対応
+# (docs/03_概要設計/02_tier1設計方針/02_Library.md §17 categories と lib.rs の対応)
+
 # 17 機能カテゴリ定義
 categories:
 
@@ -31,6 +34,8 @@ categories:
     banned_oss_types_in_public_api: []
     # 現行実装 OSS
     current_oss: ["OpenTelemetry Library", "Collector"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "observability + frontend::log_context"
 
   # カテゴリ 02: Observability / Tracing
   - id: observability_tracing
@@ -49,6 +54,8 @@ categories:
     banned_oss_types_in_public_api: []
     # 現行実装 OSS
     current_oss: ["OpenTelemetry Library", "ClickHouse", "Jaeger v2"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "observability"
 
   # カテゴリ 03: Observability / Metrics
   - id: observability_metrics
@@ -68,6 +75,8 @@ categories:
     banned_oss_types_in_public_api: []
     # 現行実装 OSS
     current_oss: ["OpenTelemetry Library", "Prometheus"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "observability + profiling"
 
   # カテゴリ 04: Observability / Profiling
   - id: observability_profiling
@@ -88,6 +97,8 @@ categories:
       - "ParcaClient"
     # 現行実装 OSS
     current_oss: ["Parca"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "profiling"
 
   # カテゴリ 05: Authentication / Authorization
   - id: auth
@@ -110,6 +121,8 @@ categories:
       - "org.keycloak"
     # 現行実装 OSS
     current_oss: ["Keycloak"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "core::auth_context"
 
   # カテゴリ 06: Secret Management
   - id: secret
@@ -131,6 +144,8 @@ categories:
       - "openbao::"
     # 現行実装 OSS
     current_oss: ["OpenBao", "External Secrets Operator"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "backend::secret"
 
   # カテゴリ 07: Configuration / Feature Flag
   - id: feature_flag
@@ -152,6 +167,8 @@ categories:
       - "flagd::"
     # 現行実装 OSS
     current_oss: ["OpenFeature", "flagd"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "config"
 
   # カテゴリ 08: KeyValue / Cache
   - id: kv_cache
@@ -175,6 +192,8 @@ categories:
       - "ValkeyClient"
     # 現行実装 OSS
     current_oss: ["Valkey"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "cache"
 
   # カテゴリ 09: Object Storage
   - id: object_store
@@ -197,6 +216,8 @@ categories:
       - "librados::"
     # 現行実装 OSS
     current_oss: ["Rook+Ceph RGW"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "storage"
 
   # カテゴリ 10: RPC / Gateway
   - id: rpc_gateway
@@ -218,6 +239,8 @@ categories:
       - "EnvoyClient"
     # 現行実装 OSS
     current_oss: ["Envoy Gateway", "gRPC"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "rpc + frontend::transport_negotiation"
 
   # カテゴリ 11: Messaging / EventBus
   - id: messaging
@@ -245,6 +268,8 @@ categories:
       - "KafkaConsumer"
     # 現行実装 OSS
     current_oss: ["Apache Kafka (Strimzi)"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "messaging"
 
   # カテゴリ 12: Schema Registry
   - id: schema_registry
@@ -266,6 +291,8 @@ categories:
       - "apicurio_registry::"
     # 現行実装 OSS
     current_oss: ["Apicurio Registry", "Buf"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "schema"
 
   # カテゴリ 13: Relational Store / Single-leader
   - id: relational_store
@@ -290,6 +317,8 @@ categories:
       - "NpgsqlConnection"
     # 現行実装 OSS
     current_oss: ["PostgreSQL (CloudNativePG)", "PgBouncer", "pg_partman"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "db"
 
   # カテゴリ 14: Relational Store / Distributed SQL
   - id: distributed_sql
@@ -307,6 +336,8 @@ categories:
     banned_oss_types_in_public_api: []
     # 現行実装 OSS（未定）
     current_oss: []
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "db_distributed"
 
   # カテゴリ 15: Vector Search
   - id: vector_search
@@ -330,6 +361,8 @@ categories:
       - "qdrant::"
     # 現行実装 OSS
     current_oss: ["pgvector"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "vector"
 
   # カテゴリ 16: Workflow / Long-running Saga
   - id: workflow
@@ -354,6 +387,8 @@ categories:
       - "WorkflowClient"
     # 現行実装 OSS
     current_oss: ["Temporal"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "workflow"
 
   # カテゴリ 17: Rule Engine
   - id: rule_engine
@@ -374,3 +409,5 @@ categories:
       - "ZenEngine"
     # 現行実装 OSS
     current_oss: ["ZEN Engine"]
+    # rust_module_name: lib.rs の対応モジュール（14 flat module + 3 sub-namespace との対応表 SoT）
+    rust_module_name: "rules"

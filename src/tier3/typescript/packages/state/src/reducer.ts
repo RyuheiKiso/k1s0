@@ -69,7 +69,9 @@ export type ReducerAction =
   // presence indicator を更新する
   | { readonly type: "UPDATE_PRESENCE"; readonly actorId: string }
   // 全 layer を purge する（5 trigger）
-  | { readonly type: "PURGE_ALL_LAYERS"; readonly reason: PurgeReason };
+  | { readonly type: "PURGE_ALL_LAYERS"; readonly reason: PurgeReason }
+  // server_truth を再取得する（conflict_tree.lock.yaml: lost_update / stale_write fallback の actions に対応）
+  | { readonly type: "REFETCH_SERVER_TRUTH" };
 
 // 空の初期 state を生成する
 export function createInitialState<T, TPayload = unknown>(): ClientState<T, TPayload> {
@@ -301,8 +303,9 @@ function reduceBusinessConflict<T, TPayload>(
         actions.push({ type: "HOLD_QUEUE" });
         break;
       case "refetch_server_truth":
-        // server_truth を再取得する（version=0 で再初期化する）
-        actions.push({ type: "UPDATE_SERVER_TRUTH", version: 0 });
+        // conflict_tree.lock.yaml の refetch_server_truth action に対応する専用 action を dispatch する
+        // UPDATE_SERVER_TRUTH(version=0) による強制リセットではなく REFETCH_SERVER_TRUTH で意味的に正確に表現する
+        actions.push({ type: "REFETCH_SERVER_TRUTH" });
         break;
       case "delete_queue_entry":
         // queue entry 削除

@@ -202,6 +202,9 @@ const (
 	ActionUpdatePresence ReducerActionType = "update_presence"
 	// ActionPurgeAllLayers は全 layer を purge する action を表す
 	ActionPurgeAllLayers ReducerActionType = "purge_all_layers"
+	// ActionRefetchServerTruth は server_truth を再取得する action を表す
+	// conflict_tree.lock.yaml の lost_update / stale_write(fallback) actions に対応する
+	ActionRefetchServerTruth ReducerActionType = "refetch_server_truth"
 )
 
 // AutoResendWithChainedKeyDetail は auto_resend_with_chained_key action の型付き詳細
@@ -407,13 +410,35 @@ func reduceBusinessConflictWithFieldDiff(state ClientState, subtype BusinessConf
 func reduceBusinessConflict(state ClientState, subtype BusinessConflictSubtype) ReducerResult {
 	// subtype に応じて決定論的に actions を返す（分岐 override 禁止）
 	switch subtype {
-	case StaleWrite, LostUpdate:
-		// safe 側（dirty）に倒して 3way merge UI + hold
+	case StaleWrite:
+		// FieldDiff なしフォールバック: rebase できないため safe 側（dirty）に倒す
+		// conflict_tree.lock.yaml の stale_write actions_rebase_dirty に準拠する
 		nextState := state
+		// queue を hold する
 		nextState.QueueHeld = true
 		return ReducerResult{
 			NextState: nextState,
-			Actions:   []ReducerAction{{Type: ActionPresent3WayMergeUi}, {Type: ActionHoldQueue}},
+			// refetch_server_truth + present_3way_merge_ui + hold_queue の 3 action を返す
+			Actions: []ReducerAction{
+				{Type: ActionRefetchServerTruth},
+				{Type: ActionPresent3WayMergeUi},
+				{Type: ActionHoldQueue},
+			},
+		}
+	case LostUpdate:
+		// conflict_tree.lock.yaml の lost_update actions に準拠する:
+		// refetch_server_truth + present_3way_merge_ui + hold_queue_until_user_decides
+		nextState := state
+		// queue を hold する
+		nextState.QueueHeld = true
+		return ReducerResult{
+			NextState: nextState,
+			// 3 action を返す
+			Actions: []ReducerAction{
+				{Type: ActionRefetchServerTruth},
+				{Type: ActionPresent3WayMergeUi},
+				{Type: ActionHoldQueue},
+			},
 		}
 	case Supersede:
 		// PQ 先頭 entry 削除 + silent toast

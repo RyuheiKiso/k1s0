@@ -32,5 +32,11 @@ futures-util = { workspace = true }
 tokio-stream = { workspace = true }
 # schemars: kube::CustomResource derive が要求する JSON Schema 生成ライブラリ
 schemars = "0.8"
-# reqwest: 非同期 HTTP クライアント（Apicurio Schema Registry REST API 呼び出しに使用する）
+# reqwest: 非同期 HTTP クライアント（Apicurio Schema Registry REST API / ClickHouse HTTP interface 呼び出しに使用する）
 reqwest = { workspace = true }
+# chrono: UTC 日時型（AuditIngestGapMonitor の last_event_at フィールドに使用する）
+chrono = { workspace = true }
+# sha2: SHA-256 ハッシュ計算（apicurio_gitops の content drift 検出に使用する）
+sha2 = { workspace = true }
+# serde_yaml: YAML パース（apicurio_gitops の SchemaArtifact YAML デシリアライズに使用する）
+serde_yaml = { workspace = true }

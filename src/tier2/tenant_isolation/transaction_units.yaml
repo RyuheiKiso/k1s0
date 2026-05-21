@@ -21,10 +21,10 @@ transaction_units:
       - app.purpose
       # 委譲チェーン（空でも可）
       - app.delegation_chain
-    # atomic 制約: state_change + outbox + audit_event を同一 txn で書く（P1）
+    # atomic 制約: state_change + outbox_message + audit_event を同一 txn で書く（P1）
     atomic_tables:
       - domain_event
-      - outbox
+      - outbox_message
       - audit_event
     # 目的制限: business_op / migration のみ許容
     allowed_purposes:

@@ -48,6 +48,17 @@ pub mod workflow;
 // RuleEngine trait / FactSet / RuleSetEvaluationResult / RuleMetadata を提供する
 pub mod rules;
 
+// hsm_pkcs11 モジュール: HSM PKCS#11 バックエンド（backend 専用）
+// spec 05_鍵管理適合仕様.md §v1_kek_hsm_pkcs11 に準拠する。
+// Pkcs11Backend / ObjectHandle を提供する。
+// hsm_integration feature が無効な場合はスタブ実装が使われる。
+pub mod hsm_pkcs11;
+
+// external_notary モジュール: RFC 3161 + Sigstore transparency log 外部公証（backend 専用）
+// spec 05_鍵管理適合仕様.md §v1_audit_root_signing に準拠する。
+// Rfc3161Timestamper / TimestampToken / SigstoreTransparencyLogger / RekorLogEntry を提供する。
+pub mod external_notary;
+
 // 頻繁に使用する型を backend 名前空間から直接参照できるように re-export する
 // cache 関連の主要型を re-export する
 pub use cache::{Cache, CacheEntry, CacheGetResult, CacheSetOptions};

@@ -1,0 +1,83 @@
+# deny.toml — cargo-deny 設定（tier3 Rust standalone workspace）
+# 強制機構: docs/04_詳細設計/02_強制機構/03_tier3強制機構.md 層 1 + 層 2
+# tier3 Rust は tier2 SDK crate 経由のみ tier1 / OSS 直接 crate にアクセス可能
+
+# ---- [advisories] セクション: CVE / 脆弱性 scan ----
+[advisories]
+# vulnerability が検出された場合は deny する（無視禁止）
+vulnerability = "deny"
+# unmaintained crate を警告扱いにする
+unmaintained = "warn"
+# CVE advisory を ignore する許可リスト（緊急時のみ追加、理由コメント必須）
+ignore = []
+
+# ---- [licenses] セクション: 許可ライセンス ----
+[licenses]
+# 不許可ライセンスは deny する
+unlicensed = "deny"
+# 許可するライセンス一覧（tier1 承認済みライセンスと同枠）
+allow = [
+  # Apache License 2.0 を許可する
+  "Apache-2.0",
+  # MIT License を許可する
+  "MIT",
+  # BSD 2-clause を許可する
+  "BSD-2-Clause",
+  # BSD 3-clause を許可する
+  "BSD-3-Clause",
+  # ISC License を許可する
+  "ISC",
+  # MPL 2.0 を許可する（弱いコピーレフト、再配布条件に注意）
+  "MPL-2.0",
+]
+
+# ---- [bans] セクション: tier1 / OSS 直接 crate の禁止 ----
+[bans]
+# deny リストに含まれる crate の使用を deny する
+multiple-versions = "warn"
+
+# tier1 直接クライアント crate を禁止する（tier2 SDK facade 経由必須）
+# tier1 gRPC / Connect transport crate を禁止する
+[[bans.deny]]
+name = "tonic"
+reason = "tier3 は tier1 transport を直接利用禁止。K1s0.Tier2 SDK facade 経由必須。強制機構 層 1 参照。"
+
+# tier1 protocol buffer codegen crate を禁止する
+[[bans.deny]]
+name = "prost"
+reason = "tier3 は tier1 protobuf 型を直接生成禁止。tier2 生成型のみ使用可。強制機構 層 8 参照。"
+
+# tier1 PostgreSQL 直接接続 crate を禁止する
+[[bans.deny]]
+name = "tokio-postgres"
+reason = "tier3 は DB に直接接続禁止。tier2 Repository abstraction 経由必須。強制機構 層 1 参照。"
+
+# tier1 PostgreSQL ORM crate を禁止する
+[[bans.deny]]
+name = "sqlx"
+reason = "tier3 は DB に直接接続禁止。tier2 Repository abstraction 経由必須。強制機構 層 1 参照。"
+
+# tier1 HTTP クライアント crate（低レベル）を禁止する
+[[bans.deny]]
+name = "hyper"
+reason = "tier3 は tier1 transport endpoint を直接呼出禁止。tier2 SDK 経由必須。強制機構 層 6 参照。"
+
+# tier2 admin crate を禁止する（業務管理 API direct import 禁止）
+[[bans.deny]]
+name = "k1s0-tier2-admin"
+reason = "tier3 業務 UI は tier2 admin crate を直接参照禁止。強制機構 層 2 参照。"
+
+# tier1 crate の glob 禁止パターン（k1s0-tier1- prefix）
+[[bans.deny]]
+name = "k1s0-tier1-transport"
+reason = "tier3 は k1s0-tier1-* crate を直接依存禁止。tier2 SDK 経由必須。"
+
+# ---- [sources] セクション: 内部 cargo registry 唯一化 ----
+# 強制機構 層 12 と連動（.cargo/config.toml で crates.io を置換済み）
+[sources]
+# 不明ソースを deny する（内部 registry 以外からの取得を禁止）
+unknown-registry = "deny"
+# 不明 git ソースを warn する（内部 monorepo path dep は許可）
+unknown-git = "warn"
+# 内部 registry を許可する
+allow-registry = ["https://cargo.k1s0.internal/index/"]

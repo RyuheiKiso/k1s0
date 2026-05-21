@@ -3,7 +3,7 @@ id: env.tier3.tier3_index
 axis: tier3
 phase: env_setup
 kind: index
-status: draft
+status: published
 depends_on:
   - env.overview.environment_setup_index
   - plan.development_team_structure

@@ -1,0 +1,29 @@
+<!-- k1s0 tier3 WPF メインウィンドウ -->
+<!-- tier3 4 layer (ST / OL / PQ / DR) を消費してビジネス UI を表示する -->
+<Window x:Class="K1s0.Tier3.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:K1s0.Tier3.Wpf.Views"
+        Title="{DynamicResource AppTitle}"
+        Height="768" Width="1024"
+        AutomationProperties.Name="k1s0 tier3 業務 UI"
+        AutomationProperties.HelpText="製造業務管理デスクトップアプリ">
+    <!-- DockPanel: メインレイアウト -->
+    <DockPanel>
+        <!-- ToolBar: 業務操作ツールバー（a11y: Role=ToolBar） -->
+        <ToolBar DockPanel.Dock="Top"
+                 AutomationProperties.Name="業務ツールバー">
+            <!-- 発注業務ボタン -->
+            <Button Content="{DynamicResource NavPlant}"
+                    AutomationProperties.Name="工場現場画面へ移動"
+                    Command="{Binding NavigateToPlantCommand}"/>
+            <!-- コンフリクト解決ボタン -->
+            <Button Content="{DynamicResource NavConflicts}"
+                    AutomationProperties.Name="コンフリクト解決画面へ移動"
+                    Command="{Binding NavigateToConflictsCommand}"/>
+        </ToolBar>
+        <!-- ContentControl: 画面切り替えコンテナ -->
+        <ContentControl Content="{Binding CurrentView}"
+                         AutomationProperties.LiveSetting="Polite"/>
+    </DockPanel>
+</Window>

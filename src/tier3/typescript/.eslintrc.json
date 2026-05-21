@@ -27,6 +27,17 @@
         ]
       }
     ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "Property[key.name='piiFields'][value.type='ArrayExpression']",
+        "message": "piiFields 配列の直書きは禁止。@FieldPii decorator を使用して getPiiFields() で取得すること（Y-tier3-4: field_pii annotation compile-time 強制）"
+      },
+      {
+        "selector": "CallExpression[callee.property.name='stripPiiFields'] > .arguments:first-child ~ ArrayExpression",
+        "message": "stripPiiFields への piiFields 配列の直書きは禁止。getPiiFields(target) または getPiiFieldsFromClass(Ctor) を使用すること（Y-tier3-4: field_pii annotation compile-time 強制）"
+      }
+    ],
     "no-restricted-imports": [
       "error",
       {
@@ -46,6 +57,18 @@
           {
             "group": ["*/admin/*", "**/admin/**"],
             "message": "業務管理 API（admin 配下）を tier3 業務 UI から直接 import 禁止（tier2 SDK 経由必須）"
+          },
+          {
+            "group": ["*/fetch", "node-fetch", "cross-fetch", "isomorphic-fetch"],
+            "message": "fetch を tier3 から直接利用禁止 — tier2 SDK 経由必須（強制機構 層 6: 監査 emit 抑制経路禁止）"
+          },
+          {
+            "group": ["axios", "axios/*"],
+            "message": "axios を tier3 から直接利用禁止 — tier2 SDK 経由必須（強制機構 層 6: 監査 emit 抑制経路禁止）"
+          },
+          {
+            "group": ["@connectrpc/connect-web", "grpc-web", "@grpc/grpc-js", "@bufbuild/connect"],
+            "message": "tier1 endpoint への直接 gRPC / Connect 呼出禁止（強制機構 層 6: tier2 SDK 経由必須）"
           }
         ]
       }

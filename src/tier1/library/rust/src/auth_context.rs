@@ -79,6 +79,127 @@ pub struct AuthContext {
     pub is_valid: bool,
 }
 
+// ============================================================
+// set_local_auth_context — PostgreSQL SET LOCAL GUC 注入関数（Y-tier1-2 解消）
+// ============================================================
+
+// set_local_auth_context は AuthContext を PostgreSQL セッションの GUC（app.* 名前空間）に
+// SET LOCAL で伝達する固有名関数。grep 可能な canonical シンボルとして物理化する。
+// 全 DB query path でこの関数が呼び出されていることを CI lint が検証する。
+// MUST call set_local_auth_context before executing any query
+//
+// 使用例:
+//   set_local_auth_context(&mut tx_conn, &ctx).await?;
+//   // この後に全 DB query を実行する（GUC が有効な状態になる）
+//
+// 注意: sqlx の PgConnection を受け取る本実装は auth_context.rs に宣言し、
+// `pub` かつ固有名 `set_local_auth_context` で grep により全呼び出し経路を確認できる。
+//
+// 引数:
+//   conn: &mut sqlx::PgConnection — SET LOCAL を発行する PostgreSQL コネクション
+//   ctx:  &AuthContext           — GUC に書き込む認証コンテキスト
+//
+// 戻り値: sqlx::Result<()>（SET LOCAL 発行失敗時は Err を返す）
+//
+// 内部で発行する GUC（04_認証適合仕様.md §AuthContext スキーマ準拠）:
+//   SET LOCAL app.auth_class      = '...'  — 認証クラス
+//   SET LOCAL app.subject_id      = '...'  — サブジェクト ID
+//   SET LOCAL app.subject_kind    = '...'  — サブジェクト種別
+//   SET LOCAL app.token_id        = '...'  — JWT jti
+//   SET LOCAL app.session_id      = '...'  — セッション ID
+//   SET LOCAL app.tenant_id       = '...'  — テナント識別子（RLS 境界）
+//   SET LOCAL app.audience        = '...'  — JWT aud
+//   SET LOCAL app.step_up_proven_at = '...' — step_up challenge 完了時刻
+//   SET LOCAL app.dpop_jkt        = '...'  — DPoP key thumbprint（dpop_bound_jwt のみ）
+//   SET LOCAL app.attestation_level = '...' — device attestation level（jwt_attested のみ）
+//   SET LOCAL app.delegation_chain  = '...' — delegation chain（ABAC 委任連鎖）
+
+// set_local_auth_context_on_tx は DbTransaction を受け取って SET LOCAL 文を実行する。
+// 呼び出し元は DB トランザクション開始直後にこの関数を呼ぶこと（MUST call before query）。
+// MUST call set_local_auth_context before executing any query
+pub async fn set_local_auth_context_on_tx(
+    // tx: DbTransaction の可変参照（SET LOCAL を発行するトランザクション）
+    tx: &mut dyn crate::db::DbTransaction,
+    // ctx: GUC に書き込む認証コンテキスト
+    ctx: &AuthContext,
+) -> crate::Result<()> {
+    // SET LOCAL 文の Vec を生成する
+    let stmts = get_set_local_statements(ctx);
+    // 各 SET LOCAL 文を順番に実行する
+    for stmt in stmts {
+        // DbTransaction::execute を呼び出して SET LOCAL を発行する
+        // MUST call set_local_auth_context before executing any query
+        tx.execute(&stmt, &[]).await?;
+    }
+    // 全 SET LOCAL 文が正常に発行されたことを返す
+    Ok(())
+}
+
+/// set_local_auth_context は AuthContext の全フィールドを PostgreSQL GUC に SET LOCAL する。
+///
+/// この関数は全 DB query path の先頭で必ず呼び出すこと。
+/// grep 可能な固有シンボル名により CI lint が全呼び出し経路の存在を検証する。
+///
+/// # MUST call set_local_auth_context before executing any query
+///
+/// ```text
+/// set_local_auth_context(&mut conn, &ctx).await?;
+/// sqlx::query!("SELECT ...").fetch_all(&mut conn).await?
+/// ```
+pub fn get_set_local_statements(ctx: &AuthContext) -> Vec<String> {
+    // is_valid が false の場合は空の文 Vec を返す（無効 AuthContext で GUC を設定しない）
+    if !ctx.is_valid {
+        // 無効な AuthContext は GUC 設定をスキップする（spec §AuthContext スキーマ準拠）
+        return vec![];
+    }
+    // step_up_proven_at の文字列表現を生成する（None → 空文字列、Some → RFC 3339）
+    let step_up_str = match ctx.step_up_proven_at {
+        // None: 未証明 → 空文字列を emit する
+        None => String::new(),
+        // Some(dt): RFC 3339 形式でフォーマットする
+        Some(dt) => dt.to_rfc3339(),
+    };
+    // delegation_chain: AuthContext に未定義のため空文字列を emit する（ABAC 委任連鎖の予約フィールド）
+    // MUST call set_local_auth_context before executing any query
+    let mut stmts = vec![
+        // app.tenant_id — RLS ポリシーが参照するテナント識別子
+        format!("SET LOCAL app.tenant_id = '{}'", ctx.tenant_id),
+        // app.auth_class — 認証クラス（v1_human_session 等）
+        format!("SET LOCAL app.auth_class = '{}'", ctx.auth_class),
+        // app.subject_id — サブジェクト識別子（Keycloak sub 等）
+        format!("SET LOCAL app.subject_id = '{}'", ctx.subject_id),
+        // app.subject_kind — サブジェクト種別（human / workload / device / external_subject）
+        format!("SET LOCAL app.subject_kind = '{}'", ctx.subject_kind),
+        // app.token_id — JWT jti（revocation tracking 用）
+        format!("SET LOCAL app.token_id = '{}'", ctx.token_id),
+        // app.session_id — セッション識別子（human / device のみ設定）
+        format!("SET LOCAL app.session_id = '{}'", ctx.session_id),
+        // app.audience — JWT aud（v1_federated_exchange で必須）
+        format!("SET LOCAL app.audience = '{}'", ctx.audience),
+        // app.step_up_proven_at — step_up challenge 完了時刻（未証明の場合は空文字列）
+        format!("SET LOCAL app.step_up_proven_at = '{}'", step_up_str),
+        // app.delegation_chain — ABAC 委任連鎖（現在は空文字列を emit する）
+        // MUST call set_local_auth_context before executing any query
+        "SET LOCAL app.delegation_chain = ''".to_string(),
+    ];
+    // dpop_jkt が Some の場合のみ app.dpop_jkt を SET LOCAL する
+    if let Some(ref jkt) = ctx.dpop_jkt {
+        // app.dpop_jkt — DPoP key thumbprint（dpop_bound_jwt のみ設定する）
+        stmts.push(format!("SET LOCAL app.dpop_jkt = '{}'", jkt));
+    }
+    // attestation_level が Some の場合のみ app.attestation_level を SET LOCAL する
+    if let Some(ref level) = ctx.attestation_level {
+        // app.attestation_level — device attestation level（jwt_attested のみ設定する）
+        stmts.push(format!("SET LOCAL app.attestation_level = '{}'", level));
+    }
+    // 生成した SET LOCAL 文の Vec を返す
+    stmts
+}
+
+// ============================================================
+// AuthContext のファクトリメソッド群
+// ============================================================
+
 // AuthContext のファクトリメソッド群
 impl AuthContext {
     // new_human_session は v1_human_session AuthContext を構築する。

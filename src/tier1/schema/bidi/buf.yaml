@@ -1,7 +1,16 @@
 version: v1
 name: buf.build/k1s0/tier1-bidi
 deps:
+  # google/protobuf/descriptor.proto: options.proto と service.proto の MethodOptions 拡張に必要
   - buf.build/googleapis/googleapis
+  # tier1-auth: service.proto の auth_method option import に必要
+  - buf.build/k1s0/tier1-auth
+  # tier1-slo: service.proto の slo_method option import に必要
+  - buf.build/k1s0/tier1-slo
+  # tier1-tenant-capacity: service.proto の quota_method option import に必要
+  - buf.build/k1s0/tier1-tenant-capacity
+  # tier1-observability: service.proto の observability_method option import に必要
+  - buf.build/k1s0/tier1-observability
 lint:
   use:
     - DEFAULT

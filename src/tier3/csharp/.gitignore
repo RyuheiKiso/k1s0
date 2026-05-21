@@ -1,0 +1,5 @@
+# dotnet test が実行時に生成する artifact ディレクトリ（git 管理外）
+TestResults/
+# dotnet build 出力
+bin/
+obj/

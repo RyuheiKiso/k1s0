@@ -142,6 +142,9 @@ public sealed record NotifySilentToastAction(string Message) : ReducerAction;
 public sealed record HoldQueueAction : ReducerAction;
 // presence indicator を更新する
 public sealed record UpdatePresenceAction(string ActorId) : ReducerAction;
+// server_truth を再取得する（stale_write / lost_update 後の rebase 前に最新を取得する）
+// TypeScript / Go の refetch_server_truth 相当（多言語 parity 維持のため追加）
+public sealed record RefetchServerTruthAction(string AggregateId) : ReducerAction;
 // 全 layer を purge する
 public sealed record PurgeAllLayersAction(PurgeReason Reason) : ReducerAction;
 
@@ -222,13 +225,16 @@ public static class ClientStateReducer
     // optimistic_acknowledged の reducer
     private static ReducerResult ReduceOptimisticAcknowledged(ClientState state, string idempotencyKey, long confirmedVersion)
     {
+        // confirmedVersion は conflict_tree.lock.yaml の actions に含まれないため使用しない
+        _ = confirmedVersion;
         // OL を null にして PQ から entry を削除する
         var filtered = state.SafePendingQueueKeys.Where(k => k != idempotencyKey).ToList();
         var nextState = state with { OptimisticLocalKey = null, PendingQueueKeys = filtered };
+        // conflict_tree.lock.yaml の optimistic_acknowledged actions:
+        // promote_optimistic_to_server_truth + delete_pending_queue_entry_by_idempotency_key の 2 件のみ
         return new(nextState, [
             new PromoteOptimisticAction(idempotencyKey),
             new DeletePqEntryAction(idempotencyKey),
-            new UpdateServerTruthAction(confirmedVersion),
         ]);
     }
 

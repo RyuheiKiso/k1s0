@@ -3,7 +3,7 @@ id: env.tier3.tier3_oss_install
 axis: tier3
 phase: env_setup
 kind: enforcement
-status: draft
+status: published
 depends_on:
   - env.tier3.tier3_repository_acquisition
 covered_by:
@@ -20,7 +20,7 @@ covered_by:
 ## Vite + React 19
 
 ```bash
-cd src/tier3/web
+cd src/tier3/typescript/spa
 pnpm add react@19 react-dom@19
 pnpm add -D vite @vitejs/plugin-react typescript
 pnpm exec vite --version
@@ -31,7 +31,7 @@ pnpm exec vite --version
 業務 UI コンポーネントのカタログ管理に使用する。
 
 ```bash
-cd src/tier3/web
+cd src/tier3/typescript/spa
 pnpm exec storybook init
 # または
 pnpm add -D @storybook/react @storybook/react-vite

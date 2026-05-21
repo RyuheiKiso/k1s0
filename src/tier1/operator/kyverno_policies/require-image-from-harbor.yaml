@@ -1,0 +1,106 @@
+# require-image-from-harbor.yaml — Harbor レジストリからのイメージのみ許可する ClusterPolicy
+# docs/04_詳細設計/01_適合仕様/03_観測適合仕様.md §defense_in_depth layer E（Enforcement 層）に準拠する。
+# 外部レジストリやローカルビルドからのイメージを防ぎ、
+# Harbor 経由で cosign 署名・CVE スキャン済みのイメージのみをクラスターで実行可能にする。
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case）
+  name: k1s0-require-image-from-harbor
+  # ポリシーのアノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "Require Image From Harbor Registry"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "Tier1 Enforcement Layer E"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      harbor.k1s0.internal/ から始まらないコンテナイメージを使用する Pod を Deny する。
+      外部レジストリ・DockerHub・GitHub Container Registry からの直接イメージ実行を禁止し、
+      Harbor 経由で CVE スキャン・cosign 署名済みのイメージのみをクラスターで動作可能にする
+      (03_観測適合仕様.md §defense_in_depth layer E)。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # containers のイメージが Harbor から来ていない場合に deny する
+    - name: deny-non-harbor-containers
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system 名前空間は除外する（システム Pod の自己 deny 防止）
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する
+              namespaces:
+                - kyverno
+                - kube-system
+      # 検証条件: spec.containers の全 image が harbor.k1s0.internal/ で始まること
+      validate:
+        # deny メッセージ: オペレーターへの説明
+        message: >
+          コンテナイメージは harbor.k1s0.internal/ から始まる必要があります。
+          外部レジストリからの直接 Pull は禁止されています
+          (03_観測適合仕様.md §defense_in_depth layer E)。
+        # パターン: spec.containers の各 image が harbor.k1s0.internal/ で始まること
+        foreach:
+          # spec.containers を対象にする
+          - list: "request.object.spec.containers"
+            # イメージが Harbor レジストリから来ていることを確認する
+            pattern:
+              # image フィールドが harbor.k1s0.internal/ で始まること
+              image: "harbor.k1s0.internal/*"
+
+    # initContainers のイメージが Harbor から来ていない場合に deny する
+    - name: deny-non-harbor-init-containers
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system 名前空間は除外する
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する
+              namespaces:
+                - kyverno
+                - kube-system
+      # 検証条件: spec.initContainers の全 image が harbor.k1s0.internal/ で始まること
+      validate:
+        # deny メッセージ
+        message: >
+          initContainer のイメージは harbor.k1s0.internal/ から始まる必要があります。
+          外部レジストリからの直接 Pull は禁止されています
+          (03_観測適合仕様.md §defense_in_depth layer E)。
+        # パターン: spec.initContainers の各 image が harbor.k1s0.internal/ で始まること
+        foreach:
+          # spec.initContainers を対象にする（空リストの場合はスキップされる）
+          - list: "request.object.spec.initContainers"
+            # イメージが Harbor レジストリから来ていることを確認する
+            pattern:
+              # image フィールドが harbor.k1s0.internal/ で始まること
+              image: "harbor.k1s0.internal/*"

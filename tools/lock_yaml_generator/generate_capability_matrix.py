@@ -52,7 +52,8 @@ class CapabilityMatrixGenerator(BaseGenerator):
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """SDK 機能マトリクスの宣言状態を表す artifact dict を返す。
-        inputs が空の場合はフォールバック（total_classes=5）を使用する。
+        spec 12 §86 が要求する (class, adapter, ua_subclass, ua_offline_subclass) 4 軸 entry を生成する。
+        spec 12 §routing に基づく適用可能な combination のみを cell に含める。
         """
         # 現在時刻を UTC で生成する
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
@@ -63,11 +64,15 @@ class CapabilityMatrixGenerator(BaseGenerator):
         raw_classes: list[dict[str, Any]] = (
             inputs.get("classes") or
             inputs.get("sdk_classes") or
+            inputs.get("sdk_distribution_classes") or
             []
         )
 
         # クラス数を決定する（入力がある場合はその数、なければデフォルト 5）
         total_classes = len(raw_classes) if raw_classes else 5
+
+        # spec 12 §routing に基づく cell 列挙を生成する
+        cells = self._build_cells()
 
         # artifact dict を構築して返す
         return {
@@ -78,8 +83,124 @@ class CapabilityMatrixGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # 機能マトリクスのステータス（物理マトリクス検証は Stage 5 で実施）
+            # 機能マトリクスのステータス（宣言済み）
             "capability_status": "declared",
-            # クラス数（5 class 固定または入力から算出）
+            # conformance_class の総数（5 class 固定または入力から算出）
             "total_classes": total_classes,
+            # spec 12 §86 要求の 4 軸 cell 配列
+            "cells": cells,
         }
+
+    @staticmethod
+    def _build_cells() -> list[dict[str, Any]]:
+        """spec 12 §routing に基づく適用可能な cell 組合せを生成する。
+
+        routing 規則:
+        - chrome_edge_direct / tauri_native → connect_bidi_native adapter（全 5 conformance_class 適用）
+        - chrome_edge_via_corp_proxy / firefox_safari / dotnet_companion → paired_post_sse adapter
+          （v1_interactive / v1_alert / v1_event_feed / v1_live_snapshot の 4 class のみ適用）
+        - v1_no_sidecar capability_class: sidecar 非利用環境での fallback class として
+          chrome_edge_via_corp_proxy / firefox_safari / dotnet_companion 向けに cell 追加
+        """
+        # spec 12 §86 が定義する 5 conformance_class（全 class）
+        all_conformance_classes: list[str] = [
+            "v1_interactive",
+            "v1_alert",
+            "v1_event_feed",
+            "v1_live_snapshot",
+            "v1_bulk_upload",
+        ]
+
+        # paired_post_sse adapter が対応する 4 conformance_class（v1_bulk_upload は非対応）
+        paired_post_sse_classes: list[str] = [
+            "v1_interactive",
+            "v1_alert",
+            "v1_event_feed",
+            "v1_live_snapshot",
+        ]
+
+        # connect_bidi_native adapter 対応 ua_subclass（chrome/edge direct / Tauri native）
+        bidi_native_ua_subclasses: list[str] = [
+            "chrome_edge_direct",
+            "tauri_native",
+        ]
+
+        # paired_post_sse adapter 対応 ua_subclass（corp proxy 経由 / Firefox+Safari / .NET companion）
+        paired_post_sse_ua_subclasses: list[str] = [
+            "chrome_edge_via_corp_proxy",
+            "firefox_safari",
+            "dotnet_companion",
+        ]
+
+        # cell のリストを格納する変数
+        cells: list[dict[str, Any]] = []
+
+        # === connect_bidi_native adapter: bidi_native_ua_subclasses × 全 5 conformance_class ===
+        for ua_subclass in bidi_native_ua_subclasses:
+            for conformance_class in all_conformance_classes:
+                # connect_bidi_native は低遅延経路として 30ms p99 SLO を適用する
+                slo_tier = "30ms_p99"
+                # cell_id は conformance_class と ua_subclass と adapter の組合せで一意に決定する
+                cell_id = f"{conformance_class}__{ua_subclass}__connect_bidi_native"
+                # cell エントリを追加する
+                cells.append({
+                    # cell の一意識別子
+                    "cell_id": cell_id,
+                    # conformance_class（spec §86 の 4 軸の 1 軸）
+                    "conformance_class": conformance_class,
+                    # UA サブクラス（spec §86 の 4 軸の 1 軸）
+                    "ua_subclass": ua_subclass,
+                    # 使用する adapter（spec §routing に基づく選択）
+                    "adapter": "connect_bidi_native",
+                    # SLO ティア（connect_bidi_native は 30ms p99 を保証する）
+                    "slo_tier": slo_tier,
+                    # 実装ステータス（宣言済み）
+                    "status": "declared",
+                })
+
+        # === paired_post_sse adapter: paired_post_sse_ua_subclasses × 4 conformance_class ===
+        for ua_subclass in paired_post_sse_ua_subclasses:
+            for conformance_class in paired_post_sse_classes:
+                # paired_post_sse は corp proxy / SSE 経由のため 80ms p99 SLO を適用する
+                slo_tier = "80ms_p99"
+                # cell_id は conformance_class と ua_subclass と adapter の組合せで一意に決定する
+                cell_id = f"{conformance_class}__{ua_subclass}__paired_post_sse"
+                # cell エントリを追加する
+                cells.append({
+                    # cell の一意識別子
+                    "cell_id": cell_id,
+                    # conformance_class（spec §86 の 4 軸の 1 軸）
+                    "conformance_class": conformance_class,
+                    # UA サブクラス（spec §86 の 4 軸の 1 軸）
+                    "ua_subclass": ua_subclass,
+                    # 使用する adapter（spec §routing に基づく選択）
+                    "adapter": "paired_post_sse",
+                    # SLO ティア（paired_post_sse は 80ms p99 を許容する）
+                    "slo_tier": slo_tier,
+                    # 実装ステータス（宣言済み）
+                    "status": "declared",
+                })
+
+        # === v1_no_sidecar capability_class: sidecar 非利用環境の fallback cell ===
+        # sidecar が利用できない環境（corp proxy / Firefox+Safari / .NET companion）向け fallback
+        for ua_subclass in paired_post_sse_ua_subclasses:
+            # v1_no_sidecar は sidecar 非依存環境向け fallback class として宣言する
+            cell_id = f"v1_no_sidecar__{ua_subclass}__paired_post_sse"
+            # sidecar 非依存 fallback も paired_post_sse 経由のため 80ms p99 SLO を適用する
+            cells.append({
+                # cell の一意識別子
+                "cell_id": cell_id,
+                # v1_no_sidecar は sidecar 非利用環境での fallback capability_class
+                "conformance_class": "v1_no_sidecar",
+                # UA サブクラス（sidecar が存在しない corp proxy / Firefox+Safari / .NET companion）
+                "ua_subclass": ua_subclass,
+                # sidecar なし fallback は paired_post_sse を使用する
+                "adapter": "paired_post_sse",
+                # SLO ティア（fallback 経路は 80ms p99 を許容する）
+                "slo_tier": "80ms_p99",
+                # 実装ステータス（宣言済み）
+                "status": "declared",
+            })
+
+        # 生成された全 cell を返す
+        return cells

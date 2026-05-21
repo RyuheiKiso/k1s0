@@ -3,6 +3,7 @@
 // sidecar exe の実装は src/_crosscutting/07_tauri_companion_sidecar/sidecar/ が primary
 // ここは Tauri framework が要求する frontend glue（window.invoke() 経由の IPC 層）
 // T3-5: WebSocket 接続 / DPoP ES256 署名 / PSK HMAC / Origin pin を実装する
+// R3-3: PSK を OS keystore（keyring crate 経由）から取得し default fallback を物理排除する
 
 // serde の Value 型（JSON 値の動的表現に使用する）
 use serde_json::Value;
@@ -25,6 +26,8 @@ use k1s0_hlc::HlcClock;
 use std::sync::{Arc, Mutex};
 // tokio: 非同期ランタイム
 use tokio;
+// hex: OS keystore から取得した PSK hex 文字列をバイト列に変換する（R3-3）
+use hex;
 
 // グローバル HLC クロック: Tauri companion プロセス全体で共有する（スレッドセーフ）
 // wall-clock TTL 禁止規律に従い SystemTime::now() は k1s0_hlc 内部のみ許可されるため、
@@ -201,19 +204,26 @@ fn dpop_sign(method: &str, uri: &str) -> Result<String, String> {
     Ok(format!("{}.{}.{}", header_b64, payload_b64, sig_b64))
 }
 
-/// read_psk_from_keychain は Tauri の data_dir からテナント PSK を読み取る
-/// path: {data_dir}/k1s0/psk.bin
-fn read_psk_from_keychain(app_handle: &tauri::AppHandle) -> Result<Vec<u8>, String> {
-    // Tauri の data_dir を取得する（OS キーチェーンの代わりにアプリデータディレクトリを使用する）
-    let data_dir = app_handle.path().app_data_dir()
-        // data_dir 取得失敗時はエラー
-        .map_err(|e| format!("data_dir 取得失敗: {:?}", e))?;
-    // PSK ファイルのパスを組み立てる
-    let psk_path = data_dir.join("k1s0").join("psk.bin");
-    // PSK ファイルを読み取る
-    std::fs::read(&psk_path)
-        // ファイル読み取り失敗時はエラー文字列を返す
-        .map_err(|e| format!("PSK ファイル読み取り失敗 ({}): {}", psk_path.display(), e))
+/// read_psk_from_keychain は OS keystore から k1s0 テナント PSK を安全に読み取る
+/// Linux: GNOME Keyring / KWallet (secret-service protocol)
+/// macOS: Keychain Services API
+/// Windows: DPAPI / Windows Credential Manager
+/// R3-3: default fallback は物理排除済み。PSK 未配布時は Err を返して呼び出し元が panic/propagate する
+fn read_psk_from_keychain(_app_handle: &tauri::AppHandle) -> Result<Vec<u8>, String> {
+    // OS keystore の service 名と account 名を定義する
+    // service: k1s0-companion / account: tenant-psk で cross-platform 統一キーとする
+    let entry = keyring::Entry::new("k1s0-companion", "tenant-psk")
+        // keystore entry 作成失敗時はエラーを返す（keystore デーモン未起動等）
+        .map_err(|e| format!("keystore entry 作成失敗: {}", e))?;
+    // OS keystore から PSK を hex 文字列として取得する（未配布時は Err）
+    // PSK は MDM / 管理者ツールで事前配布されている前提とする
+    let psk_hex = entry.get_password()
+        // PSK が OS keystore に存在しない場合はエラーを返す（default fallback 禁止）
+        .map_err(|e| format!("OS keystore に PSK が配布されていません（k1s0-companion / tenant-psk）: {}", e))?;
+    // hex 文字列を raw bytes に変換して返す
+    hex::decode(&psk_hex)
+        // hex decode 失敗時はエラーを返す（keystore の値が不正形式）
+        .map_err(|e| format!("PSK hex decode 失敗（keystore の値を確認してください）: {}", e))
 }
 
 /// compute_psk_hmac は PSK HMAC-SHA256 を計算して base64url エンコードして返す
@@ -326,8 +336,11 @@ async fn state_read(
     }
     // sidecar のポート番号を決定する（デフォルト 9999）
     let sidecar_port = port.unwrap_or(9999);
-    // PSK を読み取る（PSK ファイルが存在しない場合はデフォルト PSK を使用する）
-    let psk = read_psk_from_keychain(&app_handle).unwrap_or_else(|_| b"k1s0-default-psk".to_vec());
+    // PSK を OS keystore から読み取る（配布されていない場合は panic する）
+    // R3-3: default fallback を物理排除済み。PSK 未配布時は起動不可とする
+    let psk = read_psk_from_keychain(&app_handle)
+        // OS keystore に PSK が存在しない場合はパニックする（security 軸最重大違反の防止）
+        .unwrap_or_else(|e| panic!("PSK が OS keystore に配布されていません: {}", e));
     // HLC タイムスタンプを生成する（リクエスト識別子として使用する）
     let now_hlc = hlc_now();
     // PSK HMAC を計算する（メッセージ: "state_read:{layer}:{hlc}"）
@@ -390,8 +403,11 @@ async fn state_write(
     }
     // sidecar のポート番号を決定する（デフォルト 9999）
     let sidecar_port = port.unwrap_or(9999);
-    // PSK を読み取る（PSK ファイルが存在しない場合はデフォルト PSK を使用する）
-    let psk = read_psk_from_keychain(&app_handle).unwrap_or_else(|_| b"k1s0-default-psk".to_vec());
+    // PSK を OS keystore から読み取る（配布されていない場合は panic する）
+    // R3-3: default fallback を物理排除済み。PSK 未配布時は起動不可とする
+    let psk = read_psk_from_keychain(&app_handle)
+        // OS keystore に PSK が存在しない場合はパニックする（security 軸最重大違反の防止）
+        .unwrap_or_else(|e| panic!("PSK が OS keystore に配布されていません: {}", e));
     // HLC タイムスタンプを生成する
     let now_hlc = hlc_now();
     // PSK HMAC を計算する（メッセージ: "state_write:{layer}:{hlc}"）
@@ -428,8 +444,11 @@ async fn state_sync(
 ) -> Result<String, String> {
     // sidecar のポート番号を決定する（デフォルト 9999）
     let sidecar_port = port.unwrap_or(9999);
-    // PSK を読み取る（PSK ファイルが存在しない場合はデフォルト PSK を使用する）
-    let psk = read_psk_from_keychain(&app_handle).unwrap_or_else(|_| b"k1s0-default-psk".to_vec());
+    // PSK を OS keystore から読み取る（配布されていない場合は panic する）
+    // R3-3: default fallback を物理排除済み。PSK 未配布時は起動不可とする
+    let psk = read_psk_from_keychain(&app_handle)
+        // OS keystore に PSK が存在しない場合はパニックする（security 軸最重大違反の防止）
+        .unwrap_or_else(|e| panic!("PSK が OS keystore に配布されていません: {}", e));
     // HLC タイムスタンプを生成する
     let now_hlc = hlc_now();
     // PSK HMAC を計算する（メッセージ: "state_sync:{hlc}"）

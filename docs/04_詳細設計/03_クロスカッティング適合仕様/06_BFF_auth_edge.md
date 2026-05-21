@@ -3,7 +3,8 @@ id: detail.cross_bff.bff_auth_edge
 axis: cross_bff
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier3.auth_multi_tenant
   - detail.tier1.auth_conformance

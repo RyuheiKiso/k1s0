@@ -43,3 +43,76 @@ property_vectors:
       operation: write
     # 期待結果: アクセス拒否
     expected: denied
+
+  # P1: aggregate 状態変更時の atomic 三表書込ベクター
+  - vector_id: atomic_triple_write_all_succeed
+    # aggregate 状態変更時に domain_event / outbox_message / audit_event が同一 txn に書込まれることを検証する
+    invariant: "P1: aggregate 状態変更時、domain_event + outbox_message + audit_event を同一トランザクションで書込む"
+    input:
+      # 操作種別: aggregate 状態変更
+      operation: state_change
+      # 対象テナント識別子
+      tenant_id: "tenant-A"
+      # 書込対象テーブル: 三表全て指定
+      tables:
+        - domain_event
+        - outbox_message
+        - audit_event
+    # 期待結果: 三表全てに書込成功、トランザクションがコミットされる
+    expected: all_committed
+    # ステータス: green
+    status: green
+
+  # P2: Outbox 投入失敗時の rollback ベクター
+  - vector_id: outbox_failure_triggers_rollback
+    # outbox_message 書込が失敗した場合に domain_event も rollback されることを検証する
+    invariant: "P2: outbox_message INSERT 失敗時、domain_event INSERT も rollback される"
+    input:
+      # 操作種別: aggregate 状態変更
+      operation: state_change
+      # 対象テナント識別子
+      tenant_id: "tenant-A"
+      # 障害注入: outbox_message 書込を失敗させる
+      inject_failure:
+        table: outbox_message
+        error: constraint_violation
+    # 期待結果: トランザクション全体が rollback され domain_event も書込まれない
+    expected: transaction_rolled_back
+    # ステータス: green
+    status: green
+
+  # P3: tenant_id 不一致時の WITH CHECK reject ベクター
+  - vector_id: tenant_id_mismatch_rejected
+    # GUC の tenant_id と aggregate 行の tenant_id が不一致の場合に INSERT/UPDATE が reject されることを検証する
+    invariant: "P3: tenant_id が GUC と aggregate 行で一致しない場合、INSERT / UPDATE は WITH CHECK で reject"
+    input:
+      # 操作種別: aggregate 状態変更
+      operation: state_change
+      # GUC に設定されたテナント識別子
+      guc_tenant_id: "tenant-A"
+      # aggregate 行に設定されたテナント識別子（GUC と不一致）
+      row_tenant_id: "tenant-B"
+    # 期待結果: WITH CHECK 制約違反で INSERT/UPDATE が reject される
+    expected: with_check_violation
+    # ステータス: green
+    status: green
+
+  # P4: pgaudit による pii_segregated テーブルの全操作捕捉ベクター
+  - vector_id: pgaudit_captures_all_pii_ops
+    # pii_segregated テーブルへの SELECT/INSERT/UPDATE/DELETE が pgaudit に全て記録されることを検証する
+    invariant: "P4: pgaudit が pii_segregated の全 SELECT / INSERT / UPDATE / DELETE を捕捉、欠落ゼロ"
+    input:
+      # 対象テーブルクラス: PII 分離テーブル
+      table_class: pii_segregated
+      # 対象テナント識別子
+      tenant_id: "tenant-A"
+      # 検証対象操作: 全 DML
+      operations:
+        - SELECT
+        - INSERT
+        - UPDATE
+        - DELETE
+    # 期待結果: pgaudit ログに全操作が記録され欠落ゼロ
+    expected: all_operations_captured
+    # ステータス: green
+    status: green

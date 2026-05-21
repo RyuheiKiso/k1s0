@@ -1,0 +1,2 @@
+# cargo public-api snapshot v1.0.0
+# generated: 2026-05-21

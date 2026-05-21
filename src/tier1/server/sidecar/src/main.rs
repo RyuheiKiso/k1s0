@@ -4,6 +4,8 @@
 
 // Outbox relay モジュール（PostgreSQL SELECT FOR UPDATE SKIP LOCKED → Kafka producer）
 mod outbox_relay;
+// envoy_jwt_authn_config モジュール: spec 04 §5 層 D Envoy jwt_authn filter 設定 generator
+mod envoy_jwt_authn_config;
 
 // axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};

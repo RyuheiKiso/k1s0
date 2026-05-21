@@ -3,7 +3,8 @@ id: detail.cross_edge.ua_aware_adapter
 axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.client.transport_adaptation_policy
   - detail.client.sdk_distribution_conformance

@@ -3,7 +3,8 @@ id: detail.cross_http2.http2_enforcement
 axis: cross_http2
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier1.server_systems
   - detail.tier1.bidi_conformance

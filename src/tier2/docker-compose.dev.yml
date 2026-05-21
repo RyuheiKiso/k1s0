@@ -172,6 +172,30 @@ services:
       # 5 回失敗したら unhealthy とする
       retries: 5
 
+
+  # Apicurio Registry: Schema Registry（Avro / JSON Schema / Protobuf 互換性チェック）
+  # docs/05_環境構築/02_tier2/07_テスト検証環境.md §検収コマンドに対応する
+  apicurio:
+    # Apicurio Registry メモリ版（開発環境用インメモリ実装）を使用する
+    image: apicurio/apicurio-registry-mem:3.0.6
+    # コンテナ名を固定する
+    container_name: k1s0-tier2-apicurio
+    ports:
+      # REST API: ホストの 8080 ポートをコンテナの 8080 ポートにマップする
+      - "8080:8080"
+    environment:
+      # Quarkus HTTP ポートをコンテナ側 8080 に設定する（デフォルトと同一だが明示する）
+      QUARKUS_HTTP_PORT: "8080"
+    healthcheck:
+      # Apicurio の起動確認コマンド（system/info エンドポイントへの HTTP チェック）
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/apis/registry/v2/system/info > /dev/null || exit 1"]
+      # 10 秒間隔でヘルスチェックを実施する
+      interval: 10s
+      # 5 秒でタイムアウトする
+      timeout: 5s
+      # 10 回失敗したら unhealthy とする（起動に 30-60 秒かかる場合があるため多め）
+      retries: 10
+
 # 名前付きボリューム定義
 volumes:
   # PostgreSQL データボリューム（tier2_dev データベースを永続化する）
@@ -182,3 +206,4 @@ volumes:
   tier2_clickhouse_data:
     # ドライバはデフォルト（local）を使用する
     driver: local
+  # （Apicurio はインメモリ実装のためデータボリューム不要）

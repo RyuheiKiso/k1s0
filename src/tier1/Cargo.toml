@@ -10,6 +10,9 @@ resolver = "2"
 members = [
     # tier1 Library Rust: KeyHandle / AuthContext / Repository<T> の 4 言語等価 SDK Rust 実装
     "library/rust",
+    # tier1 Library Rust macros: conformance_assert 属性マクロのプロシージャルマクロクレート
+    # 01_Bidi適合仕様.md §scenarios.yaml × adapter × class の 29 cell に対応する属性を提供する
+    "library/rust_macros",
     # tier2 Rust: TenantContext / AtomicTripleWrite / Outbox / Repository の Rust 実装
     # tier1 test harness: migration pair 4 × 5 phase (02_移行Pair適合仕様)
     "tests/migration",
@@ -17,6 +20,10 @@ members = [
     "tests/chaos",
     # tier1 test harness: KEK M=3 N=5 Shamir ceremony (05_鍵管理適合仕様)
     "tests/kek_ceremony",
+    # tier1 test harness: 観測適合仕様 PII redaction property test (03_観測適合仕様)
+    "tests/observability",
+    # tier1 test harness: Bidi capabilities assertion test（01_Bidi適合仕様 §29 applicable cell）
+    "tests/bidi_capabilities",
 ]
 
 [workspace.dependencies]

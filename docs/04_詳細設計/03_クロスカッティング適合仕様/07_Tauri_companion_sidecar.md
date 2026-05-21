@@ -3,7 +3,8 @@ id: detail.cross_bff.tauri_companion_sidecar
 axis: cross_bff
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.tier3.application_form
   - arch.tier3.device_offline

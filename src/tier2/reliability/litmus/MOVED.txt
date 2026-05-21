@@ -1,0 +1,5 @@
+# moved to src/tier2/quota/litmus/scenarios/reliability/
+# Y-litmus-merge: dead spec 検出の整合 1 を機能させるため litmus chaos scenario を単一配置先に統合した。
+# 統合先: src/tier2/quota/litmus/scenarios/reliability/
+# scenarios.yaml の litmus_scenario_ref はすべて上記パスを参照する。
+# このディレクトリに chaos scenario ファイルを追加しないこと（linter が二重配置を検出して CI fail にする）。

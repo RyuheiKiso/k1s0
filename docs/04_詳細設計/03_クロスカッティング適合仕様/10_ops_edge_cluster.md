@@ -3,7 +3,8 @@ id: detail.cross_edge.ops_edge_cluster
 axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - arch.ops.ops_index
   - detail.cross_pii.audit_ingest_gap_monitor

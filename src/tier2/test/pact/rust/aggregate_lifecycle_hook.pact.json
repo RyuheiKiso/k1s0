@@ -1,0 +1,22 @@
+{
+  "consumer": {"name": "tier2-rust-consumer"},
+  "provider": {"name": "tier2-aggregate-lifecycle-hook-provider"},
+  "interactions": [
+    {
+      "description": "aggregate_lifecycle_hook の Rust consumer contract",
+      "providerState": "aggregate lifecycle hook available",
+      "request": {
+        "method": "POST",
+        "path": "/aggregates/v1/lifecycle-hooks",
+        "headers": {"Content-Type": "application/json"},
+        "body": {"aggregate_type": "TestAggregate", "hook_type": "pre_update", "context": {}}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"hook_applied": true, "audit_emitted": true}
+      }
+    }
+  ],
+  "metadata": {"pactSpecification": {"version": "3.0.0"}}
+}

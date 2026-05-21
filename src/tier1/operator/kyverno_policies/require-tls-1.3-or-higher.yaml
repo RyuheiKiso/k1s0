@@ -1,0 +1,90 @@
+# require-tls-1.3-or-higher.yaml — TLS 1.3 未満のバージョン設定を持つ Pod を Deny する ClusterPolicy
+# docs/04_詳細設計/01_適合仕様/03_観測適合仕様.md §データ保護:
+# OTel Collector の TLS 1.3 強制・ClickHouse 接続の TLS 1.3 に準拠する。
+# 07_Bidi 適合仕様の transport TLS 強制と組み合わせて defense-in-depth layer E を構成する。
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case）
+  name: k1s0-require-tls-1-3-or-higher
+  # ポリシーのアノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "Require TLS 1.3 or Higher"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "Tier1 Enforcement Layer E"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      TLS_MIN_VERSION 環境変数に TLSv1.2 以下の値（TLSv1.2 / TLSv1.1 / TLSv1 / TLSv1.0）を
+      設定した Pod を Deny する。
+      Envoy / OTel Collector / ClickHouse クライアントの TLS 設定を admission 時に強制する
+      (03_観測適合仕様.md §データ保護 / 07_Bidi 適合仕様 transport TLS 強制)。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # TLS_MIN_VERSION が TLS 1.2 以下に設定されている containers を deny する
+    - name: deny-tls-min-version-below-1-3
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system 名前空間は除外する
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する
+              namespaces:
+                - kyverno
+                - kube-system
+      # 検証条件: TLS_MIN_VERSION が TLS 1.3 未満の値でないこと
+      validate:
+        # deny メッセージ: オペレーターへの説明
+        message: >
+          TLS_MIN_VERSION 環境変数に TLSv1.2 以下の値を設定することは禁止されています。
+          TLSv1.3 以上を設定するか、TLS 設定を Envoy sidecar に委譲してください
+          (03_観測適合仕様.md §データ保護)。
+        # 検証条件: OTTL の deny 条件で TLS 1.2 以下の設定を検出する
+        deny:
+          conditions:
+            # any: いずれかのコンテナ・環境変数が条件に合致した場合に deny する
+            any:
+              # spec.containers の全環境変数を検索して TLS_MIN_VERSION を確認する
+              - key: "{{ request.object.spec.containers[].env[?name == 'TLS_MIN_VERSION'][].value[] | contains(@, 'TLSv1.2') }}"
+                # 演算子: true の場合（TLSv1.2 が設定されている場合）に deny する
+                operator: Equals
+                # TLSv1.2 が設定されている場合に deny する
+                value: true
+              # TLSv1.1 が設定されている場合に deny する
+              - key: "{{ request.object.spec.containers[].env[?name == 'TLS_MIN_VERSION'][].value[] | contains(@, 'TLSv1.1') }}"
+                # 演算子: true の場合に deny する
+                operator: Equals
+                # TLSv1.1 が設定されている場合に deny する
+                value: true
+              # TLSv1.0 が設定されている場合に deny する
+              - key: "{{ request.object.spec.containers[].env[?name == 'TLS_MIN_VERSION'][].value[] | contains(@, 'TLSv1.0') }}"
+                # 演算子: true の場合に deny する
+                operator: Equals
+                # TLSv1.0 が設定されている場合に deny する
+                value: true
+              # TLSv1（バージョン番号なし表記）が設定されている場合に deny する
+              - key: "{{ request.object.spec.containers[].env[?name == 'TLS_MIN_VERSION'][].value[] | contains(@, 'TLSv1') && !contains(@, 'TLSv1.') }}"
+                # 演算子: true の場合に deny する
+                operator: Equals
+                # TLSv1（v1.x でない）が設定されている場合に deny する
+                value: true

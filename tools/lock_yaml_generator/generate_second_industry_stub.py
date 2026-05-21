@@ -1,9 +1,8 @@
 """tools/lock_yaml_generator/generate_second_industry_stub.py
 
-# second_industry_stub.lock.yaml 生成器。
-# src/tier2/pack/_stub_service/ ディレクトリを確認し、
-# 第二業界スタブサービスのコンパイル状態を lock artifact として生成する。
-# ディレクトリが存在しない場合は compile_status='declared' を返す。
+second_industry_stub.lock.yaml 生成器。
+src/tier2/pack/_stub_service/ の物理存在を確認し、
+第二業界 stub の compile_status を lock artifact として生成する。
 """
 
 # 標準ライブラリのインポート
@@ -19,8 +18,11 @@ from typing import Any
 # BaseGenerator と REPO_ROOT をインポートする
 from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 
-# _stub_service ディレクトリの想定パス
-_STUB_SERVICE_DIR = REPO_ROOT / "src/tier2/pack/_stub_service"
+# stub サービスディレクトリのパス
+_STUB_SERVICE_PATH = REPO_ROOT / "src/tier2/pack/_stub_service"
+
+# manufacturing pack との diff スクリプトパス
+_DIFF_SCRIPT_PATH = REPO_ROOT / "src/tier2/pack/diff_stub_vs_manufacturing.sh"
 
 # stub サービスのパス文字列（artifact に記録する）
 _STUB_PATH = "src/tier2/pack/_stub_service"
@@ -42,28 +44,27 @@ class SecondIndustryStubGenerator(BaseGenerator):
         """src/tier2/pack/_stub_service/ ディレクトリの存在を確認する。
         存在する場合はディレクトリパスを返す。存在しない場合は空 dict を返す。
         """
-        # _stub_service ディレクトリが存在する場合は存在フラグを返す
-        if _STUB_SERVICE_DIR.exists() and _STUB_SERVICE_DIR.is_dir():
+        # stub ディレクトリの存在を確認する
+        if _STUB_SERVICE_PATH.exists() and _STUB_SERVICE_PATH.is_dir():
             # ディレクトリが存在することを示すフラグを返す
-            return {"stub_service_dir_exists": True}
+            return {"stub_dir_exists": True}
         # ディレクトリが存在しない場合は空 dict を返す
         return {}
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """第二業界スタブのコンパイル状態を表す artifact dict を返す。
-        ディレクトリが存在しない場合は compile_status='declared'。
+        stub ディレクトリと diff スクリプトが揃っている場合は compile_status='green'。
         """
-        # 現在時刻を UTC で生成する
+        # 生成日時を記録する
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
-
-        # _stub_service ディレクトリの存在を確認する
-        stub_service_exists = inputs.get("stub_service_dir_exists", False)
-
-        # ディレクトリの存在に関わらず compile_status は declared とする
-        # （物理コンパイル検証は Stage 3 で実施）
-        compile_status = "declared"
+        # stub ディレクトリの存在確認
+        stub_exists = inputs.get("stub_dir_exists", False)
+        # diff スクリプトの存在確認
+        diff_script_exists = _DIFF_SCRIPT_PATH.exists()
+        # stub と diff スクリプトが揃っている場合は green
+        compile_status = "green" if (stub_exists and diff_script_exists) else "declared"
 
         # artifact dict を構築して返す
         return {
@@ -74,10 +75,10 @@ class SecondIndustryStubGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # コンパイルステータス（物理検証は Stage 3 で実施）
+            # コンパイルステータス（stub + diff スクリプトの物理存在で決定する）
             "compile_status": compile_status,
             # stub サービスのパス
-            "stub_path": _STUB_PATH,
-            # stub サービスディレクトリの存在状態
-            "stub_service_dir_exists": stub_service_exists,
+            "stub_service_path": str(_STUB_SERVICE_PATH),
+            # diff スクリプトの存在フラグ
+            "diff_script_exists": diff_script_exists,
         }

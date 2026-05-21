@@ -16,7 +16,7 @@ covered_by:
 
 ## 一文方針
 
-- tier2 軸エンジニアは 4 言語ランタイム + Docker で atomic 三表書込の 3 サービス（postgres / kafka / apicurio）を起動し、ドメイン bound CT 通過を検収条件とする。
+- tier2 軸エンジニアは 4 言語ランタイム + Docker で atomic 三表書込の 4 サービス（postgres / kafka / clickhouse / apicurio）を起動し、ドメイン bound CT 通過を検収条件とする。
 
 ## 至高路線における立ち位置
 
@@ -40,7 +40,7 @@ covered_by:
 | 10 | [10_frontmatter規約適用](10_frontmatter規約適用.md) | id 導出 / 7 required / 8 forbidden | convention |
 | 11 | [11_軸固有環境設定](11_軸固有環境設定.md) | atomic 三表書込演習 / Domain Event schema 整合 | enforcement |
 | 12 | [12_CI完全再現](12_CI完全再現.md) | docs_lint.yml 2 job の手元再現 | enforcement |
-| 13 | [13_検収基準](13_検収基準.md) | 4 言語 + 3 サービス起動 + CT 通過 | enforcement |
+| 13 | [13_検収基準](13_検収基準.md) | 4 言語 + 4 サービス起動 + CT 通過 | enforcement |
 | 14 | [14_Claude_Code連携](14_Claude_Code連携.md) | CLAUDE.md / skills / memory | policy |
 
 ## 検収条件
@@ -48,7 +48,7 @@ covered_by:
 以下を全て満たすまで「tier2 環境構築完了」とはならない。
 
 1. `cargo --version` / `go version` / `dotnet --version` / `pnpm --version` → 全応答
-2. `docker compose up` で postgres / kafka / apicurio の 3 サービスが起動
+2. `docker compose up` で postgres / kafka / clickhouse / apicurio の 4 サービスが起動
 3. ドメイン bound CT が全 pass
 4. `bash tools/docs_lint/run_lint.sh` → exit 0
 5. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`

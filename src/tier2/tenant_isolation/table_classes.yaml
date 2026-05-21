@@ -55,6 +55,15 @@ table_classes:
     rls_policy: tenant_id_match_with_role
     # 監査要件: 変更操作で audit_local を必須 emit する
     audit_required: true
+    # pgaudit 有効化フラグ: 0006_pgaudit_security_label.sql と整合させる
+    # migration 0006 で SECURITY LABEL FOR pgaudit ON TABLE k1s0.tenant_master IS 'OBJECT' を適用している
+    # 矛盾解消: pgaudit_required を true に変更する（0006 migration の SECURITY LABEL 適用と整合）
+    pgaudit_required: true
+    # pgaudit SECURITY LABEL 適用フラグ: pgaudit_required と分離して明示的に宣言する
+    # migration 0006 が適用する SECURITY LABEL の存在を table_classes.yaml でも記録する
+    pgaudit_security_label_required: true
+    # pgaudit ログ対象カテゴリ: WRITE カテゴリで DML を全記録する（READ は pgaudit.log 設定に依存）
+    security_label: pgaudit_log_write
     # Outbox 要件: class 宣言で必要とされる場合のみ emit する
     outbox_required: false
     # 必須列リスト

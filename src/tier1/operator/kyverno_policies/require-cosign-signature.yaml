@@ -1,0 +1,84 @@
+# require-cosign-signature.yaml — cosign 署名済みイメージのみ許可する ClusterPolicy
+# docs/04_詳細設計/01_適合仕様/03_観測適合仕様.md §defense_in_depth layer E（Enforcement 層）に準拠する。
+# Kyverno の verifyImages rule を使用して、
+# Harbor レジストリ内の cosign 署名済みイメージのみをクラスターで実行可能にする。
+# P6（物理 enforcement）の cosign signing policy の一部として機能する。
+
+# Kyverno ClusterPolicy の API version
+apiVersion: kyverno.io/v1
+# リソース種別: クラスタ全体に適用する ClusterPolicy
+kind: ClusterPolicy
+metadata:
+  # ポリシー名（kebab-case）
+  name: k1s0-require-cosign-signature
+  # ポリシーのアノテーション
+  annotations:
+    # ポリシーのタイトル
+    policies.kyverno.io/title: "Require Cosign Image Signature"
+    # ポリシーのカテゴリ
+    policies.kyverno.io/category: "Tier1 Enforcement Layer E"
+    # 対象 Kyverno バージョン
+    policies.kyverno.io/minversion: "1.11.0"
+    # ポリシーの説明文
+    policies.kyverno.io/description: >
+      cosign で署名されていないコンテナイメージを使用する Pod を Deny する。
+      Harbor レジストリ内で CI/CD パイプラインが cosign sign した署名を
+      Kyverno の verifyImages rule で検証し、署名のないイメージの実行を禁止する
+      (03_観測適合仕様.md §defense_in_depth layer E / P6 cosign signing policy)。
+spec:
+  # ポリシーが失敗した場合の全体動作（Enforce = admission deny する）
+  validationFailureAction: Enforce
+  # バックグラウンド処理を無効化する（admission 時のみ評価する）
+  background: false
+  # ルールのリスト
+  rules:
+    # containers の cosign 署名を検証する
+    - name: verify-cosign-signature-containers
+      # マッチ条件: Pod の作成・更新を対象にする
+      match:
+        any:
+          - resources:
+              # 対象 resource kind
+              kinds:
+                - Pod
+              # create / update 操作を対象にする
+              operations:
+                - CREATE
+                - UPDATE
+      # 除外条件: kyverno / kube-system 名前空間は除外する
+      exclude:
+        any:
+          - resources:
+              # システム名前空間を除外する（自己 deny 防止）
+              namespaces:
+                - kyverno
+                - kube-system
+      # verifyImages: Kyverno のイメージ署名検証ルール
+      verifyImages:
+        # 対象イメージパターン: Harbor レジストリの全イメージ
+        - imageReferences:
+            # harbor.k1s0.internal/ 配下の全イメージを対象にする
+            - "harbor.k1s0.internal/*"
+          # attestors: 署名検証に使用する attestor の定義
+          attestors:
+            # count: 最低 1 件の attestor で署名検証が成功すること
+            - count: 1
+              # entries: attestor エントリの定義
+              entries:
+                # keyless: Sigstore Fulcio/Rekor を使用した keyless 署名検証
+                - keyless:
+                    # issuer: OIDC issuer URL（k1s0 CI/CD の OIDC provider）
+                    # NOTE: keyless 署名を使用しない場合は keyRef に切り替えること
+                    issuer: "https://token.actions.githubusercontent.com"
+                    # subject: GitHub Actions の workflow subject（CI/CD パイプラインの識別子）
+                    subject: "https://github.com/k1s0-org/*"
+                    # rekor: Sigstore Rekor transparency log の URL
+                    rekor:
+                      # url: Sigstore Rekor の公開インスタンス（本番では k1s0 内部インスタンスを使用する）
+                      url: "https://rekor.sigstore.dev"
+          # mutateDigest: イメージ tag を digest に書き換えて pin する
+          mutateDigest: true
+          # verifyDigest: digest の整合性を検証する
+          verifyDigest: true
+          # required: 署名が存在しない場合は deny する
+          required: true

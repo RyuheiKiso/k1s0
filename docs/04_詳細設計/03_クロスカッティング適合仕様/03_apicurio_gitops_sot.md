@@ -3,7 +3,8 @@ id: detail.cross_schema.apicurio_gitops_sot
 axis: cross_schema
 phase: cross_cutting
 kind: cross_cut_spec
-status: draft
+status: published
+version: 1.0.0
 depends_on:
   - detail.tier1.schema_evolution_conformance
   - detail.tier1.oss_lifecycle_conformance
