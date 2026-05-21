@@ -1,0 +1,15 @@
+# src/formal/lock/assumption_input.yaml — assumption エントリの入力 SoT
+# generate_assumption.py が読み込んで assumption.lock.yaml を生成する
+# 各 assumption_id は capabilities.lock.yaml / formal 証明の accepted_with_assumption セルと一致させる
+
+# エントリ一覧
+entries:
+  # bidi_web_transport_unavailable_v1_assumption: WebTransport adapter の v1 opt-in 受容
+  - assumption_id: bidi_web_transport_unavailable_v1_assumption
+    # 説明: 01_Bidi 適合仕様 §「v1 opt-in、requires_fallback: true」に基づき、
+    # WebTransport adapter の 5 cell を accepted_with_assumption として v1.0.0 出荷許可リストに登録する
+    description: "v1 opt-in (spec: 01_Bidi適合仕様 §requires_fallback: true): WebTransport (QUIC/HTTP3) adapter は v1 ship 許可、fallback chain (paired_post_sse / sse_paired) が物理 enforce される。quinn 実装は v1.1+ に留保。"
+    # ステータス: accepted（spec 準拠、v1.0.0 ship 許可）
+    status: accepted
+    # 対象軸
+    axis_name: tier1_bidi

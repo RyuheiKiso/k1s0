@@ -1,0 +1,22 @@
+{
+  "consumer": {"name": "tier2-rust-consumer"},
+  "provider": {"name": "tier2-audit-event-enricher-provider"},
+  "interactions": [
+    {
+      "description": "audit_event_enricher の Rust consumer contract",
+      "providerState": "audit event enricher available",
+      "request": {
+        "method": "POST",
+        "path": "/audit/v1/events/enrich",
+        "headers": {"Content-Type": "application/json"},
+        "body": {"event_type": "TestAudit", "actor_id": "test-actor", "resource_id": "test-resource"}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"enriched": true, "hash": "sha256:test", "emitted_at": "2026-05-21T00:00:00Z"}
+      }
+    }
+  ],
+  "metadata": {"pactSpecification": {"version": "3.0.0"}}
+}

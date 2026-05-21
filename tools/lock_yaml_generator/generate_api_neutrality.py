@@ -51,7 +51,7 @@ class ApiNeutralityGenerator(BaseGenerator):
 
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """API 中立性の宣言状態を表す artifact dict を返す。
-        api_snapshot ディレクトリが存在しない場合は neutrality_status='declared'。
+        forbidden_industry_terms.yaml + 4 言語 lint config の物理存在を確認して neutrality_status を決定する。
         """
         # 現在時刻を UTC で生成する
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
@@ -61,9 +61,32 @@ class ApiNeutralityGenerator(BaseGenerator):
         # api_snapshot ディレクトリの存在を確認する
         api_snapshot_exists = inputs.get("api_snapshot_dir_exists", False)
 
-        # ディレクトリが存在する場合は宣言済み、存在しない場合も declared とする
-        # （物理 API スナップショット検証は Stage 3 で実施）
-        neutrality_status = "declared"
+        # forbidden_industry_terms.yaml の物理存在確認
+        forbidden_terms_path = REPO_ROOT / "src/tier2/forbidden_industry_terms.yaml"
+        # forbidden_industry_terms.yaml が存在するか確認する
+        forbidden_terms_exists = forbidden_terms_path.exists()
+
+        # 4 言語 lint config の物理存在確認
+        # Rust: Cargo.toml の存在で確認する
+        rust_lint_exists = (REPO_ROOT / "src/tier2/rust/Cargo.toml").exists()
+        # Go: .golangci.yml の存在で確認する
+        go_lint_exists = (REPO_ROOT / "src/tier2/go/.golangci.yml").exists()
+        # C#: BannedSymbols.txt の存在で確認する
+        csharp_lint_exists = (REPO_ROOT / "src/tier2/csharp/BannedSymbols.txt").exists()
+        # TypeScript: .boundaries.json または src/ ディレクトリの存在で確認する
+        ts_lint_exists = (REPO_ROOT / "src/tier2/typescript/.boundaries.json").exists() or \
+                         (REPO_ROOT / "src/tier2/typescript/src").is_dir()
+
+        # 全て揃っている場合は green とする
+        all_lint_exists = (
+            forbidden_terms_exists
+            and rust_lint_exists
+            and go_lint_exists
+            and csharp_lint_exists
+            and ts_lint_exists
+        )
+        # neutrality_status を決定する（全 lint config が揃っていれば green）
+        neutrality_status = "green" if all_lint_exists else "declared"
 
         # artifact dict を構築して返す
         return {
@@ -74,10 +97,20 @@ class ApiNeutralityGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # API 中立性のステータス（物理検証は Stage 3 で実施）
+            # API 中立性のステータス（全 lint config が揃っていれば green）
             "neutrality_status": neutrality_status,
             # 対象言語一覧（4 言語等価強度）
             "baseline_languages": _BASELINE_LANGUAGES,
             # api_snapshot ディレクトリの存在状態
             "api_snapshot_dir_exists": api_snapshot_exists,
+            # forbidden_industry_terms.yaml の物理存在フラグ
+            "forbidden_terms_exists": forbidden_terms_exists,
+            # 各言語 lint config の物理存在フラグ
+            "rust_lint_exists": rust_lint_exists,
+            # Go lint config の物理存在フラグ
+            "go_lint_exists": go_lint_exists,
+            # C# lint config の物理存在フラグ
+            "csharp_lint_exists": csharp_lint_exists,
+            # TypeScript lint config の物理存在フラグ
+            "ts_lint_exists": ts_lint_exists,
         }

@@ -1,0 +1,6 @@
+# k1s0 tier3 WPF BannedSymbols.txt
+# tier1 直接 import 禁止シンボルリスト（BannedApiAnalyzers で強制する）
+# tier3 は tier2 SDK 経由のみ tier1 にアクセス可能
+
+# tier1 直接名前空間へのアクセスを禁止する（現状 placeholder）
+# 例: T:K1s0.Tier1.Transport.DirectClient;tier3 cannot reference tier1 directly. Use tier2 SDK.

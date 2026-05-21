@@ -3,7 +3,7 @@ id: env.tier3.tier3_lint_format
 axis: tier3
 phase: env_setup
 kind: enforcement
-status: draft
+status: published
 depends_on:
   - env.tier3.tier3_test_environment
 covered_by:
@@ -20,7 +20,7 @@ covered_by:
 ## TypeScript / React: ESLint + Prettier
 
 ```bash
-cd src/tier3/web
+cd src/tier3/typescript/spa
 pnpm eslint 'src/**/*.{ts,tsx}' --max-warnings 0
 pnpm prettier --check 'src/**/*.{ts,tsx}'
 # 自動修正

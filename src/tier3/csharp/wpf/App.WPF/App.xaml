@@ -1,0 +1,16 @@
+<!-- k1s0 tier3 WPF App エントリポイント -->
+<!-- Application.Resources に共通リソース（ResourceDictionary）をマージする -->
+<Application x:Class="K1s0.Tier3.Wpf.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- 共通 ResourceDictionary のマージ -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- 日本語リソース（デフォルト）をマージする -->
+                <ResourceDictionary Source="Resources/ja-JP.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

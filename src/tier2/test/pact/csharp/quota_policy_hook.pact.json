@@ -1,0 +1,22 @@
+{
+  "consumer": {"name": "tier2-csharp-consumer"},
+  "provider": {"name": "tier2-quota-policy-hook-provider"},
+  "interactions": [
+    {
+      "description": "quota_policy_hook の C# consumer contract",
+      "providerState": "quota policy hook available",
+      "request": {
+        "method": "POST",
+        "path": "/quota/v1/policy-hooks",
+        "headers": {"Content-Type": "application/json"},
+        "body": {"tenant_id": "test-tenant", "quota_class": "v1_per_tenant_qps", "request_count": 1}
+      },
+      "response": {
+        "status": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"allowed": true, "remaining": 99, "retry_after_ms": null}
+      }
+    }
+  ],
+  "metadata": {"pactSpecification": {"version": "3.0.0"}}
+}

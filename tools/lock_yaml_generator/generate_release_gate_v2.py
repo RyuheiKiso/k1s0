@@ -327,10 +327,11 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "count(`../../tier2/lock/quota.lock.yaml`, classes[?status=='green']) >= 5 AND evidence(`build_evidence.lock.yaml`, tier2.quota_5class_green, quota_enforcement_e2e_pass) == green",
     ),
     (
-        # ABAC OPA bundle が物理宣言済みであることを確認する
+        # ABAC OPA bundle が物理 green（opa bundle 物理存在 + policies 全 green）であることを確認する
+        # declared → green 化: Phase B で generate_abac_opa.py が物理存在確認 + green 化を実装済み
         "tier2.abac_opa_green",
         "../../tier2/lock/abac_opa.lock.yaml",
-        "count(`../../tier2/lock/abac_opa.lock.yaml`, policies[?status=='declared']) >= 2 AND evidence(`build_evidence.lock.yaml`, tier2.abac_opa_green, opa_policy_test_pass) == green",
+        "count(`../../tier2/lock/abac_opa.lock.yaml`, policies[?status=='green']) >= 2 AND evidence(`build_evidence.lock.yaml`, tier2.abac_opa_green, opa_policy_test_pass) == green",
     ),
     (
         # Argo Workflow が 1 本以上 green であることを確認する
@@ -345,16 +346,18 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "field(`../../tier2/lock/weaver.lock.yaml`, semconv_tier2_status) == green AND evidence(`build_evidence.lock.yaml`, tier2.weaver_semantic_conv_match_green, weaver_semconv_match) == green",
     ),
     (
-        # 業界中立性 API が宣言済みであることを確認する
+        # 業界中立性 API が物理 green（forbidden_industry_terms.yaml + 4 言語 lint config 物理存在）であることを確認する
+        # declared → green 化: Phase B で generate_api_neutrality.py が物理存在確認 + green 化を実装済み
         "tier2.api_neutrality_green",
         "../../tier2/lock/api_neutrality.lock.yaml",
-        "field(`../../tier2/lock/api_neutrality.lock.yaml`, neutrality_status) == declared AND evidence(`build_evidence.lock.yaml`, tier2.api_neutrality_green, api_neutrality_check_pass) == green",
+        "field(`../../tier2/lock/api_neutrality.lock.yaml`, neutrality_status) == green AND evidence(`build_evidence.lock.yaml`, tier2.api_neutrality_green, api_neutrality_check_pass) == green",
     ),
     (
-        # 第二業界 stub サービスが宣言済みであることを確認する
+        # 第二業界 stub サービスが物理 green（_stub_service/ 物理存在 + diff_stub_vs_manufacturing.sh 実行 green）であることを確認する
+        # declared → green 化: Phase B で generate_second_industry_stub.py + diff_stub_vs_manufacturing.sh を実装済み
         "tier2.second_industry_stub_green",
         "../../tier2/lock/second_industry_stub.lock.yaml",
-        "field(`../../tier2/lock/second_industry_stub.lock.yaml`, compile_status) == declared AND evidence(`build_evidence.lock.yaml`, tier2.second_industry_stub_green, second_industry_stub_compile_pass) == green",
+        "field(`../../tier2/lock/second_industry_stub.lock.yaml`, compile_status) == green AND evidence(`build_evidence.lock.yaml`, tier2.second_industry_stub_green, second_industry_stub_compile_pass) == green",
     ),
     (
         # 4 言語の内部 registry pin が設定済みであることを確認する

@@ -48,6 +48,15 @@
     <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
 
+  <!-- WPF App / WinForms サブプロジェクトの .cs を State lib のコンパイル対象から除外する -->
+  <!-- wpf/ と legacy/winforms/ は独自の .csproj でビルドされるため二重コンパイル禁止 -->
+  <ItemGroup>
+    <!-- wpf/ 配下の WPF Application コードを除外する -->
+    <Compile Remove="wpf\**\*.cs" />
+    <!-- legacy/winforms/ 配下の WinForms コードを除外する -->
+    <Compile Remove="legacy\winforms\**\*.cs" />
+  </ItemGroup>
+
   <!-- k1s0-hlc C# 参照: wall-clock TTL 禁止規律に従い HLC を使用する -->
   <!-- src/CLAUDE.md §wall-clock TTL 禁止: DateTimeOffset.UtcNow を直接使う経路を排除する -->
   <ItemGroup>

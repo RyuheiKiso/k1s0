@@ -1,5 +1,5 @@
 # k1s0 tier3 headless browser integration test scenario カタログ SoT
-# 11_クライアント状態適合仕様.md の製造業 pack stress test 8 scenarios を機械可読形式で固定する
+# 11_クライアント状態適合仕様.md の製造業 pack stress test 9 scenarios を機械可読形式で固定する
 # 手書き SoT（lock.yaml ではない）
 
 # 適合仕様 SoT リファレンス
@@ -7,7 +7,7 @@ spec_ref: "docs/04_詳細設計/01_適合仕様/11_クライアント状態適�
 # バージョン
 version: "v1"
 
-# 8 stress test scenario（整合 4 の物理根拠）
+# 9 stress test scenario（整合 4 の物理根拠）
 scenarios:
   # シナリオ 1: 発注承認 → ST advance
   - scenario_id: s01_order_approval_st_advance
@@ -164,9 +164,7 @@ scenarios:
   # シナリオ 9: tier1 Bidi transport ストレステスト
   - scenario_id: s09_bidi_stress
     # シナリオ名
-    title: "Bidi ストレステスト"
-    # シナリオ説明
-    description: "tier1 Bidi transport の stress scenario"
+    name: "Bidi ストレステスト（tier1 Bidi transport stress scenario）"
     # 対象 layer
     layers: [server_truth, optimistic_local, pending_queue]
     # 対象 event

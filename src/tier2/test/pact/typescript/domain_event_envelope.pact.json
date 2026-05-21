@@ -1,0 +1,22 @@
+{
+  "consumer": {"name": "tier2-typescript-consumer"},
+  "provider": {"name": "tier2-domain-event-envelope-provider"},
+  "interactions": [
+    {
+      "description": "DomainEventEnvelope の TypeScript consumer contract",
+      "providerState": "domain event envelope available",
+      "request": {
+        "method": "POST",
+        "path": "/domain-events/v1/envelopes",
+        "headers": {"Content-Type": "application/json"},
+        "body": {"tenant_id": "test-tenant-id", "aggregate_id": "test-aggregate-id", "event_type": "TestEvent", "payload": {}}
+      },
+      "response": {
+        "status": 202,
+        "headers": {"Content-Type": "application/json"},
+        "body": {"envelope_id": "test-envelope-id", "status": "accepted"}
+      }
+    }
+  ],
+  "metadata": {"pactSpecification": {"version": "3.0.0"}}
+}

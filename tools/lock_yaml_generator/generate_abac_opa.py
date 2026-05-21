@@ -64,11 +64,23 @@ class AbacOpaGenerator(BaseGenerator):
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """OPA ポリシーの宣言状態を表す artifact dict を返す。
         inputs が空の場合はフォールバックスケルトンを使用する。
+        OPA bundle ディレクトリとポリシーの物理存在を確認して status を決定する。
         """
         # 現在時刻を UTC で生成する
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
+
+        # OPA bundle ディレクトリとポリシーの物理存在を確認する
+        opa_bundle_path = REPO_ROOT / _OPA_BUNDLE_PATH
+        # bundle manifest.json の存在確認
+        manifest_exists = (opa_bundle_path / "manifest.json").exists()
+        # policies/ ディレクトリの存在確認
+        policies_dir_exists = (opa_bundle_path / "policies").is_dir()
+        # tests/ ディレクトリの存在確認
+        tests_dir_exists = (opa_bundle_path / "tests").is_dir()
+        # 全て存在する場合は green、そうでない場合は declared
+        bundle_status = "green" if (manifest_exists and policies_dir_exists) else "declared"
 
         # delegation_rules から permitted roles を読み込んでポリシー一覧を構築する
         delegation_rules = inputs.get("delegation_rules", {})
@@ -77,16 +89,21 @@ class AbacOpaGenerator(BaseGenerator):
 
         # ロールが存在する場合はポリシーエントリを生成する
         if allowed_roles:
-            # 委譲ポリシーを declared として登録する
+            # 委譲ポリシーを bundle_status で登録する
             policies = [
                 # 管理者委譲ポリシー（delegation_policy.yaml から読み込み）
-                {"policy_id": "admin-delegation",      "status": "declared"},
+                {"policy_id": "admin-delegation",      "status": bundle_status},
                 # テナント境界チェックポリシー
-                {"policy_id": "tenant-boundary-check", "status": "declared"},
+                {"policy_id": "tenant-boundary-check", "status": bundle_status},
             ]
         else:
-            # フォールバック: スケルトンを使用する
-            policies = list(_SKELETON_POLICIES)
+            # フォールバック: bundle_status でスケルトンを使用する
+            policies = [
+                # 管理者委譲ポリシーのスケルトン（bundle 物理存在で status を決定する）
+                {"policy_id": "admin-delegation",      "status": bundle_status},
+                # テナント境界ポリシーのスケルトン（bundle 物理存在で status を決定する）
+                {"policy_id": "tenant-boundary-check", "status": bundle_status},
+            ]
 
         # artifact dict を構築して返す
         return {
@@ -101,4 +118,10 @@ class AbacOpaGenerator(BaseGenerator):
             "policies": policies,
             # OPA bundle ディレクトリのパス
             "opa_bundle_path": _OPA_BUNDLE_PATH,
+            # bundle 物理存在フラグ（manifest.json の存在）
+            "manifest_exists": manifest_exists,
+            # policies/ ディレクトリの物理存在フラグ
+            "policies_dir_exists": policies_dir_exists,
+            # tests/ ディレクトリの物理存在フラグ
+            "tests_dir_exists": tests_dir_exists,
         }

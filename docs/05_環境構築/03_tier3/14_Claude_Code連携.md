@@ -3,7 +3,7 @@ id: env.tier3.tier3_claude_code
 axis: tier3
 phase: env_setup
 kind: policy
-status: draft
+status: published
 depends_on:
   - env.tier3.tier3_acceptance
 covered_by:
