@@ -22,8 +22,9 @@ CREATE TABLE IF NOT EXISTS k1s0_audit.audit_events
     purpose LowCardinality(String),
     -- テーブルクラス（TenantScoped / TenantMaster / PlatformGlobal / PiiSegregated）
     table_class LowCardinality(String),
-    -- 操作内容のペイロード（JSON 文字列として格納する）
-    payload String,
+    -- 操作内容のペイロード（PII ingestion 前に redact 済み — 生 payload 格納禁止）
+    -- spec §pii_segregated.outbox_pii_redact = true と整合する（PII 平文の ClickHouse 格納を禁止する）
+    payload_redacted String COMMENT 'PII redacted before ingestion — raw payload 格納禁止',
     -- 書込日時（ミリ秒精度、UTC タイムゾーン付き）
     created_at DateTime64(3, 'UTC'),
     -- hash chain: このエントリの SHA-256 ダイジェスト（null = hash 計算未実施）

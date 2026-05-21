@@ -9,3 +9,7 @@ pub mod attachments;
 pub mod outbox;
 // R3-5: purge モジュールを公開する（client_purge_event emit / PurgeTrigger 型）
 pub mod purge;
+// Y-tier3-3: concurrency_guard モジュールを公開する（aggregate 単位 max_one_in_flight 強制）
+pub mod concurrency_guard;
+// Y-tier3-4: pii_annotation モジュールを公開する（field_pii annotation compile-time 強制）
+pub mod pii_annotation;

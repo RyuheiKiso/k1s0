@@ -1,0 +1,25 @@
+# k1s0-tier1-library-macros Cargo.toml — conformance_assert 属性マクロのプロシージャルマクロクレート定義
+# 01_Bidi適合仕様.md §scenarios.yaml × adapter × class の 29 cell に対応する
+# #[conformance_assert(scenario = "...", adapter = "...", class = "...")] 属性を提供する。
+[package]
+# クレート名: k1s0-tier1-library-macros（プロシージャルマクロクレートの Cargo 標準命名）
+name = "k1s0-tier1-library-macros"
+# バージョン: 0.1.0（初期実装）
+version = "0.1.0"
+# エディション: 2021（最新安定版）
+edition = "2021"
+# publish = false: 外部公開しない内部クレート
+publish = false
+
+# proc-macro = true: プロシージャルマクロクレートとして宣言する（Cargo 必須フラグ）
+[lib]
+# proc-macro クレートは lib.rs を単一のエントリーポイントとして使用する
+proc-macro = true
+
+[dependencies]
+# proc-macro2: Rust のトークンストリーム操作ライブラリ（属性パース / コード生成に使用する）
+proc-macro2 = "1"
+# quote: Rust コードスニペット生成マクロ（quote! マクロで出力 TokenStream を構築する）
+quote = "1"
+# syn: Rust コード解析ライブラリ（属性引数のパースに使用する）
+syn = { version = "2", features = ["full", "parsing", "extra-traits"] }

@@ -13,9 +13,12 @@ edition = "2021"
 # ============================================================
 
 [features]
+# default: testcontainers を CI デフォルト有効にする（Y-tier1-1 解消: mandatory smoke test）
+# Docker デーモン未起動の環境では testcontainers が DOCKER_HOST 経由で自動 skip する
+# CI は Docker-in-Docker / docker socket mount で実行するため常時 green になる
+default = ["testcontainers"]
 # testcontainers feature: Docker が利用可能な環境でのみ有効化する
-# `cargo test --features testcontainers` で E2E テストを実行する
-# デフォルトは無効（Docker 不要のモックテストのみ常時 pass させる）
+# `cargo test` でデフォルト実行され、`cargo test --no-default-features` で無効化できる
 testcontainers = ["dep:testcontainers"]
 
 # ランタイム依存クレート（lib ターゲットが使用する依存クレートを宣言する）

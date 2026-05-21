@@ -31,8 +31,8 @@ scenarios:
     quota_class: v1_per_tenant_qps
     # シナリオの説明
     description: "テナント A の QPS burst 中に隣接テナント B の SLO が維持されることを検証する"
-    # Litmus chaos scenario の参照先（src/tier2/reliability/litmus/ に定義する）
-    litmus_scenario_ref: src/tier2/reliability/litmus/chaos_experiments/noisy_neighbor.yaml
+    # Litmus chaos scenario の参照先（Y-litmus-merge: quota/litmus/scenarios/reliability/ に統合）
+    litmus_scenario_ref: src/tier2/quota/litmus/scenarios/reliability/noisy_neighbor.yaml
     # Litmus assertion ID（noisy neighbor isolation の機械証跡）
     assertion_id: "qa_noisy_neighbor_slo_isolation_001"
     # 期待する結果
@@ -132,7 +132,8 @@ scenarios:
     # シナリオの説明
     description: "全テナント横断 Kafka traffic burst 時に partition rebalance が公平に実施されることを検証する"
     # Litmus chaos scenario の参照先
-    litmus_scenario_ref: src/tier2/reliability/litmus/chaos_experiments/partition_rebalance.yaml
+    # Y-litmus-merge: quota/litmus/scenarios/reliability/ に統合した単一配置先を参照する
+    litmus_scenario_ref: src/tier2/quota/litmus/scenarios/reliability/partition_rebalance.yaml
     # Litmus assertion ID
     assertion_id: "qa_kafka_global_fair_queue_001"
     # 期待する結果

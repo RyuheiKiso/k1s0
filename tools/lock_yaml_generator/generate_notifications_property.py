@@ -54,6 +54,7 @@ class NotificationsPropertyGenerator(BaseGenerator):
     def build_artifact(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """Notifications パッケージのプロパティテスト状態を表す artifact dict を返す。
         パッケージが存在しない場合は全て 'declared'。
+        idempotency property（重複通知 0 件）+ ordering property の 2 cell を列挙する（Y-tier3-6）。
         """
         # 現在時刻を UTC で生成する
         generated_at = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
@@ -69,9 +70,45 @@ class NotificationsPropertyGenerator(BaseGenerator):
         # プロパティテストのステータス（物理テストは Stage 4 で実施）
         property_status = "declared"
 
+        # idempotency property + ordering property の 2 cell 列挙（Y-tier3-6 cell 列挙拡張）
+        property_cells = [
+            {
+                # 冪等性プロパティ: 同一 idempotency_key の通知を複数回受け取っても 1 件しか配信しない
+                "property_id": "idempotency",
+                "description": (
+                    "同一 idempotency_key の通知を複数回受け取っても重複配信数 = 0 件であること"
+                    "（spec: duplicate_delivery_count == 0 for any idempotency_key）"
+                ),
+                # property-based test のアサーション（fast-check / hypothesis 等で検証する）
+                "assertion": "for all (notification, idempotency_key): deliver_count(notification, idempotency_key) <= 1",
+                # 検証ステータス（物理テストは Stage 4 で実施）
+                "status": "declared",
+                # 対応する spec（適合仕様との追跡可能性を確保する）
+                "spec_ref": "docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md §idempotency",
+            },
+            {
+                # 順序保証プロパティ: enqueue 順序で通知が配信されること
+                "property_id": "ordering",
+                "description": (
+                    "通知は enqueue 順序（FIFO）で配信されること"
+                    "（spec: deliver_order == enqueue_order for any notification sequence）"
+                ),
+                # property-based test のアサーション
+                "assertion": "for all (seq: notification[]): deliver_order(seq) == enqueue_order(seq)",
+                # 検証ステータス
+                "status": "declared",
+                # 対応する spec
+                "spec_ref": "docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md §ordering",
+            },
+        ]
+
         # 検査件数を計算する（package.json の有無で判定）
-        # 検査項目: 冪等性プロパティ / 順序保証プロパティ / 型安全性プロパティ
-        total_checks = 3 if package_json_exists else 0
+        # 基本検査項目 3 件 + property cell 2 件（idempotency + ordering）
+        base_checks = 3 if package_json_exists else 0
+        # property cell 分の追加検査件数
+        property_cell_checks = len(property_cells) if package_json_exists else 0
+        # 合計検査件数
+        total_checks = base_checks + property_cell_checks
         # 合格件数（全検査項目が合格の場合は total_checks と同数）
         passed_checks = total_checks
         # 違反件数（現フェーズでは 0 = 物理テストは Stage 4 で実施）
@@ -86,7 +123,7 @@ class NotificationsPropertyGenerator(BaseGenerator):
             ),
             # 生成日時
             "generated_at": generated_at,
-            # 検査総件数（package.json 存在時は 3 件: idempotency / ordering / type_safety）
+            # 検査総件数（package.json 存在時は 5 件: 基本 3 件 + property cell 2 件）
             "total_checks": total_checks,
             # 合格件数
             "passed_checks": passed_checks,
@@ -96,4 +133,6 @@ class NotificationsPropertyGenerator(BaseGenerator):
             "property_status": property_status,
             # notifications パッケージの状態（package.json の有無で判定）
             "notifications_package_status": notifications_package_status,
+            # idempotency + ordering property cell 列挙（Y-tier3-6 cell 列挙拡張）
+            "property_cells": property_cells if package_json_exists else [],
         }

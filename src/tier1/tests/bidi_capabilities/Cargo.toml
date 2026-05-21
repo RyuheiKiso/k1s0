@@ -12,6 +12,12 @@ edition = "2021"
 # publish = false: 外部公開しない内部テストクレート
 publish = false
 
+# 通常依存クレート（proc-macro 属性はコンパイル時に解決されるため dev-dependencies ではなく dependencies に置く）
+[dependencies]
+# k1s0-tier1-library-macros: conformance_assert 属性マクロを提供するプロシージャルマクロクレート
+# #[conformance_assert(scenario = "...", adapter = "...", class = "...")] 属性を全 29 cell に付与するために使用する
+k1s0-tier1-library-macros = { path = "../../library/rust_macros" }
+
 # 開発・テスト専用依存クレート
 [dev-dependencies]
 # uuid: UUID v4 生成（assertion_run_result_id の証拠 ID 生成に使用する）

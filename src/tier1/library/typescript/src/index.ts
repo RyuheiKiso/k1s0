@@ -2,6 +2,23 @@
  * index.ts — k1s0 tier1 Library TypeScript 公開 API エントリーポイント
  * 05_鍵管理適合仕様.md / 04_認証適合仕様.md / 17 機能カテゴリに基づく 4 言語等価強度 SDK の TypeScript 実装。
  * 生 key bytes / 生 access_token は公開 API シグネチャに一切露出しない。
+ *
+ * ============================================================
+ * 3-layer split 規約（Y-bidi-library-split）
+ * ============================================================
+ * 本モジュールは Bidi 適合仕様 3-layer split 規約の「Layer 1: SDK（公開 API）」に該当する。
+ *
+ *   Layer 1: SDK（公開 API）— 本ファイル（index.ts）から re-export される型
+ *     - tier2 / tier3 / client が消費する公開 API を提供する。
+ *     - KeyHandle / AuthContext / ObservabilityProvider 等の型を再エクスポートする。
+ *
+ *   Layer 2: Internal（server 内部 API）— export しない型
+ *     - tier1 server 実装のみが使う内部 API（index.ts から re-export しない）。
+ *     - （将来） internal.ts に実装する。
+ *
+ *   Layer 3: ProtoBridge（Buf codegen 出力の薄い wrapper）— proto_bridge.ts
+ *     - buf generate 出力の proto 型 → Library 型変換のみを担う。
+ *     - proto_bridge.ts は index.ts から re-export しない（proto 型の公開 API 露出禁止）。
  */
 
 // KeyClass enum + KeyHandle abstract class + StubKeyHandle class を再エクスポートする

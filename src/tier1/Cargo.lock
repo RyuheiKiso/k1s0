@@ -80,6 +80,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 name = "bidi-capabilities"
 version = "0.1.0"
 dependencies = [
+ "k1s0-tier1-library-macros",
  "uuid",
 ]
 
@@ -1061,6 +1062,15 @@ dependencies = [
  "tokio",
  "uuid",
  "zeroize",
+]
+
+[[package]]
+name = "k1s0-tier1-library-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -26,3 +26,6 @@ export * from "./attachment.js";
 
 // i18n formatter モジュールを re-export する（ICU 風 number / date / currency / unit）
 export * from "./i18n_formatter.js";
+
+// businessConflictDetector モジュールを re-export する（4 subtype detector）
+export * from "./businessConflictDetector.js";

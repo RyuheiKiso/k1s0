@@ -89,6 +89,19 @@ pub mod backend;
 // TransportNegotiationClient / BidiChannel / ClientCapabilities 等も提供する
 pub mod frontend;
 
+// ---- 3-layer split: proto layer ----
+
+// proto_bridge モジュール: Bidi 適合仕様 3-layer split 規約の第 3 層（proto layer）
+// buf generate 出力の protobuf 型 → Library 型への変換のみを担う。
+// 公開 API（sdk layer）への proto 型露出は禁止する（pub(crate) スコープ限定）。
+// P7（crosscutting）フェーズで Buf codegen 出力と接続して完全実装に移行する。
+//
+// 3-layer split 全体像:
+//   Layer 1: sdk     = crate::core / crate::backend / crate::frontend（公開 API）
+//   Layer 2: internal = pub(crate) スコープの server 内部 API（#[doc(hidden)] で区別）
+//   Layer 3: proto_bridge = 本モジュール（Buf codegen 出力 → Library 型変換）
+pub(crate) mod proto_bridge;
+
 // ---- conformance assertion id デコレータ ----
 
 // conformance_assert モジュール: spec 01 §assertion id の連結
