@@ -16,3 +16,15 @@ entries:
     status: accepted
     # 対象軸
     axis_name: tier1_observability
+  - assumption_id: formal_temporal_safety_v1_pending_assumption
+    description: "v1.0.0 では TLA+/Apalache による temporal safety proof の完全 verify を v2.0.0 roadmap に延期し、CI property test + 型システム静的解析を代替証跡として受容する。tier1_bidi_handshake_safety のみ v1 で baseline_verified 済み。"
+    status: accepted
+    axis_name: all_axes
+  - assumption_id: formal_refinement_v1_pending_assumption
+    description: "v1.0.0 では TLA+/Stainless による refinement proof の完全 verify を v2.0.0 roadmap に延期し、Rust 型システム + API snapshot + strict mode を代替証跡として受容する。"
+    status: accepted
+    axis_name: all_axes
+  - assumption_id: formal_property_axiom_v1_pending_assumption
+    description: "v1.0.0 では CBMC による property axiom proof の完全 verify を v2.0.0 roadmap に延期し、既存 QuickCheck/proptest property test を代替証跡として受容する。"
+    status: accepted
+    axis_name: all_axes
