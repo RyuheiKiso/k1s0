@@ -16,6 +16,10 @@ covered_by:
 related_axes:
   - client
   - tier1
+trace:
+  fr_ids:
+  - FR-cross_edge-003
+
 ---
 
 # Connect-RPC UA-aware adapter（v1）

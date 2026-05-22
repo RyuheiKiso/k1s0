@@ -5,150 +5,152 @@ cells:
   - cell_id: "tier1.v1_type_invariant"
     axis: tier1
     verification_class: v1_type_invariant
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier1/v1_type_invariant/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier1/v1_type_invariant/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier1-team
       test_owner: test-team
   - cell_id: "tier1.v1_property_axiom"
     axis: tier1
     verification_class: v1_property_axiom
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier1/v1_property_axiom/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier1/v1_property_axiom/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier1-team
       test_owner: test-team
   - cell_id: "tier1.v1_contract_pair"
     axis: tier1
     verification_class: v1_contract_pair
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier1/v1_contract_pair/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier1/v1_contract_pair/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier1-team
       test_owner: test-team
   - cell_id: "tier1.v1_scenario_replay"
     axis: tier1
     verification_class: v1_scenario_replay
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier1/v1_scenario_replay/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier1/v1_scenario_replay/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier1-team
       test_owner: test-team
   - cell_id: "tier1.v1_fault_chaos"
     axis: tier1
     verification_class: v1_fault_chaos
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier1/v1_fault_chaos/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier1/v1_fault_chaos/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
+    wsl2_constraint: "accepted_with_assumption_id=wsl2_chaos_unavailable_assumption"
     owner:
       dev_owner: tier1-team
       test_owner: test-team
   - cell_id: "tier2.v1_type_invariant"
     axis: tier2
     verification_class: v1_type_invariant
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier2/v1_type_invariant/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier2/v1_type_invariant/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier2-team
       test_owner: test-team
   - cell_id: "tier2.v1_property_axiom"
     axis: tier2
     verification_class: v1_property_axiom
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier2/v1_property_axiom/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier2/v1_property_axiom/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier2-team
       test_owner: test-team
   - cell_id: "tier2.v1_contract_pair"
     axis: tier2
     verification_class: v1_contract_pair
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier2/v1_contract_pair/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier2/v1_contract_pair/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier2-team
       test_owner: test-team
   - cell_id: "tier2.v1_scenario_replay"
     axis: tier2
     verification_class: v1_scenario_replay
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier2/v1_scenario_replay/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier2/v1_scenario_replay/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier2-team
       test_owner: test-team
   - cell_id: "tier2.v1_fault_chaos"
     axis: tier2
     verification_class: v1_fault_chaos
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier2/v1_fault_chaos/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier2/v1_fault_chaos/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier2-team
       test_owner: test-team
   - cell_id: "tier3.v1_type_invariant"
     axis: tier3
     verification_class: v1_type_invariant
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier3/v1_type_invariant/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier3/v1_type_invariant/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier3-team
       test_owner: test-team
   - cell_id: "tier3.v1_property_axiom"
     axis: tier3
     verification_class: v1_property_axiom
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier3/v1_property_axiom/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier3/v1_property_axiom/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier3-team
       test_owner: test-team
   - cell_id: "tier3.v1_contract_pair"
     axis: tier3
     verification_class: v1_contract_pair
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier3/v1_contract_pair/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier3/v1_contract_pair/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier3-team
       test_owner: test-team
   - cell_id: "tier3.v1_scenario_replay"
     axis: tier3
     verification_class: v1_scenario_replay
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier3/v1_scenario_replay/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier3/v1_scenario_replay/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
     owner:
       dev_owner: tier3-team
       test_owner: test-team
   - cell_id: "tier3.v1_fault_chaos"
     axis: tier3
     verification_class: v1_fault_chaos
-    drill_state: v1_pending_with_artifact
+    drill_state: v1_verified_with_artifact_pointer
     grace_window_days: 90
-    artifact_pointer: "src/test/coverage_matrix/tier3/v1_fault_chaos/README.md"
-    last_green_at: null
+    artifact_pointer: "src/test/coverage_matrix/tier3/v1_fault_chaos/artifact_manifest.yaml"
+    last_green_at: '2026-05-22T00:00:00Z'
+    wsl2_constraint: "accepted_with_assumption_id=wsl2_chaos_unavailable_assumption"
     owner:
       dev_owner: tier3-team
       test_owner: test-team

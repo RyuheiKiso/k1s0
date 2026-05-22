@@ -1,0 +1,107 @@
+# tauri_bundle.deb.yaml — Tauri Linux Debian パッケージバンドル設定
+# Linux（Debian / Ubuntu）向けの .deb パッケージ形式でアプリケーションをパッケージングする
+# dpkg / apt での配布を前提とし、依存関係と conffile を明示的に管理する
+apiVersion: k1s0.io/v1 # k1s0 カスタムリソースの API バージョン
+kind: TauriBundleConfig # Tauri バンドル設定リソースとして宣言する
+metadata:
+  name: k1s0-companion-deb # バンドル設定の識別名
+  labels:
+    # プラットフォーム識別ラベル（CI が Linux deb ジョブを選択するために使用する）
+    k1s0.io/platform: linux
+    # バンドル形式ラベル（AppImage と区別するためのラベル）
+    k1s0.io/bundle-format: deb
+spec:
+  # --- アプリケーション基本情報 ---
+  appName: "k1s0-companion" # deb パッケージ名（スペース・大文字禁止）
+  appVersion: "1.0.0" # パッケージバージョン（debian バージョン形式）
+  # アプリ説明文（dpkg --list に表示される短い説明）
+  description: "k1s0 Companion Application for tier3 desktop state management"
+  # 長い説明文（apt show に表示される詳細説明）
+  longDescription: |
+    k1s0 Companion は tier3 クライアント状態管理を担う Tauri デスクトップアプリケーションです。
+    USB / BLE / Serial / OPC-UA / Modbus デバイスアダプターを内蔵し、
+    OpenTelemetry によるトレーシングと DPoP/PSK 認証をサポートします。
+
+  # --- .deb パッケージ固有設定 ---
+  deb:
+    # メンテナー情報（Debian パッケージ管理者の連絡先）
+    maintainer: "k1s0 team <releases@k1s0.io>"
+    # セクション（コンポーネント分類）
+    section: "utils"
+    # パッケージ優先度
+    priority: "optional"
+    # 対象アーキテクチャ
+    arch: "amd64"
+    # Debian パッケージの依存関係宣言
+    depends:
+      # WebKit2GTK: Tauri の WebView エンジン（Tauri v2 は webkit2gtk-4.1 を使用する）
+      - "libwebkit2gtk-4.1-0 (>= 2.36.0)"
+      # GTK3: UI フレームワーク
+      - "libgtk-3-0 (>= 3.24)"
+      # GLib: GNOME 基盤ライブラリ
+      - "libglib2.0-0 (>= 2.72)"
+      # ayatana-appindicator3: システムトレイ表示用ライブラリ
+      - "libayatana-appindicator3-1"
+      # OpenSSL: TLS/HTTPS 通信に必要（tier2 SDK との通信に使用する）
+      - "libssl3 (>= 3.0)"
+    # 推奨パッケージ（必須ではないが推奨する依存関係）
+    recommends:
+      # libsecret: GNOME Keyring アクセスに使用する（PSK の OS keystore 格納）
+      - "libsecret-1-0"
+      # gnome-keyring: GNOME Keyring デーモン（k1s0-companion の PSK 格納先）
+      - "gnome-keyring"
+    # インストールスクリプト
+    scripts:
+      # postinst: インストール後スクリプト（デスクトップエントリ更新）
+      postinst: |
+        #!/bin/sh
+        # デスクトップデータベースを更新する（アプリケーションメニュー統合）
+        if command -v update-desktop-database > /dev/null 2>&1; then
+          update-desktop-database /usr/share/applications
+        fi
+        # アイコンキャッシュを更新する
+        if command -v gtk-update-icon-cache > /dev/null 2>&1; then
+          gtk-update-icon-cache /usr/share/icons/hicolor
+        fi
+      # prerm: アンインストール前スクリプト（クリーンアップ）
+      prerm: |
+        #!/bin/sh
+        # k1s0-companion プロセスが起動中の場合は終了する
+        pkill -f k1s0-companion || true
+
+  # --- アイコン設定 ---
+  icons:
+    # SVG アイコン（スケーラブル形式、/usr/share/icons/hicolor/scalable/apps/ に配置）
+    - "icons/icon.svg"
+    # 32x32 PNG アイコン
+    - "icons/32x32.png"
+    # 128x128 PNG アイコン（標準解像度用）
+    - "icons/128x128.png"
+    # 256x256 PNG アイコン（高解像度用）
+    - "icons/256x256@2x.png"
+
+  # --- Linux デスクトップ統合設定 ---
+  linuxDesktopIntegration:
+    # .desktop ファイルの Name フィールド（アプリケーションメニューの表示名）
+    name: "k1s0 Companion"
+    # .desktop ファイルの Comment フィールド（ツールチップ説明文）
+    comment: "tier3 state management companion for k1s0"
+    # MIME タイプ関連付け（k1s0 固有のファイル形式を関連付ける）
+    mimeType: "x-scheme-handler/k1s0"
+    # アプリカテゴリ（XDG メニュー統合に使用する）
+    categories:
+      - Utility
+      - Development
+
+  # --- インストール先設定 ---
+  # deb パッケージのファイル配置先（FHS に準拠する）
+  installationPaths:
+    # 実行ファイルの配置先
+    binary: "/usr/bin/k1s0-companion"
+    # .desktop ファイルの配置先
+    desktopEntry: "/usr/share/applications/k1s0-companion.desktop"
+    # アイコンの配置先（hicolor テーマを使用する）
+    icons: "/usr/share/icons/hicolor"
+
+  # --- ビルド成果物の配置 ---
+  outputDir: "target/release/bundle/deb" # .deb ファイルの出力先ディレクトリ

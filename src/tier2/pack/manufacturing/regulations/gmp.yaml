@@ -1,0 +1,28 @@
+# k1s0 tier2 manufacturing pack GMP 規制要件定義
+# GMP (PIC/S Good Manufacturing Practice) に関連する k1s0 tier2 制約を記述する
+
+regulation:
+  # 規制種別の識別子
+  regulation_id: gmp_pics
+  # 規制名称
+  name: "GMP (PIC/S Good Manufacturing Practice)"
+  # 適用する k1s0 テーブルクラス
+  applicable_table_classes:
+    # 製造バッチ記録は tenant_scoped で管理する
+    - tenant_scoped
+    # PII データ（作業員情報）は pii_segregated で管理する
+    - pii_segregated
+  # 適用する tier2 制約
+  constraints:
+    # バッチ記録トレーサビリティ: 全製造バッチを aggregate_id で前後方向に追跡する
+    - constraint_id: batch_record_traceability
+      description: "全製造バッチ（ProductionBatch）に forward / backward traceability を保証する"
+      enforcement: "atomic_triple_write + aggregate_id chain check"
+    # 電子署名 21 CFR Part 11: 電子署名は cosign + actor_id で audit emit する
+    - constraint_id: electronic_signature_21cfr11
+      description: "電子署名は 21 CFR Part 11 準拠（cosign signature + Keycloak subject 不可逆 ID）"
+      enforcement: "cosign signature + actor_id (Keycloak subject) で audit_local emit"
+    # データ完全性 ALCOA+: ALCOA+ 原則（Attributable/Legible/Contemporaneous/Original/Accurate）準拠
+    - constraint_id: data_integrity_alcoa_plus
+      description: "ALCOA+ 原則: 監査証跡は append-only + WORM + HLC タイムスタンプで完全性を保証する"
+      enforcement: "audit_event append-only + Ceph RGW WORM + HLC timestamp"

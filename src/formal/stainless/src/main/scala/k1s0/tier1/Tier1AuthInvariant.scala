@@ -1,3 +1,4 @@
+// k1s0-proof: PROOF-tier1-refn-001 -> IMPL-tier1-0004
 // Tier1AuthInvariant.scala
 // tier1 認証 invariant の Stainless 形式検証
 // 04_認証適合仕様: auth_class × step-up FSM の単調増加不変条件

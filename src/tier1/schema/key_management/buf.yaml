@@ -1,0 +1,9 @@
+version: v1
+name: buf.build/k1s0/tier1-key-management
+lint:
+  use:
+    - DEFAULT
+    - COMMENTS
+breaking:
+  use:
+    - FILE

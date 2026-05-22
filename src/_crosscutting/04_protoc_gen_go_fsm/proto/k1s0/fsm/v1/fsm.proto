@@ -1,0 +1,47 @@
+// k1s0 FSM proto option 定義
+// 04_protoc_gen_go_fsm.md §proto annotation スキーマ
+// aggregate message に FSM annotation を付与し protoc-gen-k1s0-go-fsm が
+// Go typestate コード（状態別 nominal struct + sealed marker interface）を生成する。
+syntax = "proto3";
+
+package k1s0.fsm.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/k1s0-io/k1s0/k1s0/fsm/v1;fsmv1";
+option java_multiple_files = true;
+option java_package = "io.k1s0.fsm.v1";
+
+// FsmTransition は状態遷移の 1 エッジを宣言する。
+message FsmTransition {
+  // from: 遷移元状態名（proto message states 内の名前と一致する必要がある）
+  string from = 1;
+  // to: 遷移先状態名
+  string to = 2;
+  // by: 遷移 method 名（Go codegen では DraftOrder.Confirm() 等に展開される）
+  string by = 3;
+}
+
+// FsmOptions は aggregate message に付与する FSM annotation を宣言する。
+// protoc-gen-k1s0-go-fsm はこの option を読み取り Go typestate コードを生成する。
+// 例: option (k1s0.fsm.v1.aggregate) = { state_field: "state", states: [...], transitions: [...] };
+message FsmOptions {
+  // state_field: FSM の状態を保持するフィールド名（proto message 内の field 名と一致）
+  string state_field = 1;
+  // states: 全状態名の列挙（生成される Go struct 名の prefix になる）
+  repeated string states = 2;
+  // transitions: 許可された状態遷移の全エッジ（宣言外の遷移は compile fail）
+  repeated FsmTransition transitions = 3;
+  // initial_states: 初期状態名の列挙（Load 経路でのみ生成可能）
+  repeated string initial_states = 4;
+  // terminal_states: 終端状態名の列挙（遷移 method が生成されない）
+  repeated string terminal_states = 5;
+}
+
+// aggregate は FSM annotation を proto message に付与する message option。
+// protoc-gen-k1s0-go-fsm が読み取り Go typestate コードを生成する。
+// option field number 50010 は k1s0 cross-cutting 予約範囲（50010–50019）の先頭。
+extend google.protobuf.MessageOptions {
+  // aggregate: この message の FSM annotation
+  FsmOptions aggregate = 50010;
+}

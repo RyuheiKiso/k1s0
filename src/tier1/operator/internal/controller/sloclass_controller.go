@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0007 realizes=FR-tier1-007
 // sloclass_controller.go — k1s0 tier1 operator: SLOClass Reconciler
 // 07_SLO適合仕様.md §v1 slo_class セット（6 class）に準拠する。
 // SLOClass CRD から PrometheusRule を動的生成し、

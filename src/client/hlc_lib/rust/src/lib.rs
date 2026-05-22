@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-client-0001 realizes=FR-client-001
 // lib.rs — k1s0-hlc: Hybrid Logical Clock (HLC) の Rust 実装
 // Kulkarni et al. (2014) "Logical Physical Clocks" のアルゴリズムを実装する。
 // wall-clock 禁止規律（src/CLAUDE.md §wall-clock TTL 禁止）に従い、

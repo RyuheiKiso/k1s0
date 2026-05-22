@@ -1,0 +1,21 @@
+# coverage_matrix artifact manifest — tier3.v1_contract_pair
+# verification_class: v1_contract_pair
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier3.v1_contract_pair
+verification_class: v1_contract_pair
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier3_spa_pact_consumer
+    artifact_kind: pact_consumer_typescript
+    source_path: src/tier3/typescript/spa/tests/pact/
+    evidence_uri: "file://src/tier3/typescript/spa/tests/pact/"
+    notes: "tier3 SPA の Pact consumer test（tier2 API に対する contract）"
+  - artifact_id: tier3_csharp_pact_contract
+    artifact_kind: pact_consumer_csharp
+    source_path: src/tier3/csharp/contract/Pact.cs
+    evidence_uri: "file://src/tier3/csharp/contract/Pact.cs"
+    notes: "tier3 WPF の Pact contract test（PACT_VERIFY_ENABLED gate 付き）"
+collected_by: dev_owner=tier3-team
+wsl2_constraint: none

@@ -1,0 +1,21 @@
+# coverage_matrix artifact manifest — tier3.v1_type_invariant
+# verification_class: v1_type_invariant
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier3.v1_type_invariant
+verification_class: v1_type_invariant
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier3_typescript_type_check
+    artifact_kind: typescript_strict_tsconfig
+    source_path: src/tier3/typescript/spa/tsconfig.json
+    evidence_uri: "file://src/tier3/typescript/spa/tsconfig.json"
+    notes: "TypeScript strict mode 型チェック（tier3 SPA の type_invariant 証跡）"
+  - artifact_id: tier3_fsm_typescript_branded
+    artifact_kind: typescript_branded_type
+    source_path: src/tier2/fsm/typescript_branded.ts
+    evidence_uri: "file://src/tier2/fsm/typescript_branded.ts"
+    notes: "typescript branded type による FSM typestate（不正遷移が型エラーになる）"
+collected_by: dev_owner=tier3-team
+wsl2_constraint: none

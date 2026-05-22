@@ -1,3 +1,4 @@
+\* k1s0-proof: PROOF-tier1-tsafe-004 -> IMPL-tier1-0008
 \* tier1_oss_lifecycle_temporal_safety.tla
 \* tier1 OSS ライフサイクル temporal safety: lifecycle signal が eventually アクションに解決される保証
 \* obligation_id: tier1_oss_lifecycle_tsp

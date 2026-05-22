@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-formal-prog-002 -> IMPL-formal-0002
+# k1s0-impl: IMPL-formal-0002 realizes=FR-formal-002
 """tools/lock_yaml_generator/generate_proof_status.py
 
 proof_status.lock.yaml 生成器。

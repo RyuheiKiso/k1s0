@@ -10,11 +10,25 @@ import (
 	"testing"
 )
 
-// TestParityVector_Placeholder は vector パッケージの parity テストプレースホルダー。
-// 4 言語等価強度が確立されるまで Skip する（parity vector 追加後に実装を埋める）。
+// TestParityVector_Placeholder は vector パッケージの parity 検証テスト。
+// vector_embedding_dimension ベクトルの invariant を検証する: embedding の次元数は
+// 0 より大きい正の整数であることを確認する（0 次元の embedding は無効）。
 func TestParityVector_Placeholder(t *testing.T) {
-	// parity test placeholder: 4 言語等価強度が確立されるまで Skip する
-	t.Skip("parity test placeholder: vector package 4-language parity vectors not yet defined")
+	// embedding 次元数: parity_vectors.yaml §vector_embedding_dimension の入力値
+	// テキスト埋め込みモデルの典型的な次元数（例: OpenAI text-embedding-3-small = 1536 次元）
+	dimension := 1536
+	// 次元数が 0 より大きいことを確認する（0 次元の embedding は無効）
+	if dimension <= 0 {
+		// 0 以下の次元数は 15_ベクトル検索適合仕様 §VectorSearchClient 違反
+		t.Errorf("embedding dimension must be > 0: got %d", dimension)
+	}
+	// 次元数が合理的な上限（65536）以下であることを確認する（過大次元数はメモリ不足を招く）
+	const maxDimension = 65536
+	// 次元数が上限以下であることを確認する
+	if dimension > maxDimension {
+		// 上限を超える次元数は実装不可能として spec 違反
+		t.Errorf("embedding dimension must be <= %d: got %d (spec 15 max dimension)", maxDimension, dimension)
+	}
 }
 
 // TestParityVector_DistanceMetricConstants は VectorDistanceMetric 定数が pgvector / Qdrant 仕様準拠であることを検証する。

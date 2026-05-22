@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0010 realizes=FR-tier1-010
 // K1s0Analyzer.cs — k1s0 tier1 Roslyn DiagnosticAnalyzer 骨格実装
 // tier1/CLAUDE.md §lint ツール「K1s0Analyzer」の実体。
 // 禁止 API 使用・facade 経由強制・依存方向違反を Roslyn 静的解析で検出する。

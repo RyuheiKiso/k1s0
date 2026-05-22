@@ -20,6 +20,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - test_enforcement.lock.yaml
+trace:
+  fr_ids:
+  - FR-test-002
+
 ---
 
 # test 強制機構

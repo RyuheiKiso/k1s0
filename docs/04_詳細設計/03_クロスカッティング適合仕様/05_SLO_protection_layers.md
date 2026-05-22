@@ -21,6 +21,10 @@ related_axes:
   - tier1
   - tier2
   - ops
+trace:
+  fr_ids:
+  - FR-cross_slo-001
+
 ---
 
 # 共有 Pod / DB の SLO 保護四層 + 自動昇格 trigger（v1）

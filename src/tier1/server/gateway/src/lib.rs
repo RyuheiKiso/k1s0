@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0001 realizes=FR-tier1-001
 // lib.rs — k1s0-tier1-gateway ライブラリエントリポイント
 // integration test（tests/ 配下）が build_router() を利用できるように pub に再エクスポートする。
 // binary エントリポイントは main.rs が引き続き担当する。

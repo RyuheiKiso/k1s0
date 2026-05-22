@@ -1,3 +1,4 @@
+\* k1s0-proof: PROOF-tier1-tsafe-001 -> IMPL-tier1-0004
 \* tier1_auth_temporal_safety.tla
 \* tier1 認証 temporal safety: auth_class × step-up FSM における無言格下げ禁止の形式検証
 \* obligation_id: tier1_auth_tsp

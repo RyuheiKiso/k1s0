@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-formal-prog-007 -> IMPL-formal-0007
+# k1s0-impl: IMPL-formal-0007 realizes=FR-formal-007
 """tools/lock_yaml_generator/generate_assumption.py
 
 assumption.lock.yaml 生成器。

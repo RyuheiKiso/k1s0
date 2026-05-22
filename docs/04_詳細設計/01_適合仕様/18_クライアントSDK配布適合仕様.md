@@ -28,6 +28,10 @@ lock_artifacts:
   - sdk_inventory.lock.yaml
   - capability_matrix.lock.yaml
   - sdk_conformance.lock.yaml
+trace:
+  fr_ids:
+  - FR-client-001
+
 ---
 
 # client クライアント SDK 配布適合仕様（v1）

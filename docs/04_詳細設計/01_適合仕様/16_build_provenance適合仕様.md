@@ -3,7 +3,8 @@ id: detail.security.build_provenance_conformance
 axis: security
 phase: detail
 kind: conformance_spec
-status: draft
+status: published
+version: "1.0.0"
 depends_on:
   - arch.security.security_index
   - arch.security.threat_model_policy
@@ -21,6 +22,10 @@ lock_artifacts:
   - artifact_inventory.lock.yaml
   - provenance_attestation.lock.yaml
   - reproducibility_matrix.lock.yaml
+trace:
+  fr_ids:
+  - FR-security-002
+
 ---
 
 # security build provenance 適合仕様（v1）

@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_bff-0002 realizes=FR-cross_bff-002
 // k1s0 Tauri コンパニオン Sidecar のメインファイル
 // Tauri frontend から IPC 経由で呼び出される standalone HTTP sidecar を実装する
 // WebUSB / Bluetooth / Serial デバイスブリッジを axum HTTP server として提供する

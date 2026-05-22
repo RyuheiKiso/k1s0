@@ -21,6 +21,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - infra_enforcement.lock.yaml
+trace:
+  fr_ids:
+  - FR-infra-003
+
 ---
 
 # infra 強制機構

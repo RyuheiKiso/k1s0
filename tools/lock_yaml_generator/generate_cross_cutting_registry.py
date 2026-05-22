@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-002 -> IMPL-meta-0002
+# k1s0-impl: IMPL-meta-0002 realizes=FR-meta-002
 """tools/lock_yaml_generator/generate_cross_cutting_registry.py
 
 cross_cutting_registry.lock.yaml 生成器。

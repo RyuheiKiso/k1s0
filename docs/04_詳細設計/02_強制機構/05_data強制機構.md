@@ -19,6 +19,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - data_enforcement.lock.yaml
+trace:
+  fr_ids:
+  - FR-data-002
+
 ---
 
 # data 強制機構

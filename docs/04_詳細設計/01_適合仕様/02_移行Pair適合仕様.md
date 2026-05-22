@@ -15,6 +15,10 @@ covered_by:
     - v1_refinement_proof
 lock_artifacts:
   - dry_run.lock.yaml
+trace:
+  fr_ids:
+  - FR-tier1-002
+
 ---
 
 # tier1 L1+ 移行 Pair 適合仕様（v1）
@@ -93,7 +97,7 @@ lock_artifacts:
 
 ## atomic_triple_write と tier1 schema 配下の tier2bridge 配置
 
-`src/tier1/schema/tier2/buf.yaml` および `src/tier1/tier2bridge/v1/triple_write.proto` が tier1 schema 配下に置かれる理由を以下に明示する。
+`src/tier1/schema/tier2/buf.yaml` および `src/tier1/schema/tier2/tier1/tier2bridge/v1/triple_write.proto` が tier1 schema 配下に置かれる理由を以下に明示する。
 
 **設計決定**: tier1 transport layer が tier2 の atomic_triple_write の wire 形式を定義する必要があるため、tier2bridge の proto schema は tier1 schema 配下（`src/tier1/schema/tier2/`）に置かれる。
 

@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier2-0002 realizes=FR-tier2-002
 // k1s0 tier2 ライブラリクレートのルート
 // テナント分離 Repository abstraction + atomic 三表書込を提供する
 

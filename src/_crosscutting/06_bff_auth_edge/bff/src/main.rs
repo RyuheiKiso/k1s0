@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_bff-0001 realizes=FR-cross_bff-001
 // k1s0 BFF 認証エッジゲートウェイのメインファイル
 // axum を使用した httpOnly cookie / Authorization 中継 / CSRF / CORS / PKCE 対応 BFF
 use axum::{

@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_bff-prog-002 -> IMPL-cross_bff-0002
 """tools/lock_yaml_generator/generate_backends.py
 
 backends.lock.yaml 生成器。

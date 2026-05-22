@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-test-prog-001 -> IMPL-test-0001
+# k1s0-impl: IMPL-test-0001 realizes=FR-test-001
 """tools/lock_yaml_generator/generate_coverage_matrix.py
 
 coverage_matrix.lock.yaml 生成器。
@@ -82,15 +84,36 @@ class CoverageMatrixGenerator(BaseGenerator):
 
     @staticmethod
     def _normalize_cells(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """cells エントリを正規化する。"""
+        """cells エントリを正規化する。
+        artifact_pointer と last_green_at が scaffold.yaml に記載されている場合は引き継ぐ。
+        """
         result: list[dict[str, Any]] = []
         for entry in raw:
-            result.append({
+            # artifact_pointer: scaffold.yaml の値を引き継ぐ（存在しない場合は None）
+            artifact_pointer = entry.get("artifact_pointer")
+            # last_green_at: scaffold.yaml の値を引き継ぐ（存在しない場合は None）
+            last_green_at = entry.get("last_green_at")
+            # wsl2_constraint: WSL2 制約による accepted_with_assumption の記録
+            wsl2_constraint = entry.get("wsl2_constraint")
+            # drill_state: scaffold.yaml の値を引き継ぐ（存在しない場合はデフォルト値）
+            drill_state = str(entry.get("drill_state", "v1_pending_with_artifact"))
+            # cell エントリを構築する
+            cell: dict[str, Any] = {
                 "cell_id":            str(entry.get("cell_id", "")),
-                "axis_name":          str(entry.get("axis_name", "")),
+                "axis_name":          str(entry.get("axis_name", entry.get("axis", ""))),
                 "verification_class": str(entry.get("verification_class", "")),
-                "drill_state":        str(entry.get("drill_state", "v1_pending_with_artifact")),
-            })
+                "drill_state":        drill_state,
+            }
+            # artifact_pointer が存在する場合は追加する
+            if artifact_pointer is not None:
+                cell["artifact_pointer"] = str(artifact_pointer)
+            # last_green_at が存在する場合は追加する
+            if last_green_at is not None:
+                cell["last_green_at"] = str(last_green_at)
+            # wsl2_constraint が存在する場合は追加する
+            if wsl2_constraint is not None:
+                cell["wsl2_constraint"] = str(wsl2_constraint)
+            result.append(cell)
         return result
 
     @staticmethod

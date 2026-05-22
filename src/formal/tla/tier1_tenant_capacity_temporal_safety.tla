@@ -1,3 +1,4 @@
+\* k1s0-proof: PROOF-tier1-tsafe-006 -> IMPL-tier1-0009
 \* tier1_tenant_capacity_temporal_safety.tla
 \* tier1 テナント容量 temporal safety: noisy neighbor によるテナント間 SLO 侵害禁止の形式検証
 \* obligation_id: tier1_tenant_capacity_tsp

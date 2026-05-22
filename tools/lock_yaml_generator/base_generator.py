@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-006 -> IMPL-meta-0006
+# k1s0-impl: IMPL-meta-0006 realizes=FR-meta-006
 """tools/lock_yaml_generator/base_generator.py
 
 全 lock.yaml generator の共通抽象基底クラス。

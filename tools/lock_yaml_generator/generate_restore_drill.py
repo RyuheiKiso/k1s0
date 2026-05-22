@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-data-prog-003 -> IMPL-data-0002
+# k1s0-impl: IMPL-data-0002 realizes=FR-data-002
 """tools/lock_yaml_generator/generate_restore_drill.py
 
 restore_drill.lock.yaml 生成器。

@@ -14,6 +14,10 @@ covered_by:
 related_axes:
   - security
   - ops
+trace:
+  fr_ids:
+  - FR-cross_pii-002
+
 ---
 
 # audit ingest gap monitor + heartbeat（v1）

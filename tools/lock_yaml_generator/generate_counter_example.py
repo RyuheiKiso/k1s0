@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-formal-prog-005 -> IMPL-formal-0005
+# k1s0-impl: IMPL-formal-0005 realizes=FR-formal-005
 """tools/lock_yaml_generator/generate_counter_example.py
 
 counter_example.lock.yaml 生成器。

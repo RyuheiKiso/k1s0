@@ -1,0 +1,21 @@
+# coverage_matrix artifact manifest — tier2.v1_type_invariant
+# verification_class: v1_type_invariant
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier2.v1_type_invariant
+verification_class: v1_type_invariant
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier2_sqlx_prepared_queries
+    artifact_kind: sqlx_offline_cache
+    source_path: src/tier2/rust/.sqlx/
+    evidence_uri: "file://src/tier2/rust/.sqlx/"
+    notes: "sqlx offline mode query 型検証（コンパイル時 SQL 型チェック）"
+  - artifact_id: tier2_fsm_typestate_rust
+    artifact_kind: rust_typestate_implementation
+    source_path: src/tier2/fsm/rust_phantom.rs
+    evidence_uri: "file://src/tier2/fsm/rust_phantom.rs"
+    notes: "phantom type による FSM typestate（不正遷移が compile error になる）"
+collected_by: dev_owner=tier2-team
+wsl2_constraint: none

@@ -23,6 +23,10 @@ lock_artifacts:
   - tla_apalache_pin.lock.yaml
   - kani_cbmc_pin.lock.yaml
   - ownership_table.lock.yaml
+trace:
+  fr_ids:
+  - FR-formal-004
+
 ---
 
 # proof_artifact 体系

@@ -96,3 +96,130 @@ function isRebaseClean(fieldDiff?: FieldDiff): boolean {
   const clientSet = new Set(fieldDiff.clientFields);
   return !fieldDiff.serverFields.some((f) => clientSet.has(f));
 }
+
+// ---- subtype 別 判定 helper ----
+
+/// isStaleWrite は BusinessConflictSubtype が "stale_write" かどうかを判定する
+/// stale_write: クライアントが古い server_truth の version で write した場合に発生する
+export function isStaleWrite(subtype: BusinessConflictSubtype): subtype is "stale_write" {
+  // subtype が "stale_write" であれば true を返す
+  return subtype === "stale_write";
+}
+
+/// isLostUpdate は BusinessConflictSubtype が "lost_update" かどうかを判定する
+/// lost_update: 別のクライアントが先に同一エンティティを書き込んだ場合に発生する
+export function isLostUpdate(subtype: BusinessConflictSubtype): subtype is "lost_update" {
+  // subtype が "lost_update" であれば true を返す
+  return subtype === "lost_update";
+}
+
+/// isSupersede は BusinessConflictSubtype が "supersede" かどうかを判定する
+/// supersede: 同一クライアントの後続 pending_queue エントリが先行エントリを上書きする場合に発生する
+export function isSupersede(subtype: BusinessConflictSubtype): subtype is "supersede" {
+  // subtype が "supersede" であれば true を返す
+  return subtype === "supersede";
+}
+
+/// isConcurrentEdit は BusinessConflictSubtype が "concurrent_edit" かどうかを判定する
+/// concurrent_edit: 複数クライアントが同一エンティティを同時編集している場合に発生する
+export function isConcurrentEdit(subtype: BusinessConflictSubtype): subtype is "concurrent_edit" {
+  // subtype が "concurrent_edit" であれば true を返す
+  return subtype === "concurrent_edit";
+}
+
+// ---- field-level diff rebase ロジック ----
+
+/// RebaseResult は field-level diff rebase の結果を表す型
+/// clean の場合は merged_values に rebase 後の値が格納される
+export type RebaseResult =
+  // clean rebase: client と server の変更フィールドが disjoint で自動マージ可能
+  | { readonly outcome: "clean"; readonly mergedValues: Readonly<Record<string, unknown>> }
+  // dirty rebase: client と server の変更フィールドが競合して 3way merge UI が必要
+  | { readonly outcome: "dirty"; readonly conflictingFields: readonly string[] };
+
+/// rebaseFieldDiff は stale_write 時の field-level diff rebase を実行する
+/// clientValues: クライアント側の最新値（pending_queue のエントリ）
+/// serverValues: サーバー側の最新値（server_truth の現在値）
+/// fieldDiff: client / server それぞれが変更したフィールドの差分情報
+/// 戻り値: clean の場合は merged_values、dirty の場合は conflictingFields
+export function rebaseFieldDiff(
+  // クライアント側の変更後フィールド値
+  clientValues: Readonly<Record<string, unknown>>,
+  // サーバー側の最新フィールド値
+  serverValues: Readonly<Record<string, unknown>>,
+  // field-level diff 情報（clientFields / serverFields それぞれが変更したフィールド名）
+  fieldDiff: FieldDiff,
+): RebaseResult {
+  // client と server それぞれが変更したフィールドの Set を構築する
+  const clientFieldSet = new Set(fieldDiff.clientFields);
+  // server が変更したフィールドの Set を構築する
+  const serverFieldSet = new Set(fieldDiff.serverFields);
+
+  // 競合フィールド（client と server が同時に変更したフィールド）を特定する
+  const conflictingFields = fieldDiff.clientFields.filter((f) => serverFieldSet.has(f));
+
+  // 競合フィールドが存在する場合は dirty rebase を返す
+  if (conflictingFields.length > 0) {
+    // 競合フィールドが存在するため dirty として返す（3way merge UI が必要）
+    return { outcome: "dirty", conflictingFields: conflictingFields as readonly string[] };
+  }
+
+  // 競合がない場合は clean rebase を実行する
+  // base: server_truth の値をベースとして使用する
+  const merged: Record<string, unknown> = { ...serverValues };
+
+  // client が変更したフィールドを server_truth の上に適用する
+  for (const field of fieldDiff.clientFields) {
+    // client の変更を merged に反映する（server は変更していないため安全に適用できる）
+    if (field in clientValues) {
+      // client の値を merged に設定する
+      merged[field] = clientValues[field];
+    }
+  }
+
+  // clean rebase 結果を返す（mergedValues に自動マージ結果を設定する）
+  return { outcome: "clean", mergedValues: merged };
+}
+
+/// applyServerTruthToLostUpdate は lost_update 時のサーバー値適用を実行する
+/// serverValues を server_truth として返し、pending_queue を hold 状態にする準備をする
+/// 戻り値: サーバー側の最新値（client は 3way merge UI でユーザーに選択させる）
+export function applyServerTruthToLostUpdate(
+  // サーバー側の最新フィールド値（refetch 後の server_truth）
+  serverValues: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  // lost_update の場合はサーバー値をそのまま返す（client は pending_queue に保持する）
+  // UI はこの値をベースにして 3way merge 画面を表示する
+  return serverValues;
+}
+
+/// buildSupersededKeySet は supersede 時に削除すべき idempotency_key の Set を構築する
+/// latestKey は保持し、それより古い同一エンティティへの write を supersede 対象とする
+/// olderKeys: 削除すべき古い idempotency_key の一覧
+export function buildSupersededKeySet(
+  // 削除すべき古い idempotency_key の一覧
+  olderKeys: readonly string[],
+): ReadonlySet<string> {
+  // 古い key を Set にして返す（O(1) lookup のため Set を使用する）
+  return new Set(olderKeys);
+}
+
+/// mergeConcurrentEditPresence は concurrent_edit 時の presence indicator 状態を更新する
+/// currentActors: 現在の編集中ユーザー Map（actorId → 最終 HLC タイムスタンプ）
+/// newActorId: 新しく検出された編集者の actorId
+/// newHlcTimestamp: 新しく検出された HLC タイムスタンプ（wall-clock TTL 禁止に従い HLC を使用する）
+export function mergeConcurrentEditPresence(
+  // 現在の presence 状態（actorId → HLC タイムスタンプ の Map）
+  currentActors: ReadonlyMap<string, string>,
+  // 新しく検出された actorId
+  newActorId: string,
+  // 新しい HLC タイムスタンプ（wall-clock TTL 禁止規約に従い HLC を使用する）
+  newHlcTimestamp: string,
+): ReadonlyMap<string, string> {
+  // 現在の presence Map を mutable な Map にコピーする
+  const updated = new Map(currentActors);
+  // 新しい actor の HLC タイムスタンプを更新する（存在しない場合は追加する）
+  updated.set(newActorId, newHlcTimestamp);
+  // 更新後の presence Map を返す（ReadonlyMap として返す）
+  return updated;
+}

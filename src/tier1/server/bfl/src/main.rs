@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0004 realizes=FR-tier1-004
 // k1s0 tier1 backend_for_library: AuthContext 型で 5 auth_class を振り分けるエントリポイント
 // 04_認証適合仕様.md §v1 auth_class セット（5 class）に基づき、
 // 各 class ごとの検証ロジックを auth_context.rs / oidc.rs / mtls.rs / jwt.rs に委譲する。

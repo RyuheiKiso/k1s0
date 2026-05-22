@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-client-prog-002 -> IMPL-client-0002
 """tools/lock_yaml_generator/generate_capability_matrix.py
 
 # capability_matrix.lock.yaml 生成器。

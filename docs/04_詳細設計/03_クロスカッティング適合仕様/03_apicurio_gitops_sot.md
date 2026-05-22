@@ -19,6 +19,10 @@ related_axes:
   - data
   - client
   - infra
+trace:
+  fr_ids:
+  - FR-cross_schema-001
+
 ---
 
 # Apicurio Registry GitOps SoT 適合仕様（v1）

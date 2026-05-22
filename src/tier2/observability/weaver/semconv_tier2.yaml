@@ -33,3 +33,63 @@ groups:
             - id: dedicated
               value: v1_dedicated
         requirement_level: recommended
+
+  # アグリゲート識別グループ
+  - id: tier2.aggregate
+    type: attribute_group
+    brief: tier2 アグリゲート識別属性
+    attributes:
+      # アグリゲート ID（k1s0 tier2 のドメインエンティティ主キー）
+      - id: aggregate.id
+        type: string
+        brief: アグリゲートの識別子
+        requirement_level: required
+        examples: ["agg-uuid-001", "order-uuid-abc"]
+      # アグリゲートクラス（テーブルクラスに対応する分類）
+      - id: aggregate_class
+        type: string
+        brief: アグリゲートのテーブルクラス分類（tenant_scoped 等）
+        requirement_level: required
+        examples: ["tenant_scoped", "tenant_master", "pii_segregated"]
+
+  # ビジネスイベントグループ
+  - id: tier2.business
+    type: attribute_group
+    brief: tier2 ビジネスイベント属性
+    attributes:
+      # ビジネスイベント名（ドメインイベントの完全修飾名）
+      - id: business_event
+        type: string
+        brief: ドメインイベントの完全修飾名（例: manufacturing.procurement.purchase_order.confirmed.v1）
+        requirement_level: required
+        examples: ["manufacturing.procurement.purchase_order.confirmed.v1", "manufacturing.fa.equipment.allocated.v1"]
+      # 操作目的（業務 / マイグレーション / PII アクセス / クロステナント管理の 4 種）
+      - id: purpose
+        type:
+          allow_custom_values: false
+          members:
+            - id: business
+              value: business
+              brief: 通常業務操作
+            - id: migration
+              value: migration
+              brief: データマイグレーション操作
+            - id: pii_access
+              value: pii_access
+              brief: PII データへのアクセス
+            - id: cross_tenant_admin
+              value: cross_tenant_admin
+              brief: クロステナント管理操作
+        requirement_level: required
+
+  # アクター識別グループ
+  - id: tier2.actor
+    type: attribute_group
+    brief: tier2 アクター識別属性
+    attributes:
+      # アクター ID（Keycloak subject の不可逆 ID — PII 直接値は禁止）
+      - id: actor.id
+        type: string
+        brief: Keycloak subject の不可逆識別子（PII 直接値禁止）
+        requirement_level: required
+        examples: ["keycloak-sub-uuid-001", "svc-account-uuid-002"]

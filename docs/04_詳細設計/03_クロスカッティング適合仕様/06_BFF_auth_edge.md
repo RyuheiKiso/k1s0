@@ -20,6 +20,10 @@ related_axes:
   - tier3
   - tier1
   - tier2
+trace:
+  fr_ids:
+  - FR-cross_bff-001
+
 ---
 
 # tier3 BFF auth-edge（v1）

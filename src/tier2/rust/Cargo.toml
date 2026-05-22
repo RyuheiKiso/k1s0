@@ -37,6 +37,8 @@ sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "uuid", "chro
 tokio = { version = "1", features = ["full"] }
 # k1s0-hlc: Hybrid Logical Clock（wall-clock TTL 禁止規律に従い HLC で timestamp を生成する）
 k1s0-hlc = { path = "../../../client/hlc_lib/rust" }
+# reqwest: audit relay の ClickHouse HTTP API 転送に使用する（新規クライアントライブラリ追加なし）
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
 [dev-dependencies]
 # tokio: 非同期テストランタイム（#[tokio::test] アトリビュートに使用する）

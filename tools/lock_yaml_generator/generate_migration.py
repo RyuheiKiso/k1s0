@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_schema-prog-001 -> IMPL-cross_schema-0001
 """tools/lock_yaml_generator/generate_migration.py
 
 migration.lock.yaml 生成器。

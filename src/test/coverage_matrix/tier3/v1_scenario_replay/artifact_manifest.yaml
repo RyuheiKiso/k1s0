@@ -1,0 +1,16 @@
+# coverage_matrix artifact manifest — tier3.v1_scenario_replay
+# verification_class: v1_scenario_replay
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier3.v1_scenario_replay
+verification_class: v1_scenario_replay
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier3_playwright_manufacturing_9_scenarios
+    artifact_kind: playwright_e2e_test_suite
+    source_path: src/test/playwright/manufacturing_stress/
+    evidence_uri: "file://src/test/playwright/manufacturing_stress/"
+    notes: "製造業 9 scenario Playwright e2e test（tier3 SPA の scenario replay）"
+collected_by: dev_owner=tier3-team
+wsl2_constraint: none

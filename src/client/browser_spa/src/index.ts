@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-client-0002 realizes=FR-client-002
 // Browser SPA SDK のエントリポイント
 // WebCrypto AES-GCM による暗号化ストレージと HttpOnly cookie を提供する
 

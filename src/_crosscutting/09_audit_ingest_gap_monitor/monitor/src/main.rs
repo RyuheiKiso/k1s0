@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_pii-0002 realizes=FR-cross_pii-002
 // k1s0 監査取り込みギャップモニターのメインファイル
 // audit_event の hash chain 改竄検知と ingest gap heartbeat (5 分間隔) を実装する
 use std::{

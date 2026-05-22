@@ -17,6 +17,10 @@ covered_by:
 related_axes:
   - client
   - tier1
+trace:
+  fr_ids:
+  - FR-cross_edge-004
+
 ---
 
 # .NET 8 LTS 向け Connect-RPC 自製実装 適合仕様（v1）

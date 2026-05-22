@@ -1,5 +1,7 @@
 // k1s0 tier3 Tauri companion frontend glue crate
 // Tauri v2 の IPC bridge を提供する（window.invoke() 経由のコマンド定義）
+// adapters モジュール: USB / BLE / Serial / OPC-UA / Modbus の 5 デバイスアダプター
+pub mod adapters;
 // sidecar exe の実装は src/_crosscutting/07_tauri_companion_sidecar/sidecar/ が primary
 // ここは Tauri framework が要求する frontend glue（window.invoke() 経由の IPC 層）
 // T3-5: WebSocket 接続 / DPoP ES256 署名 / PSK HMAC / Origin pin を実装する

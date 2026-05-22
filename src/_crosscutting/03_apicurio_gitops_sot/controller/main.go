@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_schema-0001 realizes=FR-cross_schema-001
 // k1s0 Apicurio GitOps コントローラのエントリポイント
 // GitOps リポジトリから Apicurio Registry への schema 同期を担当する additive-only コントローラ
 package main

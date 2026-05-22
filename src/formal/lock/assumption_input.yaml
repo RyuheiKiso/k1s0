@@ -28,3 +28,13 @@ entries:
     description: "v1.0.0 では CBMC による property axiom proof の完全 verify を v2.0.0 roadmap に延期し、既存 QuickCheck/proptest property test を代替証跡として受容する。"
     status: accepted
     axis_name: all_axes
+  # wsl2_chaos_unavailable_assumption: WSL2 環境での chaos test 実行不可の受容
+  - assumption_id: wsl2_chaos_unavailable_assumption
+    # 説明: WSL2 では eBPF / network namespace 操作が制限されるため一部 chaos scenario が実行不可。
+    # 対象 cell: tier1.v1_fault_chaos および tier3.v1_fault_chaos の chaos 部分。
+    # 緩和策: GitHub Actions ubuntu-22.04 (Linux native runner) での CI 実行時に verified に昇格。
+    description: "WSL2 dev 環境では eBPF / network namespace 操作制限のため一部 chaos scenario が実行不可。tier1.v1_fault_chaos / tier3.v1_fault_chaos に対し file pointer + accepted_with_assumption を適用。GitHub Actions ubuntu-22.04 runner で再実行時に verified に昇格する。"
+    # ステータス: accepted（WSL2 物理制約、CI native runner での代替検証を計画済み）
+    status: accepted
+    # 対象軸
+    axis_name: tier1_test_tier3_test

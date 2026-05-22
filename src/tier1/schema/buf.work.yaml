@@ -9,3 +9,5 @@ directories:
   - pii
   - observability
   - schema_evolution
+  - key_management
+  - ../../_crosscutting/04_protoc_gen_go_fsm/proto

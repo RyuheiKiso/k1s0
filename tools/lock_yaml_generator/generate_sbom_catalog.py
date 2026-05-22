@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-data-prog-004 -> IMPL-data-0003
+# k1s0-impl: IMPL-data-0003 realizes=FR-data-003
 """tools/lock_yaml_generator/generate_sbom_catalog.py
 
 sbom_catalog.lock.yaml 生成器。

@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-client-prog-001 -> IMPL-client-0001
+# k1s0-impl: IMPL-client-0003 realizes=FR-client-003
 """tools/lock_yaml_generator/generate_sdk_inventory.py
 
 # sdk_inventory.lock.yaml 生成器。

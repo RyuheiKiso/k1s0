@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_kek-0001 realizes=FR-cross_kek-001
 // main.rs — KEK Ceremony Harness エントリポイント
 // 05_鍵管理適合仕様: PKCS#11 SoftHSM M=3 N=5 Shamir 秘密分散のシミュレーション
 // KEK ローテーションの 3 フェーズ (generate → distribute → verify) を実行し、

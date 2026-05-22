@@ -21,6 +21,10 @@ related_axes:
   - tier3
   - client
   - infra
+trace:
+  fr_ids:
+  - FR-cross_bff-002
+
 ---
 
 # Tauri Companion sidecar（v1）

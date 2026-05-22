@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-formal-prog-004 -> IMPL-formal-0004
+# k1s0-impl: IMPL-formal-0004 realizes=FR-formal-004
 """tools/lock_yaml_generator/generate_proof_inventory.py
 
 proof_inventory.lock.yaml 生成器。

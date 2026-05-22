@@ -181,6 +181,36 @@ properties:
         - overview
     uniqueItems: true
 
+  trace:
+    type: object
+    description: |
+      docs↔src semantic trace skeleton の FR-ID 宣言。
+      generate_trace_ledger.py が本フィールドを読み込み trace_ledger.lock.yaml を生成する。
+      run_lint.py [12/12] が fr_ids パターンを検証する。
+    additionalProperties: false
+    properties:
+      fr_ids:
+        type: array
+        description: "FR-<axis>-NNN 形式の functional requirement ID リスト。"
+        items:
+          type: string
+          pattern: "^FR-[a-z][a-z0-9_]*-[0-9]{3}$"
+        uniqueItems: true
+      br_ids:
+        type: array
+        description: "BR-<axis>-NNN 形式の business reason ID リスト（L1 層）。"
+        items:
+          type: string
+          pattern: "^BR-[a-z][a-z0-9_]*-[0-9]{3}$"
+        uniqueItems: true
+      realized_by_specs:
+        type: array
+        description: "本 FR-ID が実現する L3 conformance spec の id 参照リスト。"
+        items:
+          type: string
+          pattern: "^(plan|req|arch|detail|format|env)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+        uniqueItems: true
+
 # ============================================================
 # forbidden field（schema レベルで CI 拒否）
 # ============================================================

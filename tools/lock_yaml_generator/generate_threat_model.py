@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-security-prog-001 -> IMPL-security-0001
+# k1s0-impl: IMPL-security-0001 realizes=FR-security-001
 """tools/lock_yaml_generator/generate_threat_model.py
 
 threat_model.lock.yaml 生成器。

@@ -1,3 +1,4 @@
+\* k1s0-proof: PROOF-tier1-tsafe-002 -> IMPL-tier1-0001
 \* tier1_bidi_handshake.tla
 \* TLA+ specification for tier1 bidirectional handshake safety property.
 \* obligation_id: tier1_bidi_handshake_safety

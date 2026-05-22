@@ -1,0 +1,6 @@
+# Node.js インストール成果物を除外する
+node_modules/
+dist/
+*.tsbuildinfo
+.typescript-*
+.node-*
