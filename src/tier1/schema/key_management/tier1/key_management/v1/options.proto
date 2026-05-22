@@ -1,0 +1,73 @@
+// tier1 鍵管理適合仕様 v1 — proto option 定義
+// 05_鍵管理適合仕様.md §v1 key_class セット（5 class）を機械可読な form に固定する。
+// KeyClass option は各 RPC / message フィールドに付与され、
+// OpenBao Transit / HSM PKCS#11 / SPIRE backend の dispatch を compile-time に明示する。
+syntax = "proto3";
+
+package tier1.key_management.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/k1s0-io/k1s0/tier1/key_management/v1;keymanagementv1";
+option java_multiple_files = true;
+option java_package = "io.k1s0.tier1.key_management.v1";
+
+// KeyClass は 05_鍵管理適合仕様.md §v1 key_class セット（5 class）を宣言する。
+// class 1 値が purpose / rotation_cadence / scope / backend / destruction_method を
+// 一意に導出する（dimension override 禁止）。
+enum KeyClass {
+  // デフォルト（未指定）— KEK/DEK を要求するフィールドでは必須
+  KEY_CLASS_UNSPECIFIED = 0;
+  // v1_data_dek: データ暗号化 DEK（per_tenant, days_90, software_kms_wrapped）
+  // wrapped_by: v1_data_kek
+  KEY_CLASS_DATA_DEK = 1;
+  // v1_data_kek: DEK を包む KEK（per_tenant_or_platform, years_1, hsm_pkcs11_shamir_distributed）
+  // destruction_method: hsm_zeroize_all_shares
+  KEY_CLASS_DATA_KEK = 2;
+  // v1_token_signing: JWT 署名鍵（platform, days_90, hsm_pkcs11）
+  // destruction_method: jwks_revoke
+  KEY_CLASS_TOKEN_SIGNING = 3;
+  // v1_audit_root_signing: audit root 署名鍵（per_tenant, years_1, hsm_pkcs11）
+  // destruction_method: external_notary_attest
+  KEY_CLASS_AUDIT_ROOT_SIGNING = 4;
+  // v1_mtls_workload: mTLS workload identity 鍵（per_workload, hours_6, spire）
+  // destruction_method: spire_revoke
+  KEY_CLASS_MTLS_WORKLOAD = 5;
+}
+
+// KeyBackend は key_class が使用する物理 backend を宣言する。
+enum KeyBackend {
+  KEY_BACKEND_UNSPECIFIED = 0;
+  // software_kms_wrapped: OpenBao KV（TEE 非保護）、DEK のラップ専用
+  KEY_BACKEND_SOFTWARE_KMS_WRAPPED = 1;
+  // hsm_pkcs11: 単一 HSM（Thales / YubiHSM）
+  KEY_BACKEND_HSM_PKCS11 = 2;
+  // hsm_pkcs11_shamir_distributed: Shamir secret sharing で n-of-m 分散 HSM
+  KEY_BACKEND_HSM_PKCS11_SHAMIR_DISTRIBUTED = 3;
+  // spire: SPIRE workload attestation SVID（short TTL）
+  KEY_BACKEND_SPIRE = 4;
+}
+
+// KeyMethodOptions は KEK/DEK 操作を含む RPC メソッドに付与する option を宣言する。
+message KeyMethodOptions {
+  // required_key_class: このメソッドが操作する key_class（UNSPECIFIED = 検査不要）
+  KeyClass required_key_class = 1;
+  // backend_override_forbidden: true の場合 backend は key_class から一意に決定し override 禁止
+  bool backend_override_forbidden = 2;
+  // audit_required: true の場合 kek_ceremony audit log 書込が必須（destroy / reconstruction 操作）
+  bool audit_required = 3;
+}
+
+// key_method は KEK/DEK を操作する RPC に付与する method option。
+// (tier1.key_management.v1.key_method).required_key_class = KEY_CLASS_DATA_KEK 形式で使用する。
+extend google.protobuf.MethodOptions {
+  // key_method: このメソッドに付与する鍵管理オプション
+  KeyMethodOptions key_method = 50005;
+}
+
+// key_field は暗号化フィールドに付与する field option。
+// (tier1.key_management.v1.key_field).key_class = KEY_CLASS_DATA_DEK 形式で使用する。
+extend google.protobuf.FieldOptions {
+  // key_field: このフィールドの暗号化に使用する key_class
+  KeyClass key_field = 50005;
+}

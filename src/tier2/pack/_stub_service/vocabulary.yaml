@@ -1,0 +1,53 @@
+# k1s0 tier2 _stub_service pack 業界中立語彙 SoT
+# _stub_service は第二業界 stub として業界固有語を一切含まない汎用語彙を使用する
+# manufacturing pack の vocabulary.yaml とは意図的に語彙を分離する（pack 間依存禁止）
+# 公開 API は業界横断的に利用できる汎用語（generic / operation / evaluation 等）を使用する
+# 命名禁則 CI lint がこのファイルを参照して公開 API の業界語混入を検出する
+
+vocabulary:
+  # ============================================================
+  # 内部業界語 → 公開 API 業界中立語 のマッピング
+  # 公開 API / 公開型名に左辺（業界語）を使うと CI fail になる
+  # ============================================================
+
+  # 処理結果 → GenericRecord（汎用処理記録を表す中立語）
+  - industry_term: "処理結果"
+    neutral_term: "GenericRecord"
+    prohibited_in_public_api: true
+    description: "業界横断で利用できる汎用処理記録（状態・結果・メタデータ）"
+
+  # 後続処理依頼 → FollowUpRecord（後続処理の依頼記録を表す中立語）
+  - industry_term: "後続処理依頼"
+    neutral_term: "FollowUpRecord"
+    prohibited_in_public_api: true
+    description: "処理失敗時に生成する後続処理依頼の記録"
+
+  # 担当者 → OperatorIdentity（操作担当者の識別情報を表す中立語）
+  - industry_term: "担当者"
+    neutral_term: "OperatorIdentity"
+    prohibited_in_public_api: true
+    description: "業界横断で利用できる操作担当者の識別情報"
+
+  # 作業対象 → TargetResource（作業対象リソースを表す中立語）
+  - industry_term: "作業対象"
+    neutral_term: "TargetResource"
+    prohibited_in_public_api: true
+    description: "業界横断で利用できる作業対象リソースの抽象"
+
+  # 依頼書 → SupplyRequisition（調達依頼を表す中立語）
+  - industry_term: "依頼書"
+    neutral_term: "SupplyRequisition"
+    prohibited_in_public_api: true
+    description: "業界横断で利用できる汎用調達依頼の記録"
+
+  # 評価記録 → EvaluationRecord（評価結果記録を表す中立語）
+  - industry_term: "評価記録"
+    neutral_term: "EvaluationRecord"
+    prohibited_in_public_api: true
+    description: "業界横断で利用できる汎用評価結果の記録（測定値・判定・根拠）"
+
+  # 操作単位 → OperationalUnit（汎用操作単位を表す中立語）
+  - industry_term: "操作単位"
+    neutral_term: "OperationalUnit"
+    prohibited_in_public_api: true
+    description: "業界横断で利用できる汎用操作単位の抽象（設備・装置・機器等の代替）"

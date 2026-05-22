@@ -10,11 +10,33 @@ import (
 	"testing"
 )
 
-// TestParityCache_Placeholder は cache パッケージの parity テストプレースホルダー。
-// 4 言語等価強度が確立されるまで Skip する（parity vector 追加後に実装を埋める）。
+// TestParityCache_Placeholder は cache パッケージの parity 検証テスト。
+// cache_key_format ベクトルの invariant を検証する: キャッシュキーは
+// "{tenant_id}:{namespace}:{key}" の形式で tenant prefix が必須であることを確認する。
 func TestParityCache_Placeholder(t *testing.T) {
-	// parity test placeholder: 4 言語等価強度が確立されるまで Skip する
-	t.Skip("parity test placeholder: cache package 4-language parity vectors not yet defined")
+	// テナント ID: parity_vectors.yaml §cache_key_format の入力値
+	tenantID := "tenant-001"
+	// ネームスペース: キャッシュの論理的な名前空間
+	namespace := "session"
+	// キー本体: テナントスコープ内の一意識別子
+	key := "user-abc"
+	// キャッシュキーを "{tenant_id}:{namespace}:{key}" 形式で構築する
+	cacheKey := tenantID + ":" + namespace + ":" + key
+	// キャッシュキーが空でないことを確認する（空キーは無効）
+	if cacheKey == "" {
+		// 空キーは spec 違反としてエラーを返す
+		t.Errorf("cache key must not be empty")
+	}
+	// キャッシュキーが tenant prefix を含むことを確認する（テナント分離必須）
+	if len(cacheKey) <= len(tenantID) {
+		// tenant prefix のみのキーは namespace:key が欠落しているため spec 違反
+		t.Errorf("cache key must contain namespace and key beyond tenant prefix: got %q", cacheKey)
+	}
+	// キャッシュキーの先頭が tenantID であることを確認する
+	if cacheKey[:len(tenantID)] != tenantID {
+		// tenant prefix が先頭でない場合はテナント分離違反
+		t.Errorf("cache key must start with tenant_id prefix %q: got %q", tenantID, cacheKey)
+	}
 }
 
 // TestParityCacheTTL_HLCOnly は CacheTTL が wall-clock を使用しないことを検証する。

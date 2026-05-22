@@ -1,0 +1,80 @@
+# k1s0 tier3 OSS inventory input
+# tier3 が使用する OSS パッケージと内製ライブラリの lifecycle class を宣言する
+# このファイルは lock_yaml_generator の入力として使用する（手書き input yaml）
+# 生成物: tools/lock_yaml_generator/generate_tier3_oss_inventory.py が処理する
+
+# --- k1s0 内製ライブラリ（v1_inhouse_authoritative lifecycle class） ---
+inhouse_libraries:
+  # k1s0 Connect NetCore: 自製 Connect-RPC .NET 8 実装（T3-R2 で新設）
+  - package_id: k1s0_connect_netcore
+    display_name: K1s0.Connect.NetCore
+    # lifecycle_class: v1_inhouse_authoritative — k1s0 が single source of truth として管理する
+    lifecycle_class: v1_inhouse_authoritative
+    # source_path: 実装の物理パス
+    source_path: src/tier3/csharp/k1s0.Connect.NetCore/
+    # version: SemVer（NuGet パッケージバージョンと同期する）
+    version: "1.0.0"
+    # description: 用途説明
+    description: "Connect-RPC wire format (5 byte framing) の .NET 8 自製実装。4 RPC form (Unary/ServerStreaming/ClientStreaming/Bidi) に対応する"
+    # language: 実装言語
+    language: csharp
+    # target_framework: .NET 8
+    target_framework: net8.0
+
+  # k1s0 Companion NetFx OTelExt: .NET Framework 4.6.2 OTel 拡張（T3-R1 で新設）
+  - package_id: k1s0_companion_netfx_otelext
+    display_name: K1s0.Companion.NetFx.OTelExt
+    # lifecycle_class: v1_inhouse_authoritative — k1s0 が single source of truth として管理する
+    lifecycle_class: v1_inhouse_authoritative
+    # source_path: 実装の物理パス
+    source_path: src/tier3/csharp/companion_netfx_otelext/
+    # version: SemVer
+    version: "1.0.0"
+    # description: 用途説明
+    description: ".NET Framework 4.6.2 向け OpenTelemetry 拡張。CLR profiler hooks と JWT claim processor を提供する"
+    # language: 実装言語
+    language: csharp
+    # target_framework: .NET Framework 4.6.2
+    target_framework: net462
+
+# --- OSS パッケージ（v1_oss_pinned lifecycle class） ---
+oss_packages:
+  # btleplug: BLE スキャン/接続/GATT 読み書き（Tauri companion BLE adapter 用）
+  - package_id: btleplug
+    display_name: btleplug
+    lifecycle_class: v1_oss_pinned
+    version: "0.11"
+    language: rust
+    usage: "src/tier3/companion/src-tauri/src/adapters/ble.rs"
+
+  # rusb: USB デバイスアクセス（Tauri companion USB adapter 用）
+  - package_id: rusb
+    display_name: rusb
+    lifecycle_class: v1_oss_pinned
+    version: "0.9"
+    language: rust
+    usage: "src/tier3/companion/src-tauri/src/adapters/usb.rs"
+
+  # serialport: シリアルポート通信（Tauri companion serial adapter 用）
+  - package_id: serialport
+    display_name: serialport
+    lifecycle_class: v1_oss_pinned
+    version: "4"
+    language: rust
+    usage: "src/tier3/companion/src-tauri/src/adapters/serial.rs"
+
+  # tokio-modbus: Modbus TCP クライアント（Tauri companion modbus adapter 用）
+  - package_id: tokio_modbus
+    display_name: tokio-modbus
+    lifecycle_class: v1_oss_pinned
+    version: "0.14"
+    language: rust
+    usage: "src/tier3/companion/src-tauri/src/adapters/modbus.rs"
+
+  # opcua: OPC-UA クライアント（Tauri companion opcua adapter 用）
+  - package_id: opcua
+    display_name: opcua
+    lifecycle_class: v1_oss_pinned
+    version: "0.12"
+    language: rust
+    usage: "src/tier3/companion/src-tauri/src/adapters/opcua.rs"

@@ -14,6 +14,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "optionalDependencies": {
+    "@connectrpc/connect": "^2.0.0"
+  },
   "devDependencies": {
     "@types/node": "^25.8.0",
     "typescript": "^5.4.0"

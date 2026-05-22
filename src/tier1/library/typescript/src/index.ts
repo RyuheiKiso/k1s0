@@ -194,6 +194,19 @@ export {
   NoopOutboxRelay,
 } from "./messagingImpl.js";
 
+// Messaging 実装: Kafka production 実装を再エクスポートする
+export type {
+  KafkaClientOptions,
+  KafkaProducerOptions,
+  KafkaConsumerOptions,
+  KafkaOutboxRelayOptions,
+} from "./messagingImpl.js";
+export {
+  KafkaMessagingProducer,
+  KafkaMessagingConsumer,
+  KafkaOutboxRelay,
+} from "./messagingImpl.js";
+
 // Secret 実装: in-memory stub 実装を再エクスポートする（テスト用）
 export { InMemorySecretStore } from "./secretImpl.js";
 

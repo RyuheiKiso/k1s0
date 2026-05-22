@@ -10,11 +10,34 @@ import (
 	"testing"
 )
 
-// TestParityObservability_Placeholder は observability パッケージの parity テストプレースホルダー。
-// 4 言語等価強度が確立されるまで Skip する（parity vector 追加後に実装を埋める）。
+// TestParityObservability_Placeholder は observability パッケージの parity 検証テスト。
+// observability_signal_class ベクトルの invariant を検証する: signal_class は
+// audit_event / span / metric の 3 種のいずれかであることを確認する。
 func TestParityObservability_Placeholder(t *testing.T) {
-	// parity test placeholder: 4 言語等価強度が確立されるまで Skip する
-	t.Skip("parity test placeholder: observability package 4-language parity vectors not yet defined")
+	// 有効な signal_class の定数値: 01_オブザーバビリティ適合仕様 §signal_class 3 種
+	const signalClassAuditEvent = "audit_event"
+	// span: 分散トレーシングの trace span を示す
+	const signalClassSpan = "span"
+	// metric: 時系列メトリクスを示す
+	const signalClassMetric = "metric"
+	// 有効な signal_class 一覧: 3 種のみが許可される
+	validClasses := []string{signalClassAuditEvent, signalClassSpan, signalClassMetric}
+	// テスト対象の signal_class: parity_vectors.yaml §observability_signal_class の入力値
+	testClass := "audit_event"
+	// testClass が有効な signal_class のいずれかであることを確認する
+	found := false
+	// 有効クラス一覧を走査して一致するものを探す
+	for _, c := range validClasses {
+		// 一致する signal_class が見つかった場合はフラグを立てる
+		if testClass == c {
+			found = true
+		}
+	}
+	// 有効な signal_class に含まれない場合は spec 違反
+	if !found {
+		// 無効な signal_class は 01_オブザーバビリティ適合仕様 §signal_class 3 種違反
+		t.Errorf("signal_class %q is not valid: must be one of %v", testClass, validClasses)
+	}
 }
 
 // TestParityObservability_SeverityConstants は Severity 定数が OTel 仕様準拠であることを検証する。

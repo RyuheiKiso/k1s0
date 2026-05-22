@@ -1,0 +1,159 @@
+# extension_points.yaml — k1s0 tier2 _stub_service pack 拡張点宣言
+# docs/03_概要設計/03_tier2設計方針/06_業務資産所有権.md §拡張点カタログ に準拠する
+# _stub_service は第二業界 stub として業界横断的な汎用拡張点を宣言する
+# manufacturing pack の extension_points.yaml とは ep_ id を意図的に変えて語彙を分離する
+
+extension_points:
+  # GenericResourceLifecycle: 汎用リソースのライフサイクル hook
+  - id: ep_generic_resource_lifecycle
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn on_resource_status_changed(ctx: &TenantCtx, resource_id: Uuid, from: GenericResourceStatus, to: GenericResourceStatus) -> Result<()>"
+    # 実装レベル強度
+    lv: L3
+    # 不変条件
+    invariants:
+      - "on_resource_status_changed は同一テナント内のリソースのみ操作する"
+      - "from != to でなければ呼び出し不可（冪等性保証）"
+    # カテゴリ（業界中立語）
+    category: generic_fa
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/06_業務資産所有権.md"
+
+  # GenericBatchLifecycle: 汎用バッチのライフサイクル hook
+  - id: ep_generic_batch_lifecycle
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn on_batch_status_changed(ctx: &TenantCtx, batch_id: Uuid, from: GenericBatchStatus, to: GenericBatchStatus) -> Result<()>"
+    # 実装レベル強度
+    lv: L3
+    # 不変条件
+    invariants:
+      - "on_batch_status_changed は同一テナント内のバッチのみ操作する"
+      - "GenericBatchStatus の遷移グラフ（FSM）に反する遷移は呼び出し不可"
+    # カテゴリ（業界中立語）
+    category: generic_fa
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/13_状態遷移パターン.md"
+
+  # EvaluationPolicy: 評価結果判定ポリシー（合否ロジックの差し込み）
+  - id: ep_evaluation_policy
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn evaluate_samples(ctx: &TenantCtx, spec: &GenericSpecification, samples: &[MetricSample]) -> EvaluationVerdict"
+    # 実装レベル強度
+    lv: L2*
+    # 不変条件
+    invariants:
+      - "evaluate_samples は副作用を持たない（pure function）"
+      - "EvaluationVerdict は Conforming / NonConforming / Pending の 3 値のみ"
+      - "samples が空の場合は Pending を返す"
+    # カテゴリ（業界中立語）
+    category: generic_inspection
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/06_業務資産所有権.md"
+
+  # AuthorizationPolicy: 調達依頼承認ポリシー（承認フロー差し込み）
+  - id: ep_authorization_policy
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn requires_authorization(ctx: &TenantCtx, requisition: &SupplyRequisition) -> AuthorizationLevel"
+    # 実装レベル強度
+    lv: L2*
+    # 不変条件
+    invariants:
+      - "requires_authorization は副作用を持たない（pure function）"
+      - "AuthorizationLevel は Automatic / SingleAuthorizer / MultipleAuthorizers の 3 値のみ"
+      - "requisition.amount が閾値以上の場合は MultipleAuthorizers を返す（tenant の threshold 設定による）"
+    # カテゴリ（業界中立語）
+    category: generic_procurement
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/09_権限モデル.md"
+
+  # GenericAuditEventEnricher: 監査イベントへの汎用フィールド追加 hook
+  - id: ep_generic_audit_event_enricher
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn enrich_audit_event(ctx: &TenantCtx, event: &mut AuditEvent) -> Result<()>"
+    # 実装レベル強度
+    lv: L1+
+    # 不変条件
+    invariants:
+      - "enrich_audit_event は PII フィールドを追加禁止（AuditEvent.pii_fields は layer E が管理）"
+      - "追加フィールドは pack_fields namespace に限定（他 namespace は上書き禁止）"
+      - "enrich_audit_event は同一テナントのイベントのみ操作する"
+    # カテゴリ（業界中立語）
+    category: common
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/08_業務エラー監査コンプライアンス.md"
+
+  # SpecificationValidator: 汎用仕様バリデーション hook
+  - id: ep_specification_validator
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn validate_specification(ctx: &TenantCtx, spec: &GenericSpecification) -> Vec<ConstraintViolation>"
+    # 実装レベル強度
+    lv: L2*
+    # 不変条件
+    invariants:
+      - "validate_specification は副作用を持たない（pure function）"
+      - "ConstraintViolation は human-readable message と machine-readable code を持つ"
+      - "返すリストが空の場合は合格とみなす"
+    # カテゴリ（業界中立語）
+    category: generic_inspection
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/06_業務資産所有権.md"
+
+  # CapacityLimitProvider: リソース容量上限制約の差し込み
+  - id: ep_capacity_limit_provider
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn get_capacity_limits(ctx: &TenantCtx, unit_id: Uuid) -> Vec<CapacityLimit>"
+    # 実装レベル強度
+    lv: L1+
+    # 不変条件
+    invariants:
+      - "返す CapacityLimit の unit_id は呼び出し時の unit_id と一致する"
+      - "CapacityLimit の validity_period は HLC タイムスタンプで表現する（wall-clock 禁止）"
+    # カテゴリ（業界中立語）
+    category: generic_fa
+    # ドキュメント参照先
+    doc_ref: "docs/04_詳細設計/01_適合仕様/09_テナント容量適合仕様.md"
+
+  # GenericScheduledJobHook: 汎用スケジューラ job の前後 hook
+  - id: ep_generic_scheduled_job_hook
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn on_job_start(ctx: &TenantCtx, job_id: Uuid) -> Result<()>; fn on_job_end(ctx: &TenantCtx, job_id: Uuid, result: &JobResult) -> Result<()>"
+    # 実装レベル強度
+    lv: L2*
+    # 不変条件
+    invariants:
+      - "on_job_start / on_job_end は同一 DB トランザクション内で呼び出す"
+      - "on_job_start が Err を返した場合は job を開始しない"
+    # カテゴリ（業界中立語）
+    category: common
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/25_スケジューラ・バッチ.md"
+
+  # GenericExportTransformer: バルクエクスポート時のデータ変換 hook
+  - id: ep_generic_export_transformer
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn transform_for_export(ctx: &TenantCtx, record: &DomainRecord) -> ExportRecord"
+    # 実装レベル強度
+    lv: L2*
+    # 不変条件
+    invariants:
+      - "transform_for_export は副作用を持たない（pure function）"
+      - "ExportRecord に PII フィールドが残る場合は redact_pii: true を設定する"
+    # カテゴリ（業界中立語）
+    category: common
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/20_データライフサイクル.md"
+
+  # GenericRetentionPolicyOverride: テナント固有 retention 上書き hook
+  - id: ep_generic_retention_policy_override
+    # シグネチャ（業界中立語のみ使用する）
+    signature: "fn get_retention_days(ctx: &TenantCtx, category: DataCategory) -> Option<u32>"
+    # 実装レベル強度
+    lv: L1+
+    # 不変条件
+    invariants:
+      - "None を返した場合はデフォルト retention_policy.yaml の値を使用する"
+      - "返す日数はデフォルト値以上（テナントが retention を短縮禁止）"
+    # カテゴリ（業界中立語）
+    category: common
+    # ドキュメント参照先
+    doc_ref: "docs/03_概要設計/03_tier2設計方針/17_データ保持.md"

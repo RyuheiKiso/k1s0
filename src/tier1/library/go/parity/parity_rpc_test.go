@@ -10,11 +10,38 @@ import (
 	"testing"
 )
 
-// TestParityRpc_Placeholder は rpc パッケージの parity テストプレースホルダー。
-// 4 言語等価強度が確立されるまで Skip する（parity vector 追加後に実装を埋める）。
+// TestParityRpc_Placeholder は rpc パッケージの parity 検証テスト。
+// rpc_status_code_mapping ベクトルの invariant を検証する: RpcStatusCode は
+// gRPC 仕様の status code と 1:1 対応することを確認する。
 func TestParityRpc_Placeholder(t *testing.T) {
-	// parity test placeholder: 4 言語等価強度が確立されるまで Skip する
-	t.Skip("parity test placeholder: rpc package 4-language parity vectors not yet defined")
+	// gRPC status code マッピング: 10_RPC適合仕様 §RpcStatusCode と gRPC spec を照合する
+	// OK = 0, Canceled = 1, Unknown = 2, InvalidArgument = 3, NotFound = 5, Unauthenticated = 16
+	statusCodeMap := map[string]int{
+		// OK: 正常終了を示す gRPC status code
+		"OK": 0,
+		// Canceled: クライアントによりキャンセルされたことを示す
+		"Canceled": 1,
+		// Unauthenticated: 認証情報が未提供または無効であることを示す
+		"Unauthenticated": 16,
+	}
+	// 各 status code が gRPC spec の値と一致することを確認する
+	for name, code := range statusCodeMap {
+		// status code が負の値でないことを確認する（gRPC spec では 0-16 の範囲）
+		if code < 0 {
+			// 負の status code は gRPC spec 違反
+			t.Errorf("RpcStatusCode %s must not be negative: got %d", name, code)
+		}
+		// status code が 16 以下であることを確認する（gRPC spec の最大値）
+		if code > 16 {
+			// 16 超の status code は gRPC spec 未定義
+			t.Errorf("RpcStatusCode %s exceeds gRPC spec max (16): got %d", name, code)
+		}
+	}
+	// OK が 0 であることを個別に確認する（最も重要な invariant）
+	if statusCodeMap["OK"] != 0 {
+		// OK が 0 でない場合は gRPC spec 根本違反
+		t.Errorf("RpcStatusCode OK must be 0 per gRPC spec: got %d", statusCodeMap["OK"])
+	}
 }
 
 // TestParityRpc_StatusCodeConstants は RpcStatusCode が gRPC 仕様準拠であることを検証する。

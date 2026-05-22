@@ -172,3 +172,305 @@ vectors:
       contains_wall_clock_timestamp: false
       # 出力キーが文字列型であること
       result_type: string
+
+  # Cache: キャッシュキー形式 parity ベクトル
+  # cache_key_format は 4 言語の CacheClient 実装が
+  # "{tenant_id}:{namespace}:{key}" 形式の tenant prefix 付きキャッシュキーを
+  # 正しく構築することを確認する
+  - id: cache_key_format
+    # テスト対象モジュール
+    module: Cache
+    # テスト対象操作: キャッシュキーの構築
+    operation: build_key
+    # 入力値
+    input:
+      # テナント ID: キャッシュキーの先頭に必須（テナント分離を強制する）
+      tenant_id: "tenant-001"
+      # ネームスペース: キャッシュの論理的な名前空間
+      namespace: "session"
+      # キー本体: テナントスコープ内の一意識別子
+      key: "user-abc"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # キャッシュキーが空でないこと
+      cache_key_empty: false
+      # キャッシュキーが tenant_id prefix で始まること
+      starts_with_tenant_id: true
+      # キャッシュキーが文字列型であること
+      result_type: string
+
+  # Secret: SecretRequest 必須フィールド parity ベクトル
+  # secret_class_required_fields は 4 言語の SecretStore 実装が
+  # SecretRequest の secret_class / tenant_id / path の 3 フィールドを必須として
+  # 検証することを確認する
+  - id: secret_class_required_fields
+    # テスト対象モジュール
+    module: Secret
+    # テスト対象操作: SecretRequest のバリデーション
+    operation: validate_request
+    # 入力値
+    input:
+      # secret_class: OpenBao の secret エンジン種別
+      secret_class: "v1_openbao_kv"
+      # テナント ID: テナント分離に必須
+      tenant_id: "tenant-001"
+      # OpenBao の論理パス
+      path: "secret/data/api-key"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # secret_class が空でないこと
+      secret_class_empty: false
+      # tenant_id が空でないこと
+      tenant_id_empty: false
+      # path が空でないこと
+      path_empty: false
+
+  # Config: 環境変数名 naming convention parity ベクトル
+  # config_env_var_naming は 4 言語の ConfigClient 実装が
+  # 環境変数名を UPPER_SNAKE_CASE 形式で取得することを確認する
+  - id: config_env_var_naming
+    # テスト対象モジュール
+    module: Config
+    # テスト対象操作: 環境変数名の形式検証
+    operation: validate_env_var_name
+    # 入力値
+    input:
+      # 環境変数名: UPPER_SNAKE_CASE 形式の例
+      env_var_name: "TENANT_001_DB_HOST"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # 環境変数名が UPPER_SNAKE_CASE であること（小文字不可）
+      is_upper_snake_case: true
+      # 環境変数名が空でないこと
+      env_var_name_empty: false
+
+  # Profiling: プロファイル識別子形式 parity ベクトル
+  # profiling_identifier_format は 4 言語の Profiling 実装が
+  # "{service}:{profile_type}:{tenant_id}" 形式の識別子を正しく構築することを確認する
+  - id: profiling_identifier_format
+    # テスト対象モジュール
+    module: Profiling
+    # テスト対象操作: プロファイル識別子の構築
+    operation: build_identifier
+    # 入力値
+    input:
+      # サービス名: プロファイル収集元のサービス識別子
+      service: "tier1-server"
+      # プロファイル種別: cpu / heap / goroutine のいずれか
+      profile_type: "cpu"
+      # テナント ID: テナントスコープのプロファイル収集に必須
+      tenant_id: "tenant-001"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # 識別子が空でないこと
+      identifier_empty: false
+      # 識別子が service prefix を含むこと
+      starts_with_service: true
+      # 識別子が tenant_id suffix を含むこと
+      ends_with_tenant_id: true
+
+  # Storage: blob key 形式 parity ベクトル
+  # storage_blob_key_format は 4 言語の ObjectStorageClient 実装が
+  # "{tenant_id}/{bucket}/{object_name}" 形式の tenant prefix 付き blob key を
+  # 正しく構築することを確認する
+  - id: storage_blob_key_format
+    # テスト対象モジュール
+    module: Storage
+    # テスト対象操作: blob key の構築
+    operation: build_blob_key
+    # 入力値
+    input:
+      # テナント ID: blob key の先頭に必須（テナント分離を強制する）
+      tenant_id: "tenant-001"
+      # バケット名: blob の論理的な分類
+      bucket: "uploads"
+      # オブジェクト名: blob の一意識別子
+      object_name: "document-abc.pdf"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # blob key が空でないこと
+      blob_key_empty: false
+      # blob key が tenant_id prefix で始まること
+      starts_with_tenant_id: true
+      # blob key がスラッシュ区切り 3 パートを含むこと
+      slash_count: 2
+
+  # DistributedDB: partition key 形式 parity ベクトル
+  # distributed_partition_key_format は 4 言語の DistributedDbClient 実装が
+  # "{tenant_id}#{entity_type}#{entity_id}" 形式の partition key を
+  # 正しく構築することを確認する
+  - id: distributed_partition_key_format
+    # テスト対象モジュール
+    module: DistributedDB
+    # テスト対象操作: partition key の構築
+    operation: build_partition_key
+    # 入力値
+    input:
+      # テナント ID: partition key の先頭に必須（CockroachDB のテナント分離を強制する）
+      tenant_id: "tenant-001"
+      # エンティティ種別: partition key の分類を示す
+      entity_type: "order"
+      # エンティティ ID: partition key の一意識別子
+      entity_id: "ord-12345"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # partition key が空でないこと
+      partition_key_empty: false
+      # partition key が tenant_id prefix で始まること
+      starts_with_tenant_id: true
+      # partition key がハッシュ区切り 3 パートを含むこと
+      hash_count: 2
+
+  # Vector: embedding 次元数 parity ベクトル
+  # vector_embedding_dimension は 4 言語の VectorSearchClient 実装が
+  # embedding の次元数が 0 より大きい正の整数であることを検証することを確認する
+  - id: vector_embedding_dimension
+    # テスト対象モジュール
+    module: Vector
+    # テスト対象操作: embedding 次元数の検証
+    operation: validate_dimension
+    # 入力値
+    input:
+      # embedding 次元数: text-embedding-3-small の標準次元数
+      dimension: 1536
+    # 期待出力スキーマ
+    expected_output_schema:
+      # dimension が 0 より大きいこと
+      dimension_positive: true
+      # dimension が上限 (65536) 以下であること
+      dimension_within_max: true
+
+  # DB: DbQueryContext tenant_id 必須 parity ベクトル
+  # db_tenant_id_required は 4 言語の DbClient 実装が
+  # DbQueryContext の tenant_id が必須（空文字列不可）であることを検証することを確認する
+  - id: db_tenant_id_required
+    # テスト対象モジュール
+    module: DB
+    # テスト対象操作: DbQueryContext のバリデーション
+    operation: validate_query_context
+    # 入力値
+    input:
+      # テナント ID: PostgreSQL RLS の row-level policy に使用（必須）
+      tenant_id: "tenant-001"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # tenant_id が空でないこと（RLS の tenant 分離に必須）
+      tenant_id_empty: false
+      # テナント ID の最小長 (3 文字以上) を満たすこと
+      tenant_id_min_length: 3
+
+  # Observability: signal_class 定数 parity ベクトル
+  # observability_signal_class は 4 言語の ObservabilityClient 実装が
+  # signal_class が audit_event / span / metric の 3 種のいずれかであることを確認する
+  - id: observability_signal_class
+    # テスト対象モジュール
+    module: Observability
+    # テスト対象操作: signal_class のバリデーション
+    operation: validate_signal_class
+    # 入力値
+    input:
+      # signal_class: audit_event を例として検証する
+      signal_class: "audit_event"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # signal_class が有効な 3 種のいずれかであること
+      is_valid_class: true
+      # signal_class が空でないこと
+      signal_class_empty: false
+
+  # Workflow: WorkflowStartRequest 必須フィールド parity ベクトル
+  # workflow_required_fields は 4 言語の WorkflowClient 実装が
+  # WorkflowStartRequest の workflow_class / tenant_id / workflow_id を必須フィールドとして
+  # 検証することを確認する
+  - id: workflow_required_fields
+    # テスト対象モジュール
+    module: Workflow
+    # テスト対象操作: WorkflowStartRequest のバリデーション
+    operation: validate_start_request
+    # 入力値
+    input:
+      # workflow_class: Temporal workflow type を示す
+      workflow_class: "v1_order_fulfillment"
+      # テナント ID: テナント分離に必須
+      tenant_id: "tenant-001"
+      # workflow_id: Temporal の idempotency key に相当
+      workflow_id: "wf-ord-12345"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # workflow_class が空でないこと
+      workflow_class_empty: false
+      # tenant_id が空でないこと
+      tenant_id_empty: false
+      # workflow_id が空でないこと
+      workflow_id_empty: false
+
+  # Schema: schema_version semver 形式 parity ベクトル
+  # schema_version_semver は 4 言語の SchemaRegistryClient 実装が
+  # schema_version が "MAJOR.MINOR.PATCH" の semver 形式であることを確認する
+  - id: schema_version_semver
+    # テスト対象モジュール
+    module: Schema
+    # テスト対象操作: schema_version の形式検証
+    operation: validate_schema_version
+    # 入力値
+    input:
+      # schema_version: semver 形式 "MAJOR.MINOR.PATCH" の例
+      schema_version: "1.0.0"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # schema_version が空でないこと
+      schema_version_empty: false
+      # schema_version がドット区切り 3 パートを含むこと（semver の基本形式）
+      dot_count: 2
+
+  # Rules: RuleEvalRequest 必須フィールド parity ベクトル
+  # rule_engine_required_fields は 4 言語の RuleEngineClient 実装が
+  # RuleEvalRequest の rule_engine_class / tenant_id / policy_path を必須フィールドとして
+  # 検証することを確認する
+  - id: rule_engine_required_fields
+    # テスト対象モジュール
+    module: Rules
+    # テスト対象操作: RuleEvalRequest のバリデーション
+    operation: validate_eval_request
+    # 入力値
+    input:
+      # rule_engine_class: v1_opa を例として検証する
+      rule_engine_class: "v1_opa"
+      # テナント ID: テナントスコープのポリシー評価に必須
+      tenant_id: "tenant-001"
+      # policy_path: OPA の decision path
+      policy_path: "data.k1s0.authz.allow"
+    # 期待出力スキーマ
+    expected_output_schema:
+      # rule_engine_class が空でないこと
+      rule_engine_class_empty: false
+      # tenant_id が空でないこと
+      tenant_id_empty: false
+      # policy_path が空でないこと
+      policy_path_empty: false
+
+  # Messaging: OutboxMessage 必須フィールド parity ベクトル
+  # messaging_outbox_required_fields は 4 言語の MessagingProducer 実装が
+  # OutboxMessage の tenant_id / topic / payload の 3 フィールドを必須として
+  # 検証することを確認する
+  - id: messaging_outbox_required_fields
+    # テスト対象モジュール
+    module: Messaging
+    # テスト対象操作: OutboxMessage のバリデーション
+    operation: validate_outbox_message
+    # 入力値
+    input:
+      # テナント ID: Kafka topic のテナント分離に必須
+      tenant_id: "tenant-001"
+      # topic: Kafka の送信先トピック名（tenant_id prefix 付き）
+      topic: "tenant-001.order.created"
+      # payload: 送信するメッセージ本体
+      payload: '{"order_id":"ord-12345","status":"created"}'
+    # 期待出力スキーマ
+    expected_output_schema:
+      # tenant_id が空でないこと
+      tenant_id_empty: false
+      # topic が空でないこと
+      topic_empty: false
+      # payload が空でないこと
+      payload_empty: false
