@@ -1,0 +1,24 @@
+# k1s0 tier2 manufacturing pack ISO 14001:2015 規制要件定義
+# ISO 14001:2015 環境マネジメントシステムに関連する k1s0 tier2 制約を記述する
+
+regulation:
+  # 規制種別の識別子
+  regulation_id: iso14001_2015
+  # 規制名称
+  name: "ISO 14001:2015 環境マネジメントシステム"
+  # 適用する k1s0 テーブルクラス
+  applicable_table_classes:
+    # 環境計量記録は tenant_scoped で管理する
+    - tenant_scoped
+    # 排出係数マスタは platform_global で管理する
+    - platform_global
+  # 適用する tier2 制約
+  constraints:
+    # 環境指標集計: CO2 / 排水 / 廃棄物 metric の集計可能性を保証する
+    - constraint_id: emission_metric_aggregation
+      description: "CO2 / 排水 / 廃棄物 metric を Outbox → ClickHouse 集計でリードモデルに反映する"
+      enforcement: "Outbox → ClickHouse aggregation + read model versioning"
+    # 環境不適合監査: 環境不適合検出時の audit trail を保証する
+    - constraint_id: nonconformance_audit
+      description: "環境不適合検出時は audit_event INSERT-only で証跡を永続化する"
+      enforcement: "audit_event INSERT-only + atomic_triple_write"

@@ -1,0 +1,17 @@
+# coverage_matrix artifact manifest — tier3.v1_fault_chaos
+# verification_class: v1_fault_chaos
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier3.v1_fault_chaos
+verification_class: v1_fault_chaos
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier3_bidi_stress_playwright
+    artifact_kind: playwright_bidi_stress_test
+    source_path: src/test/playwright/manufacturing_stress/bidi_stress.spec.ts
+    evidence_uri: "file://src/test/playwright/manufacturing_stress/bidi_stress.spec.ts"
+    notes: "tier3 bidi stress test（ネットワーク断 / reconnect シナリオ）"
+    wsl2_note: "WSL2 では一部 network chaos が不安定。GitHub Actions native runner で再実行"
+collected_by: dev_owner=tier3-team
+wsl2_constraint: accepted_with_assumption_id=wsl2_chaos_unavailable_assumption

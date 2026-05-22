@@ -1,0 +1,21 @@
+# coverage_matrix artifact manifest — tier2.v1_property_axiom
+# verification_class: v1_property_axiom
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier2.v1_property_axiom
+verification_class: v1_property_axiom
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier2_tenant_isolation_property_vectors
+    artifact_kind: property_vector_yaml
+    source_path: src/tier2/tenant_isolation/property_vectors.yaml
+    evidence_uri: "file://src/tier2/tenant_isolation/property_vectors.yaml"
+    notes: "テナント分離の property axiom（cross_tenant_isolation_zero を含む）"
+  - artifact_id: tier2_atomic_triple_write_test
+    artifact_kind: rust_integration_test
+    source_path: src/tier2/rust/tests/
+    evidence_uri: "file://src/tier2/rust/tests/"
+    notes: "atomic_triple_write の不変条件テスト（transaction 境界 property test）"
+collected_by: dev_owner=tier2-team
+wsl2_constraint: none

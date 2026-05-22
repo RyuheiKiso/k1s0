@@ -1,0 +1,21 @@
+# coverage_matrix artifact manifest — tier2.v1_contract_pair
+# verification_class: v1_contract_pair
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier2.v1_contract_pair
+verification_class: v1_contract_pair
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier2_pact_4_languages
+    artifact_kind: pact_json_consumer_4lang
+    source_path: src/tier2/test/pact/
+    evidence_uri: "file://src/tier2/test/pact/"
+    notes: "4 言語（rust/go/csharp/typescript）× 5 ext-point の Pact contract test"
+  - artifact_id: tier2_pact_scenarios
+    artifact_kind: pact_scenarios_yaml
+    source_path: src/tier2/test/pact/scenarios.yaml
+    evidence_uri: "file://src/tier2/test/pact/scenarios.yaml"
+    notes: "9 シナリオを宣言した Pact scenarios yaml"
+collected_by: dev_owner=tier2-team
+wsl2_constraint: none

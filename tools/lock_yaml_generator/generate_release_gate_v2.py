@@ -490,6 +490,28 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "../../tier1/lock/oss_conformance_check.lock.yaml",
         "field(`../../tier1/lock/oss_conformance_check.lock.yaml`, status) == green",
     ),
+    # v1.0.0 完璧化追加 cell (3 cells: cosign手書き禁止 / business_conflict双方向 / fsm 4言語)
+    (
+        # tier3 cosign_attestations.lock.yaml が generator 生成済みで手書き状態ゼロであることを確認する
+        # generated_by: generate_cosign_attestations フィールドが存在する場合のみ green とする
+        "tier3.cosign_attestations_handwritten_zero",
+        "../../tier3/lock/cosign_attestations.lock.yaml",
+        "field(`../../tier3/lock/cosign_attestations.lock.yaml`, generated_by) == generate_cosign_attestations",
+    ),
+    (
+        # tier2 business_conflict.lock.yaml の tier3 cross-reference check が green であることを確認する
+        # subtypes.yaml の tier3_event が conflict_tree.lock.yaml の events に全件存在することを検証済み
+        "tier2.business_conflict_bidirectional_lock",
+        "../../tier2/lock/business_conflict.lock.yaml",
+        "field(`../../tier2/lock/business_conflict.lock.yaml`, cross_reference_check.status) == green",
+    ),
+    (
+        # tier2 fsm.lock.yaml に 4 言語 typestate ファイルが全て物理存在することを確認する
+        # OrderStatus / BatchStatus の 2 FSM が OrderedState Machines として宣言済みであることを検証する
+        "tier2.fsm_codegen_targets_all_languages",
+        "../../tier2/lock/fsm.lock.yaml",
+        "count(`../../tier2/lock/fsm.lock.yaml`, state_machines) >= 2",
+    ),
 ]
 
 

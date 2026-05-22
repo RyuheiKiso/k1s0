@@ -1,0 +1,21 @@
+# coverage_matrix artifact manifest — tier1.v1_scenario_replay
+# verification_class: v1_scenario_replay
+# 生成日: 2026-05-22
+# drill_state が v1_pending_with_artifact から v1_verified_with_artifact_pointer に昇格
+cell_id: tier1.v1_scenario_replay
+verification_class: v1_scenario_replay
+drill_state: v1_verified_with_artifact_pointer
+last_verified_at: '2026-05-22T00:00:00Z'
+artifacts:
+  - artifact_id: tier1_playwright_manufacturing_stress
+    artifact_kind: playwright_stress_test_suite
+    source_path: src/test/playwright/manufacturing_stress/
+    evidence_uri: "file://src/test/playwright/manufacturing_stress/"
+    notes: "manufacturing stress test 9 scenario が tier1 server を通過する e2e scenario replay"
+  - artifact_id: tier1_migration_dry_run
+    artifact_kind: migration_drill_yaml
+    source_path: src/tier1/tests/migration/
+    evidence_uri: "file://src/tier1/tests/migration/"
+    notes: "4 primary pair × 5 phase migration dry_run drill"
+collected_by: dev_owner=tier1-team
+wsl2_constraint: none

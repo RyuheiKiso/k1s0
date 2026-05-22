@@ -59,6 +59,9 @@ TOPO_ORDER: list[str] = [
     "second_industry_stub",
     "registry_pin",
     "conflict_tree",
+    # tier2 business_conflict および fsm 独立 lock (v1.0.0 追加: 双方向 cross-reference 物理化)
+    "business_conflict",
+    "fsm",
     "forbidden_export_symbols",
     # tier3 拡張 generators (v1.0.0 追加)
     "test_matrix",
@@ -97,6 +100,8 @@ TOPO_ORDER: list[str] = [
     # security build_provenance generators (v1.0.0 追加: spec16 published 化対応)
     "provenance_attestation",
     "reproducibility_matrix",
+    # tier3 cosign attestations generator (v1.0.0 追加: spec16 手書き禁止規律対応)
+    "cosign_attestations",
     # ops 運用ループ generators (v1.0.0 追加: spec17 published 化対応)
     "alert_catalog",
     "budget_action_bindings",
@@ -165,6 +170,9 @@ def get_generator(name: str) -> type | None:
         "second_industry_stub": ("tools.lock_yaml_generator.generate_second_industry_stub", "SecondIndustryStubGenerator"),
         "registry_pin": ("tools.lock_yaml_generator.generate_registry_pin", "RegistryPinGenerator"),
         "conflict_tree": ("tools.lock_yaml_generator.generate_conflict_tree", "ConflictTreeGenerator"),
+        # tier2 business_conflict および fsm 独立 lock (v1.0.0 追加: 双方向 cross-reference 物理化)
+        "business_conflict": ("tools.lock_yaml_generator.generate_business_conflict", "BusinessConflictGenerator"),
+        "fsm": ("tools.lock_yaml_generator.generate_fsm", "FsmGenerator"),
         "forbidden_export_symbols": ("tools.lock_yaml_generator.generate_forbidden_export_symbols", "ForbiddenExportSymbolsGenerator"),
         # tier3 拡張 generators
         "test_matrix": ("tools.lock_yaml_generator.generate_test_matrix", "TestMatrixGenerator"),
@@ -203,6 +211,8 @@ def get_generator(name: str) -> type | None:
         # security build_provenance generators (v1.0.0 追加: spec16 published 化対応)
         "provenance_attestation": ("tools.lock_yaml_generator.generate_provenance_attestation", "ProvenanceAttestationGenerator"),
         "reproducibility_matrix": ("tools.lock_yaml_generator.generate_reproducibility_matrix", "ReproducibilityMatrixGenerator"),
+        # tier3 cosign attestations generator (v1.0.0 追加: spec16 手書き禁止規律対応)
+        "cosign_attestations": ("tools.lock_yaml_generator.generate_cosign_attestations", "CosignAttestationsGenerator"),
         # ops 運用ループ generators (v1.0.0 追加: spec17 published 化対応)
         "alert_catalog": ("tools.lock_yaml_generator.generate_alert_catalog", "AlertCatalogGenerator"),
         "budget_action_bindings": ("tools.lock_yaml_generator.generate_budget_action_bindings", "BudgetActionBindingsGenerator"),
