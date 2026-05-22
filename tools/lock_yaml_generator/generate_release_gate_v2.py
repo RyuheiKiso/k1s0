@@ -196,24 +196,26 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     # test
     (
-        # coverage_matrix の全 90 cell が drill_state==verified であることを確認する。
-        # pending_with_artifact は「artifact あるが未 verified」= 品質不足として red 扱い。
+        # test/lock/coverage_matrix.lock.yaml の全 90 cell が drill_state==v1_verified_with_artifact_pointer
+        # であることを確認する。v1_pending_with_artifact は「artifact 未登録」= 品質不足として red 扱い。
+        # 注意: _meta/lock/coverage_matrix.lock.yaml は旧形式の別ファイル。SoT は test/lock/ 側。
         "test.coverage_matrix_complete",
-        "coverage_matrix.lock.yaml",
-        "count(`coverage_matrix.lock.yaml`, cells[?drill_state=='verified']) == 90",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        "count(`../../test/lock/coverage_matrix.lock.yaml`, cells[?drill_state=='v1_verified_with_artifact_pointer']) == 90",
     ),
     (
-        # regression_corpus の entries が非空かつ open エントリがゼロであることを確認する。
+        # test/lock/regression_corpus.lock.yaml の entries が非空かつ open エントリがゼロであることを確認する。
         # entries=[] の形式的 drift zero を物理的に拒否（hard_fail_if_zero で hard red）。
+        # 注意: _meta/lock/regression_corpus.lock.yaml は旧形式の別ファイル。SoT は test/lock/ 側。
         "test.regression_corpus_drift_zero",
-        "regression_corpus.lock.yaml",
-        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries) AND count(`regression_corpus.lock.yaml`, entries[?status=='open']) == 0",
+        "../../test/lock/regression_corpus.lock.yaml",
+        "hard_fail_if_zero(`../../test/lock/regression_corpus.lock.yaml`, entries) AND count(`../../test/lock/regression_corpus.lock.yaml`, entries[?status=='open']) == 0",
     ),
     (
-        # coverage_matrix に 90 cell 以上存在 = mutation score 計測基盤が確立
+        # test/lock/coverage_matrix.lock.yaml に 90 cell 以上存在 = mutation score 計測基盤が確立
         "test.mutation_score_monotonic",
-        "coverage_matrix.lock.yaml",
-        "count(`coverage_matrix.lock.yaml`, cells) >= 90",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        "count(`../../test/lock/coverage_matrix.lock.yaml`, cells) >= 90",
     ),
     # security
     (

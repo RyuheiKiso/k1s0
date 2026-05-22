@@ -5,4 +5,4 @@ checks:
 - check_name: full_lint
   detail: 12 checks all green (check [12] trace.fr_ids パターン検証追加)
   result: pass
-generated_at: '2026-05-22T21:25:19Z'
+generated_at: '2026-05-22T21:31:44Z'

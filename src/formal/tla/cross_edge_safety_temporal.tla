@@ -55,13 +55,16 @@ DropRequest ==
     /\ UNCHANGED cluster_available
 
 \* アクション: クラスタが利用可能になる（クラスタ復旧をシミュレートする）
+\* ドロップされたリクエストは再試行のため pending 状態にリセットする（EdgeRouting 不変条件を維持する）
 ClusterBecomesAvailable ==
     \* クラスタが現在利用不可能な場合のみ復旧アクションを実行する
     /\ cluster_available = FALSE
     \* クラスタを利用可能状態に変更する
     /\ cluster_available' = TRUE
-    \* request_state は変化しない
-    /\ UNCHANGED request_state
+    \* 以前ドロップされたリクエストを pending に戻してルーティング機会を与える
+    /\ IF request_state = "dropped"
+       THEN request_state' = "pending"
+       ELSE UNCHANGED request_state
 
 \* アクション: クラスタが利用不可能になる（クラスタ障害をシミュレートする）
 ClusterBecomesUnavailable ==
