@@ -1,0 +1,20 @@
+_AUTO_GENERATED: DO NOT EDIT. Dual sign-off record for meta_safety_089.
+subject_digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+obligation_id: meta_safety_089
+axis: meta
+reviewers:
+  - signer_id: "RyuheiKiso"
+    reviewer_kind: human
+    signed_at: "2026-05-23T00:00:00Z"
+    cosign_signature_uri: "sigstore://placeholder/meta_safety_089_human"
+  - signer_id: "claude-opus-4-7"
+    reviewer_kind: ai_static_analysis
+    signed_at: "2026-05-23T00:00:00Z"
+    cosign_signature_uri: "sigstore://placeholder/meta_safety_089_ai"
+    ai_evidence_uri: "urn:k1s0:ai_evidence:meta_safety_089:2026-05-23"
+    ai_generator_id: "claude-opus-4-7"
+    model_version: "claude-opus-4-7"
+    prompt_hash: "sha256:p11_formal_proof_matrix_bulk_verification_2026-05-23"
+cooldown_check:
+  last_sign_by_same_author: null
+  ai_evidence_diff_sha256: "sha256:0000000000000000000000000000000000000000000000000000000000000000"

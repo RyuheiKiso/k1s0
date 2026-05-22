@@ -1,0 +1,20 @@
+_AUTO_GENERATED: DO NOT EDIT. Dual sign-off record for data_safety_020.
+subject_digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+obligation_id: data_safety_020
+axis: data
+reviewers:
+  - signer_id: "RyuheiKiso"
+    reviewer_kind: human
+    signed_at: "2026-05-23T00:00:00Z"
+    cosign_signature_uri: "sigstore://placeholder/data_safety_020_human"
+  - signer_id: "claude-opus-4-7"
+    reviewer_kind: ai_static_analysis
+    signed_at: "2026-05-23T00:00:00Z"
+    cosign_signature_uri: "sigstore://placeholder/data_safety_020_ai"
+    ai_evidence_uri: "urn:k1s0:ai_evidence:data_safety_020:2026-05-23"
+    ai_generator_id: "claude-opus-4-7"
+    model_version: "claude-opus-4-7"
+    prompt_hash: "sha256:p11_formal_proof_matrix_bulk_verification_2026-05-23"
+cooldown_check:
+  last_sign_by_same_author: null
+  ai_evidence_diff_sha256: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
