@@ -133,11 +133,11 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     # formal
     (
-        # proof_status.lock.yaml に 95 cell 全て v1_unverified_handled (= accepted_with_assumption
-        # 等価) として記録されていることを確認する。Phase 11 で verified に昇格する。
+        # proof_status.lock.yaml に 95 cell 全て v1_baseline_verified として記録されていることを確認する。
+        # v1_accepted_with_assumption は accepted_with_assumption ratio cap cell で別途管理する。
         "formal.all_critical_verified",
         "proof_status.lock.yaml",
-        "count(`proof_status.lock.yaml`, cells) >= 95",
+        "count(`proof_status.lock.yaml`, cells[?cell_state=='v1_baseline_verified']) >= 95",
     ),
     (
         "formal.proof_matrix_complete",
@@ -159,6 +159,15 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "formal.assumption_cap_within_20",
         "assumption.lock.yaml",
         "count(`assumption.lock.yaml`, entries[?status=='open']) <= 20",
+    ),
+    (
+        # formal/lock/proof_status.lock.yaml の accepted_with_assumption 比率が 20% 以下であることを確認する。
+        # 現状 61 cell (61%) が逃げているため red になる。41 cell を v1.0.0 で actual proof に昇格させることが必達。
+        # 注意: _meta/lock/proof_status.lock.yaml は v1_unverified_handled 表記の別ファイル。
+        # formal/lock/ 側が actual proof obligation の SoT であるため ../../formal/lock/ で参照する。
+        "formal.accepted_with_assumption_ratio_within_cap",
+        "../../formal/lock/proof_status.lock.yaml",
+        "ratio(`../../formal/lock/proof_status.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
     ),
     (
         # proof_inventory に 95 obligation が全て記録 = tool pin 体系が確立
@@ -186,15 +195,18 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     # test
     (
+        # coverage_matrix の全 90 cell が drill_state==verified であることを確認する。
+        # pending_with_artifact は「artifact あるが未 verified」= 品質不足として red 扱い。
         "test.coverage_matrix_complete",
         "coverage_matrix.lock.yaml",
-        "len(`coverage_matrix.lock.yaml`, cells) >= 90",
+        "count(`coverage_matrix.lock.yaml`, cells[?drill_state=='verified']) == 90",
     ),
     (
-        # regression_corpus の total_count >= 0 = corpus が存在し drift がゼロ（entries = []）
+        # regression_corpus の entries が非空かつ open エントリがゼロであることを確認する。
+        # entries=[] の形式的 drift zero を物理的に拒否（hard_fail_if_zero で hard red）。
         "test.regression_corpus_drift_zero",
         "regression_corpus.lock.yaml",
-        "field(`regression_corpus.lock.yaml`, total_count) >= 0",
+        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries) AND count(`regression_corpus.lock.yaml`, entries[?status=='open']) == 0",
     ),
     (
         # coverage_matrix に 90 cell 以上存在 = mutation score 計測基盤が確立

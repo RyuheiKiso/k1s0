@@ -538,6 +538,94 @@ def eval_ratchet_ge(expr: str, lock_dir: Path) -> EvalResult:
 
 
 # ---------------------------------------------------------------------------
+# ratio()
+# ---------------------------------------------------------------------------
+
+def eval_ratio(expr: str, lock_dir: Path) -> EvalResult:
+    """ratio(`lock`, jsonpath, total_field) op N を評価する。
+
+    書式: ratio(`lock_name`, path[?filter], total_field) <= N
+    計算: len(filtered_items) / data[total_field] <op> N
+
+    total_field が 0 の場合は red（division by zero 防止）。
+    """
+    m = re.fullmatch(
+        r"ratio\((.+?),\s*(.+?),\s*(\w+)\)\s*(<=|>=|==|<|>|!=)\s*([\d.]+)",
+        expr.strip()
+    )
+    if not m:
+        return EvalResult("yellow", f"ratio DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    path = m.group(2).strip()
+    total_field = m.group(3).strip()
+    op = m.group(4)
+    threshold = float(m.group(5))
+
+    data = _load(lock_dir, lock_name)
+    if not data:
+        return EvalResult("red", f"{lock_name} not found")
+
+    total = _resolve_path(data, total_field)
+    if total is None:
+        return EvalResult("red", f"{total_field} が {lock_name} に存在しない")
+    try:
+        total_num = float(str(total))
+    except ValueError:
+        return EvalResult("red", f"{total_field}={total!r} は数値でない")
+    if total_num == 0:
+        return EvalResult("red", f"{total_field}=0 (division by zero)")
+
+    items = _jsonpath_items(data, path)
+    ratio_val = len(items) / total_num
+
+    ok = (
+        (op == "<=" and ratio_val <= threshold) or
+        (op == ">=" and ratio_val >= threshold) or
+        (op == "==" and ratio_val == threshold) or
+        (op == "<"  and ratio_val <  threshold) or
+        (op == ">"  and ratio_val >  threshold) or
+        (op == "!=" and ratio_val != threshold)
+    )
+    pct = f"{ratio_val:.1%}"
+    thr_pct = f"{threshold:.1%}"
+    return EvalResult("green" if ok else "red",
+                      f"ratio={pct} ({len(items)}/{int(total_num)}) {op} {thr_pct}")
+
+
+# ---------------------------------------------------------------------------
+# hard_fail_if_zero()
+# ---------------------------------------------------------------------------
+
+def eval_hard_fail_if_zero(expr: str, lock_dir: Path) -> EvalResult:
+    """hard_fail_if_zero(`lock`, list_field) を評価する。
+
+    list_field が空リスト・存在しない・長さ 0 の場合は red。
+    非空の場合は green。entries=[] のような形式的 green を物理的に弾く目的。
+    """
+    m = re.fullmatch(
+        r"hard_fail_if_zero\((.+?),\s*(\w+)\)",
+        expr.strip()
+    )
+    if not m:
+        return EvalResult("yellow", f"hard_fail_if_zero DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    field_name = m.group(2).strip()
+
+    data = _load(lock_dir, lock_name)
+    if not data:
+        return EvalResult("red", f"{lock_name} not found")
+
+    val = _resolve_path(data, field_name)
+    if val is None or (isinstance(val, (list, dict, str)) and len(val) == 0):
+        return EvalResult("red", f"{field_name} が空または存在しない (hard fail)")
+
+    count = len(val) if isinstance(val, (list, dict, str)) else 1
+    return EvalResult("green", f"{field_name}: {count} item(s)")
+
+
+# ---------------------------------------------------------------------------
 # メインルーター
 # ---------------------------------------------------------------------------
 
@@ -577,5 +665,9 @@ def evaluate_dsl(expr: str, lock_dir: Path) -> EvalResult:
         return eval_evidence(expr, lock_dir)
     if expr.startswith("ratchet_ge("):
         return eval_ratchet_ge(expr, lock_dir)
+    if expr.startswith("ratio("):
+        return eval_ratio(expr, lock_dir)
+    if expr.startswith("hard_fail_if_zero("):
+        return eval_hard_fail_if_zero(expr, lock_dir)
 
     return EvalResult("yellow", f"DSL 未知パターン: {expr!r}")
