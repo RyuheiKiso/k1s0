@@ -120,6 +120,8 @@ TOPO_ORDER: list[str] = [
     "tla_apalache_pin",
     "kani_cbmc_pin",
     "formal_ownership_table",
+    # manufacturing stress test lock (段階 2 P1: ship blocker 9 spec)
+    "manufacturing_stress",
     # docs↔src semantic trace ledger (P11 前半 FR-ID trace skeleton)
     "trace_ledger",
     # docs↔src coverage oracle: FR-ID → IMPL-ID 被覆率 (R3 以降 green 化)
@@ -160,6 +162,8 @@ CANONICAL_SOT_TABLE: dict[str, str] = {
     "proof_trace.lock.yaml":        "src/_meta/lock",
     "evidence_coverage.lock.yaml":  "src/_meta/lock",
     "build_evidence.lock.yaml":     "src/_meta/lock",
+    # tier1/lock が SoT
+    "manufacturing_stress.lock.yaml": "src/tier1/lock",
 }
 
 
@@ -272,6 +276,8 @@ def get_generator(name: str) -> type | None:
         "tla_apalache_pin": ("tools.lock_yaml_generator.generate_tla_apalache_pin", "TlaApalachePinGenerator"),
         "kani_cbmc_pin": ("tools.lock_yaml_generator.generate_kani_cbmc_pin", "KaniCbmcPinGenerator"),
         "formal_ownership_table": ("tools.lock_yaml_generator.generate_formal_ownership_table", "FormalOwnershipTableGenerator"),
+        # manufacturing stress test lock (段階 2 P1: ship blocker 9 spec)
+        "manufacturing_stress": ("tools.lock_yaml_generator.generate_manufacturing_stress", "ManufacturingStressGenerator"),
         # docs↔src semantic trace ledger (P11 前半 FR-ID trace skeleton)
         "trace_ledger": ("tools.lock_yaml_generator.generate_trace_ledger", "TraceLedgerGenerator"),
         # docs↔src coverage oracle (R3 以降)

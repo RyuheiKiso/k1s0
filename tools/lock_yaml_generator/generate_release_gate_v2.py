@@ -609,6 +609,14 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "evidence_coverage.lock.yaml",
         "ratchet_ge(`evidence_coverage.lock.yaml`, summary.proof_to_evidence_ratio, 1.0)",
     ),
+    (
+        # manufacturing 9 stress spec が全て実装済みで status=green であることを確認する
+        # 01_Bidi 適合仕様 §158-160 ship blocker: 製造業 pack 9 stress test 全 green
+        "tier1.manufacturing_9_stress_green",
+        "../../tier1/lock/manufacturing_stress.lock.yaml",
+        "field(`../../tier1/lock/manufacturing_stress.lock.yaml`, status) == green"
+        " AND field(`../../tier1/lock/manufacturing_stress.lock.yaml`, implemented_count) == 9",
+    ),
     # ---------------------------------------------------------------------------
     # meta_invariant: 再 gaming 防止構造 (bypass 不可能な structural invariant)
     # これら 4 cell は _GLOBAL_INVARIANTS と二重登録されており、
