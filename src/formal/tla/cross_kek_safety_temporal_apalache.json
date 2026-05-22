@@ -1,0 +1,13 @@
+{
+  "version": "0.45.4",
+  "input": {
+    "files": ["cross_kek_safety_temporal.tla"],
+    "main": "cross_kek_safety_temporal"
+  },
+  "checker": {
+    "length": 5,
+    "inv": ["TypeInvariant", "KEKExclusion"],
+    "noDeadlock": true,
+    "search": "TransitionFusion"
+  }
+}

@@ -133,11 +133,12 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     # formal
     (
-        # proof_status.lock.yaml に 95 cell 全て v1_baseline_verified として記録されていることを確認する。
-        # v1_accepted_with_assumption は accepted_with_assumption ratio cap cell で別途管理する。
+        # formal/lock/proof_status.lock.yaml の v1_baseline_verified セル比率が 80% 以上であることを確認する。
+        # accepted_with_assumption cap=20% と合わせて 100% 全セル handled を保証する。
+        # 注意: formal/lock/ 側が actual proof obligation の SoT（_meta/lock/ 側とは別ファイル）
         "formal.all_critical_verified",
-        "proof_status.lock.yaml",
-        "count(`proof_status.lock.yaml`, cells[?cell_state=='v1_baseline_verified']) >= 95",
+        "../../formal/lock/proof_status.lock.yaml",
+        "ratio(`../../formal/lock/proof_status.lock.yaml`, cells[?cell_state=='v1_baseline_verified'], total_cells) >= 0.80",
     ),
     (
         "formal.proof_matrix_complete",

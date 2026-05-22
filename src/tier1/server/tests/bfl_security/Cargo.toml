@@ -1,0 +1,35 @@
+# tests/bfl_security/Cargo.toml — Phase C: bfl 認可境界 security test crate
+# 04_認証適合仕様 §DPoP / OIDC / SPIRE の failure-path 網羅テスト
+[package]
+# クレート名: tier1-bfl-security-tests
+name = "tier1-bfl-security-tests"
+# バージョン: 初期版
+version = "0.1.0"
+# エディション: 2021
+edition = "2021"
+
+[lib]
+# ライブラリターゲットとして定義する（テストは tests/ ディレクトリに配置する）
+name = "tier1_bfl_security_tests"
+# エントリポイント
+path = "src/lib.rs"
+
+# 本番依存クレート（テスト対象を直接参照する）
+[dependencies]
+# k1s0-tier1-bfl: テスト対象（DPoPProofVerifier, OidcClaims 等を参照する）
+k1s0-tier1-bfl = { path = "../../bfl" }
+# serde: JSON シリアライズ/デシリアライズ（テスト用 JWT payload 構築に使用する）
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON 操作（テスト用 JWT header/payload 生成に使用する）
+serde_json = "1"
+# base64: JWT compact format の header/payload エンコードに使用する
+base64 = "0.22"
+# tokio: 非同期テスト実行ランタイム
+tokio = { version = "1", features = ["full"] }
+# anyhow: エラーハンドリング（テスト assert での詳細エラー出力に使用する）
+anyhow = "1"
+# uuid: jti 生成ヘルパーで使用する（v4 UUIDs）
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+# 現時点では追加の dev-dependency なし

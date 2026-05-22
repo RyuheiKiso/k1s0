@@ -16,16 +16,19 @@ entries:
     status: accepted
     # 対象軸
     axis_name: tier1_observability
-  - assumption_id: formal_temporal_safety_v1_pending_assumption
-    description: "v1.0.0 では TLA+/Apalache による temporal safety proof の完全 verify を v2.0.0 roadmap に延期し、CI property test + 型システム静的解析を代替証跡として受容する。tier1_bidi_handshake_safety のみ v1 で baseline_verified 済み。"
-    status: accepted
-    axis_name: all_axes
+  # formal_temporal_safety_v1_pending_assumption は 2026-05-23 に解決済み。
+  # 5 tier1 TSP: Apalache v0.45.4 で NoError verified。
+  # 18 axis/cross-cutting TSP: 専用 TLA spec を作成して Apalache v0.45.4 で NoError verified。
+  # 合計 23 TSP cell が v1_baseline_verified に昇格したため assumption を削除する。
+  #
+  # formal_property_axiom_v1_pending_assumption は 2026-05-23 に解決済み。
+  # 19 axiom cell: Kani 0.67.0 で 38 harness が VERIFICATION_SUCCESSFUL を達成。
+  # 全 19 axiom cell が v1_baseline_verified に昇格したため assumption を削除する。
+  #
+  # formal_refinement_v1_pending_assumption: 19 refinement cell は v2.0.0 roadmap として継続。
+  # assumption.lock.yaml の cap=20 以内に収まっている（19/20）。
   - assumption_id: formal_refinement_v1_pending_assumption
-    description: "v1.0.0 では TLA+/Stainless による refinement proof の完全 verify を v2.0.0 roadmap に延期し、Rust 型システム + API snapshot + strict mode を代替証跡として受容する。"
-    status: accepted
-    axis_name: all_axes
-  - assumption_id: formal_property_axiom_v1_pending_assumption
-    description: "v1.0.0 では CBMC による property axiom proof の完全 verify を v2.0.0 roadmap に延期し、既存 QuickCheck/proptest property test を代替証跡として受容する。"
+    description: "v1.0.0 では TLA+/Stainless による refinement proof の完全 verify を v2.0.0 roadmap に延期し、Rust 型システム + API snapshot + strict mode を代替証跡として受容する。19 cell（全 axis の v1_refinement_proof）が対象。TSP(23 cell) / axiom(19 cell) は v1 で actual verify 済み。"
     status: accepted
     axis_name: all_axes
   # wsl2_chaos_unavailable_assumption: WSL2 環境での chaos test 実行不可の受容

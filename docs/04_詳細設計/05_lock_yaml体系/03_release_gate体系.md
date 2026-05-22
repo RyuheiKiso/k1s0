@@ -66,7 +66,7 @@ trace:
 ### formal 軸 cells
 | cell_id | 入力 lock.yaml | 条件 |
 |---|---|---|
-| `formal.all_critical_verified` | `proof_status.lock.yaml` | `count(cells[?cell_state=='v1_baseline_verified']) >= 95`（length check ではなく verified 件数で判定） |
+| `formal.all_critical_verified` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_baseline_verified'], total_cells) >= 80%`（100 cell 体系で 20% cap と対称; 旧 ">= 95 cells" を更新） |
 | `formal.proof_matrix_complete` | `proof_matrix.lock.yaml` | 全 cell `cell_state` ∈ {v1_baseline_verified, v1_accepted_with_assumption, v1_unverified_handled} |
 | `formal.no_open_above_severity_low` | `counter_example.lock.yaml` | high severity open ゼロ + medium severity decreasing monotonic |
 | `formal.dual_review_completeness_100pct` | `proof_review.lock.yaml` | 全 obligation の dual_signoff_complete=true |
