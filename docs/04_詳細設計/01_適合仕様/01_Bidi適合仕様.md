@@ -18,6 +18,10 @@ covered_by:
     - v1_program_correctness_proof
 lock_artifacts:
   - capabilities.lock.yaml
+trace:
+  fr_ids:
+  - FR-tier1-001
+
 ---
 
 # tier1 Bidi 適合仕様（v1）

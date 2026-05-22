@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-cross_pii-prog-001 -> IMPL-cross_pii-0001
+# k1s0-impl: IMPL-cross_pii-0001 realizes=FR-cross_pii-001
 """tools/lock_yaml_generator/generate_pii_classification.py
 
 pii_classification.lock.yaml 生成器。

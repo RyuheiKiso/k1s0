@@ -15,6 +15,10 @@ covered_by:
 lock_artifacts:
   - release_gate.lock.yaml
   - axis_registry.lock.yaml
+trace:
+  fr_ids:
+  - FR-meta-004
+
 ---
 
 # release_gate 体系

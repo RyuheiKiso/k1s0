@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-security-prog-003 -> IMPL-security-0003
+# k1s0-impl: IMPL-security-0003 realizes=FR-security-003
 """tools/lock_yaml_generator/generate_mitigation_bindings.py
 
 mitigation_bindings.lock.yaml 生成器。

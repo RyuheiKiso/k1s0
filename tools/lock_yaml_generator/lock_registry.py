@@ -120,6 +120,14 @@ TOPO_ORDER: list[str] = [
     "tla_apalache_pin",
     "kani_cbmc_pin",
     "formal_ownership_table",
+    # docs↔src semantic trace ledger (P11 前半 FR-ID trace skeleton)
+    "trace_ledger",
+    # docs↔src coverage oracle: FR-ID → IMPL-ID 被覆率 (R3 以降 green 化)
+    "coverage_oracle",
+    # formal proof trace: IMPL-ID → PROOF-ID 被覆率 (R4 以降 green 化)
+    "proof_trace",
+    # evidence coverage oracle: PROOF-ID → build evidence 被覆率 (R5 以降 green 化)
+    "evidence_coverage",
     "release_gate",
 ]
 
@@ -231,6 +239,14 @@ def get_generator(name: str) -> type | None:
         "tla_apalache_pin": ("tools.lock_yaml_generator.generate_tla_apalache_pin", "TlaApalachePinGenerator"),
         "kani_cbmc_pin": ("tools.lock_yaml_generator.generate_kani_cbmc_pin", "KaniCbmcPinGenerator"),
         "formal_ownership_table": ("tools.lock_yaml_generator.generate_formal_ownership_table", "FormalOwnershipTableGenerator"),
+        # docs↔src semantic trace ledger (P11 前半 FR-ID trace skeleton)
+        "trace_ledger": ("tools.lock_yaml_generator.generate_trace_ledger", "TraceLedgerGenerator"),
+        # docs↔src coverage oracle (R3 以降)
+        "coverage_oracle": ("tools.lock_yaml_generator.generate_coverage_oracle", "CoverageOracleGenerator"),
+        # formal proof trace (R4 以降)
+        "proof_trace": ("tools.lock_yaml_generator.generate_proof_trace", "ProofTraceGenerator"),
+        # evidence coverage oracle (R5 以降)
+        "evidence_coverage": ("tools.lock_yaml_generator.generate_evidence_coverage", "EvidenceCoverageGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }
     if name not in module_map:

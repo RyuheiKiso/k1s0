@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_edge-0004 realizes=FR-cross_edge-004
 // k1s0 Connect-RPC .NET 8 inhouse 実装
 // Connect Conformance Suite 全 case green を目標とする C# 実装
 // Unary / Server-Streaming / Client-Streaming / Bidi-Streaming を全て実装する

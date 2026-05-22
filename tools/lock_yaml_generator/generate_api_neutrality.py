@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_edge-prog-003 -> IMPL-cross_edge-0003
 """tools/lock_yaml_generator/generate_api_neutrality.py
 
 # api_neutrality.lock.yaml 生成器。

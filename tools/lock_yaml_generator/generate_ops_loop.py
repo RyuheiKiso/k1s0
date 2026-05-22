@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-ops-prog-001 -> IMPL-ops-0001
+# k1s0-impl: IMPL-ops-0001 realizes=FR-ops-001
 """tools/lock_yaml_generator/generate_ops_loop.py
 
 ops_loop.lock.yaml 生成器。

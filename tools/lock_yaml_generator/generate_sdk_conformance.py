@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-client-prog-003 -> IMPL-client-0003
 """tools/lock_yaml_generator/generate_sdk_conformance.py
 
 # sdk_conformance.lock.yaml 生成器。

@@ -38,6 +38,8 @@ EXCLUDE_FILES = [
 REQUIRED_FIELDS = {"id", "axis", "phase", "kind", "status", "depends_on", "covered_by"}
 FORBIDDEN_FIELDS = {"changelog", "last_updated", "last_modified", "author", "reviewers"}
 LOCK_PATTERN = re.compile(r"^[a-z][a-z0-9_]*\.lock\.yaml$")
+# FR-ID パターン（trace.fr_ids フィールドの要素検証用）
+FR_ID_PATTERN = re.compile(r"^FR-[a-z][a-z0-9_]*-[0-9]{3}$")
 PHASE_PREFIX_BY_PATH = {
     "01_企画": "plan",
     "02_要件定義": "req",
@@ -361,6 +363,38 @@ def check_test_matrix_implementation_paths() -> list[str]:
     return fails
 
 
+def check_trace_fr_ids(items: list[tuple[Path, dict]]) -> list[str]:
+    """frontmatter trace.fr_ids が存在する場合、各要素が FR-ID パターンに適合するか検証する。
+
+    FR-ID 正規表現: ^FR-[a-z][a-z0-9_]*-[0-9]{3}$
+    trace.fr_ids を持つ spec が存在する場合のみチェックが走る（持たない場合は常に pass）。
+    """
+    # 失敗メッセージ蓄積リスト
+    fails = []
+    # 全 frontmatter 付きファイルを走査
+    for path, fm in items:
+        rel = str(path.relative_to(REPO_ROOT))
+        # trace フィールドが存在しない場合はスキップ
+        trace = fm.get("trace")
+        if not isinstance(trace, dict):
+            continue
+        # fr_ids フィールドが存在しない場合はスキップ
+        fr_ids = trace.get("fr_ids")
+        if not isinstance(fr_ids, list):
+            continue
+        # 各 FR-ID のパターン検証
+        for fr_id in fr_ids:
+            if not isinstance(fr_id, str):
+                fails.append(f"{rel}: trace.fr_ids 要素が str でない: {fr_id!r}")
+                continue
+            if not FR_ID_PATTERN.match(fr_id):
+                fails.append(
+                    f"{rel}: trace.fr_ids パターン違反: {fr_id!r}"
+                    " (期待: FR-<axis>-NNN, 例: FR-tier1-001)"
+                )
+    return fails
+
+
 def check_policy_mapping_bidirectional(items: list[tuple[Path, dict]]) -> list[str]:
     """src/tier1/schema/policy_mapping.yaml が存在する場合のみ: spec frontmatter と双方向参照を検査。"""
     # 失敗メッセージ蓄積リスト
@@ -481,17 +515,24 @@ def main() -> int:
         print(f"  FAIL: {f}")
     fails.extend(sub)
 
-    # [11/11] policy_mapping.yaml ↔ spec frontmatter 双方向参照検査
-    print("\n[11/11] policy_mapping bidirectional 参照検査")
+    # [11/12] policy_mapping.yaml ↔ spec frontmatter 双方向参照検査
+    print("\n[11/12] policy_mapping bidirectional 参照検査")
     sub = check_policy_mapping_bidirectional(items)
+    for f in sub:
+        print(f"  FAIL: {f}")
+    fails.extend(sub)
+
+    # [12/12] trace.fr_ids パターン検証（FR-ID 正規表現適合検査）
+    print("\n[12/12] trace.fr_ids パターン検証 (FR-ID pattern)")
+    sub = check_trace_fr_ids(items)
     for f in sub:
         print(f"  FAIL: {f}")
     fails.extend(sub)
 
     print()
     if not fails:
-        # 全 11 check が green の場合の終了メッセージ
-        print("=== docs_lint (Python): 11 check 全 green ===")
+        # 全 12 check が green の場合の終了メッセージ
+        print("=== docs_lint (Python): 12 check 全 green ===")
         return 0
     print(f"=== docs_lint (Python): {len(fails)} FAIL detected ===")
     return 1

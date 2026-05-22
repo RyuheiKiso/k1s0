@@ -1,3 +1,4 @@
+// k1s0-proof: PROOF-data-refn-001 -> IMPL-data-0001
 // src/formal/stainless/src/main/scala/k1s0/data/AtomicThreeTableWrite.scala
 // Stainless による atomic 三表書込の形式検証（obligation_id: data_atomic_three_table_write）
 // P1-P4 invariant を Hoare logic スタイルで Stainless annotation で記述する

@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier3-0002 realizes=FR-tier3-002
 // src/tier3/typescript/packages/forms/src/index.ts
 // tier3 forms パッケージの公開 API
 // ESLint カスタムルールとフォーム共通型を公開する

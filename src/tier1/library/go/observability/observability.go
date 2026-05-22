@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0003 realizes=FR-tier1-003
 // observability.go — k1s0 tier1 Library Go 実装: Logging / Tracing / Metrics の L3 interface
 // 01_オブザーバビリティ適合仕様.md §観測信号の 3 型（ログ・トレース・メトリクス）に準拠する。
 // OSS 型（zap / otel SDK 等）を公開シグネチャに一切露出しない L3 抽象 interface を宣言する。

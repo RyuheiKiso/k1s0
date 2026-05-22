@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_bff-prog-001 -> IMPL-cross_bff-0001
 """tools/lock_yaml_generator/generate_capabilities.py
 
 capabilities.lock.yaml 生成器。

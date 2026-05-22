@@ -20,6 +20,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - security_enforcement.lock.yaml
+trace:
+  fr_ids:
+  - FR-security-003
+
 ---
 
 # security 強制機構

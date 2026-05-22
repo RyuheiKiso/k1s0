@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0006 realizes=FR-tier1-006
 // lib.rs — k1s0 tier1 Library Rust エントリーポイント
 // 17 機能カテゴリ × L3/L2*/L1+ 階層の facade モジュールを提供する。
 // core（auth / observability / profiling / secret / error / policy）/

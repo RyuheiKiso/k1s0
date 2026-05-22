@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-security-prog-002 -> IMPL-security-0002
+# k1s0-impl: IMPL-security-0002 realizes=FR-security-002
 """tools/lock_yaml_generator/generate_provenance_attestation.py
 
 provenance_attestation.lock.yaml 生成器。

@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_edge-prog-004 -> IMPL-cross_edge-0004
 """tools/lock_yaml_generator/generate_weaver.py
 
 # weaver.lock.yaml 生成器。

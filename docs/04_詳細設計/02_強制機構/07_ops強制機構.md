@@ -21,6 +21,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - ops_enforcement.lock.yaml
+trace:
+  fr_ids:
+  - FR-ops-002
+
 ---
 
 # ops 強制機構

@@ -20,6 +20,10 @@ related_axes:
   - data
   - security
   - infra
+trace:
+  fr_ids:
+  - FR-cross_kek-001
+
 ---
 
 # KEK Shamir Secret Sharing 分散保管 適合仕様（v1）

@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-cross_edge-prog-002 -> IMPL-cross_edge-0002
+# k1s0-impl: IMPL-cross_edge-0002 realizes=FR-cross_edge-002
 """tools/lock_yaml_generator/generate_otel_semconv.py
 
 otel_semconv.lock.yaml 生成器。

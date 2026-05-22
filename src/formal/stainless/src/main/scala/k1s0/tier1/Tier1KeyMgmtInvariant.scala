@@ -1,3 +1,4 @@
+// k1s0-proof: PROOF-tier1-refn-002 -> IMPL-tier1-0005
 // Tier1KeyMgmtInvariant.scala
 // tier1 鍵管理 invariant の Stainless 形式検証
 // 05_鍵管理適合仕様: KEK rotation state machine の方向制約不変条件

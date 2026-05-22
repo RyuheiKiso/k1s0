@@ -12,6 +12,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - assumption.lock.yaml
+trace:
+  fr_ids:
+  - FR-formal-007
+
 ---
 
 # assumption 体系

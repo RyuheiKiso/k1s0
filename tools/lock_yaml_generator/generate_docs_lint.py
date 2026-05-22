@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-005 -> IMPL-meta-0005
+# k1s0-impl: IMPL-meta-0005 realizes=FR-meta-005
 """tools/lock_yaml_generator/generate_docs_lint.py
 
 docs_lint.lock.yaml 生成器。

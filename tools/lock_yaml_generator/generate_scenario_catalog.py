@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_pii-prog-002 -> IMPL-cross_pii-0002
 """tools/lock_yaml_generator/generate_scenario_catalog.py
 
 scenario_catalog.lock.yaml 生成器。

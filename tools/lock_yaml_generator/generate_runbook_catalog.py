@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-ops-prog-003 -> IMPL-ops-0003
+# k1s0-impl: IMPL-ops-0003 realizes=FR-ops-003
 """tools/lock_yaml_generator/generate_runbook_catalog.py
 
 runbook_catalog.lock.yaml 生成器。

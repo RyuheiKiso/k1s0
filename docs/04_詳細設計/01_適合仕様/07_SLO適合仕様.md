@@ -19,6 +19,10 @@ covered_by:
     - v1_program_correctness_proof
 lock_artifacts:
   - instruments.lock.yaml
+trace:
+  fr_ids:
+  - FR-tier1-007
+
 ---
 
 # tier1 SLO 適合仕様（v1）

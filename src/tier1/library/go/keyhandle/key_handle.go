@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0005 realizes=FR-tier1-005
 // key_handle.go — k1s0 tier1 Library Go 実装: KeyClass type + KeyHandle interface
 // 05_鍵管理適合仕様.md §v1 key_class セット（5 class）および
 // §5 層 defense-in-depth 層 A「compile: KeyHandle 必須引数化、生 key bytes 不可視」に準拠する。

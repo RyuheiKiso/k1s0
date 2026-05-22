@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0002 realizes=FR-tier1-002
 // tier1 migration pair テスト lib.rs
 // 02_移行Pair適合仕様に基づく 4 migration pair × 5 phase のインテグレーションテストを実装する。
 // テストは schema_diff / state_replicate / dual_write_ramp / cutover / rollback の 5 フェーズをカバーする。

@@ -8,6 +8,10 @@ depends_on: []
 covered_by:
   defense_in_depth_layers: [A, B]
   proof_classes: []
+trace:
+  fr_ids:
+  - FR-meta-005
+
 ---
 
 # artifact lock 命名規約

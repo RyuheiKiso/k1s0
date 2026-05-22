@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-test-prog-002 -> IMPL-test-0002
+# k1s0-impl: IMPL-test-0002 realizes=FR-test-002
 """tools/lock_yaml_generator/generate_chaos_blueprints.py
 
 chaos_blueprints.lock.yaml 生成器。

@@ -17,6 +17,10 @@ covered_by:
     - v1_program_correctness_proof
 lock_artifacts:
   - oss_inventory.lock.yaml
+trace:
+  fr_ids:
+  - FR-tier1-008
+
 ---
 
 # tier1 OSS ライフサイクル適合仕様（v1）

@@ -17,6 +17,10 @@ covered_by:
 related_axes:
   - client
   - infra
+trace:
+  fr_ids:
+  - FR-cross_edge-002
+
 ---
 
 # .NET Framework Companion OTel 拡張（v1）

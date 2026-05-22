@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0008 realizes=FR-tier1-008
 // lifecycle_signal_controller.go — OSS ライフサイクルシグナルを集約する Reconcile controller
 // 08_OSSライフサイクル適合仕様.md §lifecycle_signal に準拠する
 // CVE / CVSS / maintainer_health 等 8 シグナルを OSV / deps.dev / GitHub API から実取得する

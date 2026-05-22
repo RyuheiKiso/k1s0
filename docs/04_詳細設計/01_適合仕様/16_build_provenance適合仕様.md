@@ -22,6 +22,10 @@ lock_artifacts:
   - artifact_inventory.lock.yaml
   - provenance_attestation.lock.yaml
   - reproducibility_matrix.lock.yaml
+trace:
+  fr_ids:
+  - FR-security-002
+
 ---
 
 # security build provenance 適合仕様（v1）

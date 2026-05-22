@@ -1,3 +1,4 @@
+// k1s0-proof: PROOF-tier1-refn-003 -> IMPL-tier1-0007
 // Tier1SLOInvariant.scala
 // tier1 SLO invariant の Stainless 形式検証
 // 07_SLO 適合仕様: burn-rate とエラーバジェット凍結の不変条件

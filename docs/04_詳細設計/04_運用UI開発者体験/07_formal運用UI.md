@@ -14,6 +14,10 @@ depends_on:
 covered_by:
   defense_in_depth_layers: [D, E]
   proof_classes: []
+trace:
+  fr_ids:
+  - FR-formal-003
+
 ---
 
 # formal 運用 UI と開発者体験

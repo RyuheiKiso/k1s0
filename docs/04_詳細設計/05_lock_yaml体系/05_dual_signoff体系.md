@@ -12,6 +12,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - dual_review.lock.yaml
+trace:
+  fr_ids:
+  - FR-meta-006
+
 ---
 
 # dual signoff 体系

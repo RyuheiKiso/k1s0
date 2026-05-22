@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-infra-prog-001 -> IMPL-infra-0001
+# k1s0-impl: IMPL-infra-0001 realizes=FR-infra-001
 """tools/lock_yaml_generator/generate_topology_class.py
 
 topology_class.lock.yaml 生成器。

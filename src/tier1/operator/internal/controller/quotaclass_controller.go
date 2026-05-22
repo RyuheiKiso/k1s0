@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier1-0009 realizes=FR-tier1-009
 // quotaclass_controller.go — k1s0 tier1 operator: QuotaClass Reconciler
 // 09_テナント容量適合仕様.md §quota enforcement に準拠する。
 // QuotaClass CRD から namespace 単位の ResourceQuota / LimitRange を動的生成して適用する。

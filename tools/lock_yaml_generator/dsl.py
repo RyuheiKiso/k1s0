@@ -486,6 +486,58 @@ def eval_evidence(expr: str, lock_dir: Path) -> EvalResult:
 
 
 # ---------------------------------------------------------------------------
+# ratchet_ge()
+# ---------------------------------------------------------------------------
+
+def eval_ratchet_ge(expr: str, lock_dir: Path) -> EvalResult:
+    """ratchet_ge(`lock`, field_path, threshold) を評価する。
+
+    現在値 >= threshold の場合 green、未満の場合 red。
+    lock が存在しない場合は yellow（pending）。
+
+    ratchet の単調増加保証（前回値との比較）は R1 で history 機構を追加して強化する。
+    R0 では threshold チェックのみ実施し、audit 振動防止の基盤を確立する。
+    """
+    m = re.fullmatch(
+        r"ratchet_ge\((.+?),\s*(.+?),\s*(.+?)\)",
+        expr.strip()
+    )
+    if not m:
+        return EvalResult("yellow", f"ratchet_ge DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    path = m.group(2).strip()
+    threshold_raw = m.group(3).strip()
+
+    # threshold を float に変換する
+    try:
+        threshold = float(threshold_raw)
+    except ValueError:
+        return EvalResult("yellow", f"ratchet_ge: threshold parse 失敗: {threshold_raw!r}")
+
+    # lock ファイルを読み込む
+    data = _load(lock_dir, lock_name)
+    if not data:
+        return EvalResult("yellow", f"{lock_name} not found (pending)")
+
+    # field_path の現在値を取得する
+    actual = _resolve_path(data, path)
+    if actual is None:
+        return EvalResult("red", f"ratchet_ge: {path} が {lock_name} に存在しない")
+
+    # 数値変換を試みる
+    try:
+        actual_num = float(str(actual))
+    except ValueError:
+        return EvalResult("red", f"ratchet_ge: {path}={actual!r} は数値でない")
+
+    # threshold との比較（単調増加保証は R1 で追加）
+    ok = actual_num >= threshold
+    status = "green" if ok else "red"
+    return EvalResult(status, f"ratchet_ge: {path}={actual_num} >= {threshold}")
+
+
+# ---------------------------------------------------------------------------
 # メインルーター
 # ---------------------------------------------------------------------------
 
@@ -523,5 +575,7 @@ def evaluate_dsl(expr: str, lock_dir: Path) -> EvalResult:
         return eval_bidirectional(expr, lock_dir)
     if expr.startswith("evidence("):
         return eval_evidence(expr, lock_dir)
+    if expr.startswith("ratchet_ge("):
+        return eval_ratchet_ge(expr, lock_dir)
 
     return EvalResult("yellow", f"DSL 未知パターン: {expr!r}")

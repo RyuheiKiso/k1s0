@@ -21,6 +21,10 @@ covered_by:
     - v1_runtime_modelcheck_proof
 lock_artifacts:
   - formal_enforcement.lock.yaml
+trace:
+  fr_ids:
+  - FR-formal-002
+
 ---
 
 # formal 強制機構

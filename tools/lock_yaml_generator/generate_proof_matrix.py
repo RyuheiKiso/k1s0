@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-formal-prog-001 -> IMPL-formal-0001
+# k1s0-impl: IMPL-formal-0001 realizes=FR-formal-001
 """tools/lock_yaml_generator/generate_proof_matrix.py
 
 proof_matrix.lock.yaml 生成器。

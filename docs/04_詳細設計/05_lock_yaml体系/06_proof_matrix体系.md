@@ -20,6 +20,10 @@ lock_artifacts:
   - proof_status.lock.yaml
   - proof_inventory.lock.yaml
   - proof_review.lock.yaml
+trace:
+  fr_ids:
+  - FR-formal-006
+
 ---
 
 # proof_matrix 体系

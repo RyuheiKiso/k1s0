@@ -16,6 +16,10 @@ covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
+trace:
+  fr_ids:
+  - FR-tier3-002
+
 ---
 
 # tier3 強制機構

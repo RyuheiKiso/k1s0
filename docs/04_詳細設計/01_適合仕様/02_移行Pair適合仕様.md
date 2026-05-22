@@ -15,6 +15,10 @@ covered_by:
     - v1_refinement_proof
 lock_artifacts:
   - dry_run.lock.yaml
+trace:
+  fr_ids:
+  - FR-tier1-002
+
 ---
 
 # tier1 L1+ 移行 Pair 適合仕様（v1）

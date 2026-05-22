@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-test-prog-001 -> IMPL-test-0001
+# k1s0-impl: IMPL-test-0001 realizes=FR-test-001
 """tools/lock_yaml_generator/generate_coverage_matrix.py
 
 coverage_matrix.lock.yaml 生成器。

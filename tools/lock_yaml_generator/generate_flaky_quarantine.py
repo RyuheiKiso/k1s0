@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-test-prog-003 -> IMPL-test-0003
+# k1s0-impl: IMPL-test-0003 realizes=FR-test-003
 """tools/lock_yaml_generator/generate_flaky_quarantine.py
 
 flaky_quarantine.lock.yaml 生成器。

@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_edge-0003 realizes=FR-cross_edge-003
 // k1s0 UA-aware adapter: TypeScript
 // Connect-RPC の UA 別 fetch full-duplex 実装差を吸収するアダプターを実装する
 // Chrome / Firefox / Safari / Edge x HTTP2 / H3 / WebSocket capability matrix を管理する

@@ -19,6 +19,10 @@ related_axes:
   - tier3
   - client
   - infra
+trace:
+  fr_ids:
+  - FR-cross_http2-001
+
 ---
 
 # tier1 ingress HTTP/2 強制（v1）

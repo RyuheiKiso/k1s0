@@ -1,3 +1,4 @@
+// k1s0-proof: PROOF-tier1-refn-004 -> IMPL-tier1-0009
 // Tier1TenantCapacityInvariant.scala
 // tier1 テナント容量 invariant の Stainless 形式検証
 // 09_テナント容量適合仕様: noisy neighbor isolation の不変条件

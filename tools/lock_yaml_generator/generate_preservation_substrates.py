@@ -1,3 +1,4 @@
+# k1s0-impl: IMPL-data-0001 realizes=FR-data-001
 """tools/lock_yaml_generator/generate_preservation_substrates.py
 
 preservation_substrates.lock.yaml 生成器。

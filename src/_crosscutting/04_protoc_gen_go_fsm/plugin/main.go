@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-cross_fsm-0001 realizes=FR-cross_fsm-001
 // k1s0 protoc-gen-k1s0-go-fsm プラグインのエントリポイント
 // proto ファイルの FSM オプションを読み取り Go typestate コードを生成する
 package main

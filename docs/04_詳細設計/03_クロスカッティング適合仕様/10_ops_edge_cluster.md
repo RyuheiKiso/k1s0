@@ -16,6 +16,10 @@ related_axes:
   - ops
   - infra
   - security
+trace:
+  fr_ids:
+  - FR-cross_edge-001
+
 ---
 
 # ops-edge escalation cluster（v1）

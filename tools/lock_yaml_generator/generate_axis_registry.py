@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-001 -> IMPL-meta-0001
+# k1s0-impl: IMPL-meta-0001 realizes=FR-meta-001
 """tools/lock_yaml_generator/generate_axis_registry.py
 
 axis_registry.lock.yaml 生成器。

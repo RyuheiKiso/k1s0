@@ -20,6 +20,10 @@ related_axes:
   - data
   - security
   - infra
+trace:
+  fr_ids:
+  - FR-cross_pii-001
+
 ---
 
 # PII 専用 PostgreSQL クラスタ（v1）

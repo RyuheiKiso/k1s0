@@ -1,3 +1,4 @@
+// k1s0-impl: IMPL-tier2-0001 realizes=FR-tier2-001
 // k1s0 tier2 テナントコンテキスト Go 実装
 // Rust 実装（tenant_context.rs）と 4 言語等価強度を持つ Go 版
 // PostgreSQL session GUC（app.tenant_id / app.actor_id / app.purpose / app.delegation_chain）を

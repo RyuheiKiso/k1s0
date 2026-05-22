@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-test-prog-004 -> IMPL-test-0004
+# k1s0-impl: IMPL-test-0004 realizes=FR-test-004
 """tools/lock_yaml_generator/generate_mutation_score.py
 
 mutation_score.lock.yaml 生成器。

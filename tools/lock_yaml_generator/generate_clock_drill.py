@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-infra-prog-004 -> IMPL-infra-0004
+# k1s0-impl: IMPL-infra-0004 realizes=FR-infra-004
 """tools/lock_yaml_generator/generate_clock_drill.py
 
 clock_drill.lock.yaml 生成器。

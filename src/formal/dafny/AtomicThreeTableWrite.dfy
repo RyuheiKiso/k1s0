@@ -1,3 +1,4 @@
+// k1s0-proof: PROOF-data-prog-001 -> IMPL-data-0001
 // AtomicThreeTableWrite.dfy
 // obligation_id: data_atomic_three_table_write
 // Dafny による atomic 三表書込 P1-P4 invariant の形式検証

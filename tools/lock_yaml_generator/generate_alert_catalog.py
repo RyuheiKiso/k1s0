@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-ops-prog-002 -> IMPL-ops-0002
+# k1s0-impl: IMPL-ops-0002 realizes=FR-ops-002
 """tools/lock_yaml_generator/generate_alert_catalog.py
 
 alert_catalog.lock.yaml 生成器。

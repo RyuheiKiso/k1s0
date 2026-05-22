@@ -12,6 +12,10 @@ covered_by:
   proof_classes: []
 lock_artifacts:
   - cross_cutting_registry.lock.yaml
+trace:
+  fr_ids:
+  - FR-meta-002
+
 ---
 
 # cross-cutting cluster bundle map

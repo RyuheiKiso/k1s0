@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-004 -> IMPL-meta-0004
+# k1s0-impl: IMPL-meta-0004 realizes=FR-meta-004
 """tools/lock_yaml_generator/generate_release_gate_v2.py
 
 release_gate.lock.yaml 生成器（v2）。
@@ -16,7 +18,7 @@ from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
 from tools.lock_yaml_generator.dsl import evaluate_dsl
 
 # ---------------------------------------------------------------------------
-# 73 cell カタログ (v1.0.0 拡張: 54 → 70 cells → 72 cells → 73 cells)
+# 87 cell カタログ (v1.0.0 拡張: 54 → 70 → 72 → 73 cells / P11前半: +4 trace skeleton cells)
 # (cell_id, source_lock, dsl_expr)
 # ---------------------------------------------------------------------------
 _CELL_CATALOG: list[tuple[str, str, str]] = [
@@ -511,6 +513,43 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "tier2.fsm_codegen_targets_all_languages",
         "../../tier2/lock/fsm.lock.yaml",
         "count(`../../tier2/lock/fsm.lock.yaml`, state_machines) >= 2",
+    ),
+    # meta trace skeleton cells (docs↔src semantic trace 物理化 — P11 前半 FR-ID trace skeleton)
+    (
+        # trace_ledger.lock.yaml が v1 schema で生成済みであることを確認する (R0 exit cell)
+        # docs↔src trace 機構の物理基盤が成立したことの gate
+        "meta.trace_skeleton_schema_locked",
+        "trace_ledger.lock.yaml",
+        "field(`trace_ledger.lock.yaml`, schema_version) == v1",
+    ),
+    (
+        # docs 適合仕様の FR-ID 被覆率が ratchet 閾値以上であることを確認する
+        # R2 完了 (63/63=1.0): threshold を 1.0 に格上げ（全 spec の FR-ID 被覆を永続強制）
+        "meta.requirement_coverage_ratchet",
+        "trace_ledger.lock.yaml",
+        "ratchet_ge(`trace_ledger.lock.yaml`, summary.fr_to_spec_ratio, 1.0)",
+    ),
+    (
+        # src 実装への FR-ID trace 被覆率が単調増加していることを確認する
+        # R3 完了 (63/63=1.0): threshold を 1.0 に格上げ（全 FR-ID の IMPL-ID 結線を永続強制）
+        "meta.trace_coverage_ratchet",
+        "trace_coverage.lock.yaml",
+        "ratchet_ge(`trace_coverage.lock.yaml`, summary.fr_to_impl_ratio, 1.0)",
+    ),
+    (
+        # proof 被覆率が単調増加していることを確認する
+        # R4 完了 (63/63=1.0): threshold を 1.0 に格上げ（全 IMPL-ID の proof 結線を永続強制）
+        "meta.proof_coverage_ratchet",
+        "proof_trace.lock.yaml",
+        "ratchet_ge(`proof_trace.lock.yaml`, summary.impl_to_proof_ratio, 1.0)",
+    ),
+    (
+        # PROOF-ID に対する build evidence の被覆率が単調増加していることを確認する
+        # evidence_coverage.lock.yaml は generate_evidence_coverage.py が生成
+        # R5 完了: threshold を 1.0 に格上げ（全 PROOF-ID に CI evidence が存在することを永続強制）
+        "meta.evidence_coverage_ratchet",
+        "evidence_coverage.lock.yaml",
+        "ratchet_ge(`evidence_coverage.lock.yaml`, summary.proof_to_evidence_ratio, 1.0)",
     ),
 ]
 

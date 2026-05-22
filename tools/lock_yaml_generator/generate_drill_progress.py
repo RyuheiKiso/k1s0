@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-security-prog-004 -> IMPL-security-0004
+# k1s0-impl: IMPL-security-0004 realizes=FR-security-004
 """tools/lock_yaml_generator/generate_drill_progress.py
 
 drill_progress.lock.yaml 生成器。

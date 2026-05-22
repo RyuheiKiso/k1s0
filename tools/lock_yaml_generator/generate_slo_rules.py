@@ -1,3 +1,6 @@
+# k1s0-proof: PROOF-cross_slo-prog-001 -> IMPL-cross_slo-0001
+# k1s0-proof: PROOF-cross_kek-prog-001 -> IMPL-cross_kek-0001
+# k1s0-impl: IMPL-cross_slo-0001 realizes=FR-cross_slo-001
 """tools/lock_yaml_generator/generate_slo_rules.py
 
 slo_rules.lock.yaml 生成器。

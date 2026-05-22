@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-infra-prog-003 -> IMPL-infra-0003
+# k1s0-impl: IMPL-infra-0003 realizes=FR-infra-003
 """tools/lock_yaml_generator/generate_failover_drill.py
 
 failover_drill.lock.yaml 生成器。

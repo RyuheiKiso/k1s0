@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-003 -> IMPL-meta-0003
+# k1s0-impl: IMPL-meta-0003 realizes=FR-meta-003
 """tools/lock_yaml_generator/generate_ownership_table.py
 
 ownership_table.lock.yaml 生成器。

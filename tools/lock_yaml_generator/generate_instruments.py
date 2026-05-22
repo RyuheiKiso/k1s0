@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-cross_edge-prog-001 -> IMPL-cross_edge-0001
+# k1s0-impl: IMPL-cross_edge-0001 realizes=FR-cross_edge-001
 """tools/lock_yaml_generator/generate_instruments.py
 
 instruments.lock.yaml 生成器。

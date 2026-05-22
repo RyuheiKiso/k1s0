@@ -11,6 +11,10 @@ depends_on:
 covered_by:
   defense_in_depth_layers: [B, C]
   proof_classes: []
+trace:
+  fr_ids:
+  - FR-client-003
+
 ---
 
 # client 運用 UI と開発者体験

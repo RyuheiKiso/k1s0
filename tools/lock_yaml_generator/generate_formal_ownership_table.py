@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-formal-prog-006 -> IMPL-formal-0006
+# k1s0-impl: IMPL-formal-0006 realizes=FR-formal-006
 """tools/lock_yaml_generator/generate_formal_ownership_table.py
 
 formal 軸の ownership_table.lock.yaml 生成器。

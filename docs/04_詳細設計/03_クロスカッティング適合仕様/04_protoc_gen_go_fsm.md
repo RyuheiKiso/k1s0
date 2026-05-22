@@ -17,6 +17,10 @@ covered_by:
 related_axes:
   - tier2
   - client
+trace:
+  fr_ids:
+  - FR-cross_fsm-001
+
 ---
 
 # protoc-gen-k1s0-go-fsm（v1）

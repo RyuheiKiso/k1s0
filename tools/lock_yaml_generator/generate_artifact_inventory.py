@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-meta-prog-007 -> IMPL-meta-0007
+# k1s0-impl: IMPL-meta-0007 realizes=FR-meta-007
 """tools/lock_yaml_generator/generate_artifact_inventory.py
 
 artifact_inventory.lock.yaml 生成器。

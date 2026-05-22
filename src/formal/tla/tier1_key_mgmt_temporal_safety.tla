@@ -1,3 +1,4 @@
+\* k1s0-proof: PROOF-tier1-tsafe-003 -> IMPL-tier1-0005
 \* tier1_key_mgmt_temporal_safety.tla
 \* tier1 鍵管理 temporal safety: KEK ローテーションと暗号消去の安全性保証
 \* obligation_id: tier1_key_mgmt_tsp

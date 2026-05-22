@@ -1,3 +1,4 @@
+# k1s0-proof: PROOF-cross_fsm-prog-001 -> IMPL-cross_fsm-0001
 """tools/lock_yaml_generator/generate_fsm.py
 
 # fsm.lock.yaml 生成器。

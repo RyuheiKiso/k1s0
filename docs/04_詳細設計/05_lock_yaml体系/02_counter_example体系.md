@@ -18,6 +18,10 @@ covered_by:
 lock_artifacts:
   - counter_example.lock.yaml
   - proof_review.lock.yaml
+trace:
+  fr_ids:
+  - FR-formal-005
+
 ---
 
 # counter_example 体系

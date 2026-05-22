@@ -14,6 +14,10 @@ covered_by:
 lock_artifacts:
   - coverage_matrix.lock.yaml
   - regression_corpus.lock.yaml
+trace:
+  fr_ids:
+  - FR-test-004
+
 ---
 
 # verification_matrix 体系

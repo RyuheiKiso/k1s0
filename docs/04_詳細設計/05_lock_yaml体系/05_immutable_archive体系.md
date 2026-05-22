@@ -10,6 +10,10 @@ covered_by:
   defense_in_depth_layers: [D, E]
   proof_classes:
     - v1_temporal_safety_proof
+trace:
+  fr_ids:
+  - FR-meta-007
+
 ---
 
 # immutable archive 体系

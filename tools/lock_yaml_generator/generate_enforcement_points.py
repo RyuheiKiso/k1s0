@@ -1,3 +1,5 @@
+# k1s0-proof: PROOF-cross_http2-prog-001 -> IMPL-cross_http2-0001
+# k1s0-impl: IMPL-cross_http2-0001 realizes=FR-cross_http2-001
 """tools/lock_yaml_generator/generate_enforcement_points.py
 
 enforcement_points.lock.yaml 生成器。

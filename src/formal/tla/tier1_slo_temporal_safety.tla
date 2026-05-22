@@ -1,3 +1,4 @@
+\* k1s0-proof: PROOF-tier1-tsafe-005 -> IMPL-tier1-0007
 \* tier1_slo_temporal_safety.tla
 \* tier1 SLO temporal safety: burn-rate アラートによるエラーバジェット凍結の形式検証
 \* obligation_id: tier1_slo_tsp
