@@ -626,6 +626,244 @@ def eval_hard_fail_if_zero(expr: str, lock_dir: Path) -> EvalResult:
 
 
 # ---------------------------------------------------------------------------
+# artifact_substance()
+# ---------------------------------------------------------------------------
+
+def eval_artifact_substance(expr: str, lock_dir: Path) -> EvalResult:
+    """artifact_substance(`lock`, jsonpath, pointer_field, min_lines, ban_keywords) >= N
+
+    lock の jsonpath で得た各 item の pointer_field が指すファイルを実際に読み込み、
+    以下を全て満たす item を「substance あり」と判定する:
+      - ファイルが存在する
+      - 行数 >= min_lines
+      - ban_keywords (| 区切り) の語を含まない
+
+    substance ある item 数 >= N なら green。
+    ban_keywords は空文字列を指定した場合スキップ。
+    """
+    m = re.fullmatch(
+        r'artifact_substance\((.+?),\s*(.+?),\s*(\w+),\s*(\d+),\s*"([^"]*)"\)\s*(>=|==|>)\s*(\d+)',
+        expr.strip(),
+    )
+    if not m:
+        return EvalResult("yellow", f"artifact_substance DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    path = m.group(2).strip()
+    pointer_field = m.group(3).strip()
+    min_lines = int(m.group(4))
+    ban_raw = m.group(5)
+    op = m.group(6)
+    threshold = int(m.group(7))
+
+    ban_patterns = [p for p in ban_raw.split("|") if p] if ban_raw else []
+
+    data = _load(lock_dir, lock_name)
+    if not data:
+        return EvalResult("red", f"{lock_name} not found")
+
+    items = _jsonpath_items(data, path)
+    if not items:
+        return EvalResult("red", f"{lock_name}: {path} に item がない (substance floor fail)")
+
+    substance_count = 0
+    placeholder_count = 0
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        ptr = item.get(pointer_field)
+        if not ptr:
+            placeholder_count += 1
+            continue
+        # REPO_ROOT 起点で解決、次に lock_dir 起点でフォールバック（テスト互換）
+        from tools.lock_yaml_generator.base_generator import REPO_ROOT as _REPO_ROOT
+        file_path = _REPO_ROOT / str(ptr)
+        if not file_path.exists():
+            file_path = lock_dir / str(ptr)
+        if not file_path.exists():
+            placeholder_count += 1
+            continue
+        try:
+            content = file_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            placeholder_count += 1
+            continue
+        lines = content.splitlines()
+        if len(lines) < min_lines:
+            placeholder_count += 1
+            continue
+        if ban_patterns and any(bp in content for bp in ban_patterns):
+            placeholder_count += 1
+            continue
+        substance_count += 1
+
+    ok = (
+        (op == ">=" and substance_count >= threshold)
+        or (op == "==" and substance_count == threshold)
+        or (op == ">" and substance_count > threshold)
+    )
+    total = len(items)
+    status = "green" if ok else "red"
+    detail = (
+        f"artifact_substance: {substance_count}/{total} items have substance "
+        f"(min_lines={min_lines}, ban={ban_patterns}) {op} {threshold}"
+    )
+    if not ok:
+        detail += f"; {placeholder_count} placeholder/missing items detected"
+    return EvalResult(status, detail)
+
+
+# ---------------------------------------------------------------------------
+# no_stale_reference()
+# ---------------------------------------------------------------------------
+
+def eval_no_stale_reference(expr: str, lock_dir: Path) -> EvalResult:
+    """no_stale_reference(`lock1`, `lock2`, max_skew_days)
+
+    lock1 と lock2 が同概念の複数 SoT として存在する場合を検出する。
+    両方が存在する場合は「SoT 二重化 = gaming」として red を返す。
+    片方しか存在しない場合は「SoT 一意 = 正常」として green を返す。
+    両方存在するかつ generated_at skew が max_skew_days 以内なら red
+    (同期生成していても二重 SoT は認めない)。
+
+    検出ロジック:
+      - 両 lock が存在する → red (SoT duplicate)
+      - 片方のみ存在する → green (SoT unique)
+      - 両方存在しない → green (not yet generated, pending)
+    """
+    m = re.fullmatch(
+        r"no_stale_reference\((.+?),\s*(.+?),\s*(\d+)\)",
+        expr.strip(),
+    )
+    if not m:
+        return EvalResult("yellow", f"no_stale_reference DSL parse 失敗: {expr!r}")
+
+    lock1_name = _strip_backtick(m.group(1))
+    lock2_name = _strip_backtick(m.group(2))
+    # max_skew_days は将来の skew 判定用（現在は存在確認のみ）
+    # max_skew_days = int(m.group(3))
+
+    p1 = lock_dir / lock1_name
+    p2 = lock_dir / lock2_name
+
+    exists1 = p1.exists()
+    exists2 = p2.exists()
+
+    if not exists1 and not exists2:
+        return EvalResult("green", f"no_stale_reference: both absent (pending)")
+    if exists1 and not exists2:
+        return EvalResult("green", f"no_stale_reference: only {lock1_name} present (SoT unique)")
+    if not exists1 and exists2:
+        return EvalResult("green", f"no_stale_reference: only {lock2_name} present (SoT unique)")
+
+    # 両方存在 = SoT duplicate = red
+    return EvalResult(
+        "red",
+        f"no_stale_reference: BOTH {lock1_name} AND {lock2_name} exist — SoT duplicate (gaming pattern)",
+    )
+
+
+# ---------------------------------------------------------------------------
+# no_vacuous_green()
+# ---------------------------------------------------------------------------
+
+def eval_no_vacuous_green(expr: str, lock_dir: Path) -> EvalResult:
+    """no_vacuous_green(`lock`, list_field, min_count)
+
+    lock の list_field が空リスト / None / 未存在 / len < min_count の場合は red。
+    空の SoT (cells: [], reviews: []) に対して vacuously green になることを物理的に防ぐ。
+    """
+    m = re.fullmatch(
+        r"no_vacuous_green\((.+?),\s*(\w+),\s*(\d+)\)",
+        expr.strip(),
+    )
+    if not m:
+        return EvalResult("yellow", f"no_vacuous_green DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    field_name = m.group(2).strip()
+    min_count = int(m.group(3))
+
+    data = _load(lock_dir, lock_name)
+    if not data:
+        return EvalResult("red", f"no_vacuous_green: {lock_name} not found (vacuous fail)")
+
+    val = _resolve_path(data, field_name)
+    if val is None:
+        return EvalResult("red", f"no_vacuous_green: {field_name} absent in {lock_name}")
+    if not isinstance(val, (list, dict)):
+        return EvalResult("red", f"no_vacuous_green: {field_name} is not a list/dict in {lock_name}")
+
+    count = len(val)
+    if count == 0:
+        return EvalResult("red", f"no_vacuous_green: {lock_name}.{field_name} is empty (vacuous green blocked)")
+    if count < min_count:
+        return EvalResult(
+            "red",
+            f"no_vacuous_green: {lock_name}.{field_name} has {count} items < min_count={min_count}",
+        )
+
+    return EvalResult("green", f"no_vacuous_green: {lock_name}.{field_name} has {count} items >= {min_count}")
+
+
+# ---------------------------------------------------------------------------
+# env_dependent_ratio_cap()
+# ---------------------------------------------------------------------------
+
+def eval_env_dependent_ratio_cap(expr: str, lock_dir: Path) -> EvalResult:
+    """env_dependent_ratio_cap(`lock`, items_field, id_field, suffix_pattern) <= R
+
+    lock の items_field リスト中、id_field の値が suffix_pattern (regex) にマッチする
+    item を「env-dependent」と判定し、その比率が R 以下なら green。
+
+    現状 build_evidence.lock.yaml の 68.5% が _envdep_ suffix を持つ状態を
+    直接 red 化し、30% cap まで e2e 実装を促す。
+    """
+    m = re.fullmatch(
+        r'env_dependent_ratio_cap\((.+?),\s*(\w+),\s*(\w+),\s*"([^"]*)"\)\s*(<=|<|==)\s*([\d.]+)',
+        expr.strip(),
+    )
+    if not m:
+        return EvalResult("yellow", f"env_dependent_ratio_cap DSL parse 失敗: {expr!r}")
+
+    lock_name = _strip_backtick(m.group(1))
+    items_field = m.group(2).strip()
+    id_field = m.group(3).strip()
+    suffix_pattern = m.group(4)
+    op = m.group(5)
+    cap = float(m.group(6))
+
+    data = _load(lock_dir, lock_name)
+    if not data:
+        return EvalResult("red", f"{lock_name} not found")
+
+    items = _jsonpath_items(data, items_field)
+    total = len(items)
+    if total == 0:
+        return EvalResult("red", f"env_dependent_ratio_cap: {items_field} is empty in {lock_name}")
+
+    pattern = re.compile(suffix_pattern)
+    env_dep_count = sum(
+        1 for item in items
+        if isinstance(item, dict) and pattern.search(str(item.get(id_field, "")))
+    )
+    ratio = env_dep_count / total
+
+    ok = (
+        (op == "<=" and ratio <= cap)
+        or (op == "<" and ratio < cap)
+        or (op == "==" and abs(ratio - cap) < 1e-9)
+    )
+    pct = f"{ratio:.1%}"
+    cap_pct = f"{cap:.1%}"
+    status = "green" if ok else "red"
+    return EvalResult(
+        status,
+        f"env_dependent_ratio_cap: {env_dep_count}/{total} ({pct}) env-dependent {op} cap {cap_pct}",
+    )
+
+
+# ---------------------------------------------------------------------------
 # メインルーター
 # ---------------------------------------------------------------------------
 
@@ -669,5 +907,13 @@ def evaluate_dsl(expr: str, lock_dir: Path) -> EvalResult:
         return eval_ratio(expr, lock_dir)
     if expr.startswith("hard_fail_if_zero("):
         return eval_hard_fail_if_zero(expr, lock_dir)
+    if expr.startswith("artifact_substance("):
+        return eval_artifact_substance(expr, lock_dir)
+    if expr.startswith("no_stale_reference("):
+        return eval_no_stale_reference(expr, lock_dir)
+    if expr.startswith("no_vacuous_green("):
+        return eval_no_vacuous_green(expr, lock_dir)
+    if expr.startswith("env_dependent_ratio_cap("):
+        return eval_env_dependent_ratio_cap(expr, lock_dir)
 
     return EvalResult("yellow", f"DSL 未知パターン: {expr!r}")
