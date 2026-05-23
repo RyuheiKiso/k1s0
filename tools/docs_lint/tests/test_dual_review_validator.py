@@ -1,7 +1,7 @@
 """tests/test_dual_review_validator.py
 
 dual_review_validator.py の unit tests。
-5 ケース: placeholder 検出 / 実署名通過 / 未定義 key 拒否 / oneOf 分岐 / V0 scope 除外
+4 ケース: placeholder 検出 / 実署名通過 / 未定義 key 拒否 / oneOf 分岐
 """
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent.par
 from tools.docs_lint.dual_review_validator import (
     load_schema,
     validate_file,
-    is_v0_scope_out,
 )
 from jsonschema import Draft202012Validator
 
@@ -148,35 +147,13 @@ def test_implementation_review_form_branch_requires_subject(tmp_path: pathlib.Pa
     assert errs, "missing required fields in implementation_review_form should cause violations"
 
 
-def test_v0_legacy_excluded_from_scope() -> None:
-    """V0 旧形 5 件のファイル名が scope 外として検出され、TSP 形は scope 内になる。"""
-    v0_names = [
-        "tier1_auth.dual_review.lock.yaml",
-        "tier1_key_mgmt.dual_review.lock.yaml",
-        "tier1_slo.dual_review.lock.yaml",
-        "tier1_oss_lifecycle.dual_review.lock.yaml",
-        "tier1_tenant_capacity.dual_review.lock.yaml",
-    ]
-    in_scope_names = [
-        "tier1_auth_tsp.dual_review.lock.yaml",
-        "tier1_correctness_001.dual_review.lock.yaml",
-        "formal_correctness_045.dual_review.lock.yaml",
-        "v1_implementation_review.dual_review.lock.yaml",
-    ]
-    for name in v0_names:
-        assert is_v0_scope_out(pathlib.Path(name)), f"{name} should be V0 scope-out"
-    for name in in_scope_names:
-        assert not is_v0_scope_out(pathlib.Path(name)), f"{name} should be in scope"
-
-
 def test_real_repo_files_currently_violate() -> None:
-    """実リポジトリの 82 in-scope file が現状全件 schema 違反であることを確認。
+    """実リポジトリの 82 file が現状全件 schema 違反であることを確認。
     実 cosign 署名完了後に違反数が 0 になることが期待値。"""
     validator = _validator()
     files = sorted(REPO_ROOT.glob("src/formal/dual_review/*.dual_review.lock.yaml"))
-    in_scope = [f for f in files if not is_v0_scope_out(f)]
-    assert len(in_scope) == 82, f"expected 82 in-scope files, got {len(in_scope)}"
-    violators = sum(1 for f in in_scope if validate_file(f, validator))
+    assert len(files) == 82, f"expected 82 files, got {len(files)}"
+    violators = sum(1 for f in files if validate_file(f, validator))
     assert violators == 82, (
         f"expected all 82 files to violate (placeholder cosign not yet signed), "
         f"but only {violators} violated"
