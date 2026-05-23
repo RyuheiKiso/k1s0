@@ -1,0 +1,3 @@
+# Rust ビルド成果物（コミット不要）
+target/
+Cargo.lock

@@ -27,6 +27,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from tools.lock_yaml_generator.lock_registry import (
     ALL_GENERATORS,
+    CANONICAL_SOT_TABLE,
     TOPO_ORDER,
     get_generator,
 )
@@ -107,11 +108,40 @@ for _gen_name in ALL_GENERATORS:
     cli.add_command(_make_subcommand(_gen_name))
 
 
+def _detect_duplicate_sot() -> list[str]:
+    """CANONICAL_SOT_TABLE に登録された lock_name が canonical 以外のディレクトリにも存在する場合、
+    そのパスリストを返す。空リストなら SoT は一意（正常）。
+
+    gaming パターン検出: `_meta/lock/proof_review.lock.yaml` が `formal/lock/` SoT と並存するケースなど。
+    """
+    duplicates: list[str] = []
+    for lock_name, canonical_dir in CANONICAL_SOT_TABLE.items():
+        canonical_path = REPO_ROOT / canonical_dir / lock_name
+        # src/ 配下を広く探して canonical 以外に存在するものを検出
+        src_root = REPO_ROOT / "src"
+        for found in src_root.rglob(lock_name):
+            if found.resolve() != canonical_path.resolve():
+                duplicates.append(str(found.relative_to(REPO_ROOT)))
+    return duplicates
+
+
 @cli.command("all")
 @click.option("--check-only", is_flag=True, default=False,
               help="bit-for-bit reproducibility の確認のみ（ファイル非更新）")
 def cmd_all(check_only: bool) -> None:
     """全 generator を topological sort 順で実行する。"""
+    # pre-flight: SoT 一意性チェック（再 gaming 防止）
+    duplicates = _detect_duplicate_sot()
+    if duplicates:
+        click.echo("FAIL: duplicate SoT detected (gaming pattern):", err=True)
+        for dup in duplicates:
+            click.echo(f"  {dup}", err=True)
+        click.echo(
+            "Remove orphan files from non-canonical directories before running generators.",
+            err=True,
+        )
+        sys.exit(2)
+
     failed: list[str] = []
     for name in TOPO_ORDER:
         gen_cls = get_generator(name)

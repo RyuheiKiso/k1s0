@@ -120,6 +120,8 @@ TOPO_ORDER: list[str] = [
     "tla_apalache_pin",
     "kani_cbmc_pin",
     "formal_ownership_table",
+    # manufacturing stress test lock (段階 2 P1: ship blocker 9 spec)
+    "manufacturing_stress",
     # docs↔src semantic trace ledger (P11 前半 FR-ID trace skeleton)
     "trace_ledger",
     # docs↔src coverage oracle: FR-ID → IMPL-ID 被覆率 (R3 以降 green 化)
@@ -133,6 +135,41 @@ TOPO_ORDER: list[str] = [
 
 # generator 名のセット
 ALL_GENERATORS: list[str] = TOPO_ORDER[:]
+
+# ---------------------------------------------------------------------------
+# canonical SoT 表
+# ---------------------------------------------------------------------------
+# lock_name → canonical 出力ディレクトリ (REPO_ROOT 相対)
+# 複数ディレクトリに同名 lock が存在するのは gaming パターン。
+# dsl.no_stale_reference / cli._detect_duplicate_sot がこの表を参照して二重 SoT を検出する。
+CANONICAL_SOT_TABLE: dict[str, str] = {
+    # formal/lock が SoT
+    "proof_status.lock.yaml":    "src/formal/lock",
+    "proof_inventory.lock.yaml": "src/formal/lock",
+    "proof_matrix.lock.yaml":    "src/formal/lock",
+    "proof_review.lock.yaml":    "src/formal/lock",
+    "assumption.lock.yaml":      "src/formal/lock",
+    "counter_example.lock.yaml": "src/formal/lock",
+    # test/lock が SoT
+    "coverage_matrix.lock.yaml":    "src/test/lock",
+    "regression_corpus.lock.yaml":  "src/test/lock",
+    # _meta/lock が SoT (独占)
+    "release_gate.lock.yaml":       "src/_meta/lock",
+    "axis_registry.lock.yaml":      "src/_meta/lock",
+    "ownership_table.lock.yaml":    "src/_meta/lock",
+    "trace_ledger.lock.yaml":       "src/_meta/lock",
+    "trace_coverage.lock.yaml":     "src/_meta/lock",
+    "proof_trace.lock.yaml":        "src/_meta/lock",
+    "evidence_coverage.lock.yaml":  "src/_meta/lock",
+    "build_evidence.lock.yaml":     "src/_meta/lock",
+    # tier1/lock が SoT
+    "manufacturing_stress.lock.yaml": "src/tier1/lock",
+}
+
+
+def canonical_path_for(lock_name: str) -> str | None:
+    """lock_name の canonical SoT ディレクトリ (REPO_ROOT 相対) を返す。未登録なら None。"""
+    return CANONICAL_SOT_TABLE.get(lock_name)
 
 
 def get_generator(name: str) -> type | None:
@@ -239,6 +276,8 @@ def get_generator(name: str) -> type | None:
         "tla_apalache_pin": ("tools.lock_yaml_generator.generate_tla_apalache_pin", "TlaApalachePinGenerator"),
         "kani_cbmc_pin": ("tools.lock_yaml_generator.generate_kani_cbmc_pin", "KaniCbmcPinGenerator"),
         "formal_ownership_table": ("tools.lock_yaml_generator.generate_formal_ownership_table", "FormalOwnershipTableGenerator"),
+        # manufacturing stress test lock (段階 2 P1: ship blocker 9 spec)
+        "manufacturing_stress": ("tools.lock_yaml_generator.generate_manufacturing_stress", "ManufacturingStressGenerator"),
         # docs↔src semantic trace ledger (P11 前半 FR-ID trace skeleton)
         "trace_ledger": ("tools.lock_yaml_generator.generate_trace_ledger", "TraceLedgerGenerator"),
         # docs↔src coverage oracle (R3 以降)

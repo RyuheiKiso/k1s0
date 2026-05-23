@@ -1,0 +1,13 @@
+{
+  "version": "0.45.4",
+  "input": {
+    "files": ["cross_http2_safety_temporal.tla"],
+    "main": "cross_http2_safety_temporal"
+  },
+  "checker": {
+    "length": 5,
+    "inv": ["TypeInvariant", "HTTP2RequiresTLS"],
+    "noDeadlock": true,
+    "search": "TransitionFusion"
+  }
+}

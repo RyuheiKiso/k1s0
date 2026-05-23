@@ -10,6 +10,8 @@ members = [
     "bfl",
     # コントロールプレーン（flagd 連携スタブ）
     "control_plane",
+    # Phase C: bfl 認可境界 security test（DPoP / OIDC / SPIRE failure-path 網羅）
+    "tests/bfl_security",
 ]
 # Cargo workspace の依存バージョン一元管理（resolver v2 必須）
 resolver = "2"

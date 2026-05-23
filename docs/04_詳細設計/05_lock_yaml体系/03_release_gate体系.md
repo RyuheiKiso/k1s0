@@ -66,11 +66,12 @@ trace:
 ### formal 軸 cells
 | cell_id | 入力 lock.yaml | 条件 |
 |---|---|---|
-| `formal.all_critical_verified` | `proof_status.lock.yaml` | 全 95 cell が verified or accepted_with_assumption |
+| `formal.all_critical_verified` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_baseline_verified'], total_cells) >= 80%`（100 cell 体系で 20% cap と対称; 旧 ">= 95 cells" を更新） |
 | `formal.proof_matrix_complete` | `proof_matrix.lock.yaml` | 全 cell `cell_state` ∈ {v1_baseline_verified, v1_accepted_with_assumption, v1_unverified_handled} |
 | `formal.no_open_above_severity_low` | `counter_example.lock.yaml` | high severity open ゼロ + medium severity decreasing monotonic |
 | `formal.dual_review_completeness_100pct` | `proof_review.lock.yaml` | 全 obligation の dual_signoff_complete=true |
 | `formal.assumption_cap_within_20` | `assumption.lock.yaml` | cap=20 件以内 + 全 entry に軽減策 + revisit 期限完備 |
+| `formal.accepted_with_assumption_ratio_within_cap` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 20%`（61% は red、41 cell を v1 必達に巻き戻す義務） |
 | `formal.tool_pin_drill_green` | `tla_apalache_pin.lock.yaml` `kani_cbmc_pin.lock.yaml` `mathlib_pin.lock.yaml` | major version migration drill green 維持 |
 | `formal.reproducibility_daily_green` | reproducibility check log | 日次 green |
 | `formal.cross_axis_lock_drift_zero` | 18 軸との bidirectional lock check | drift ゼロ |
@@ -79,8 +80,8 @@ trace:
 ### test 軸 cells（参考、他軸 spec で詳述）
 | cell_id | 内容 |
 |---|---|
-| `test.coverage_matrix_complete` | 18 axis × 5 verification_class = 90 cell 完備 |
-| `test.regression_corpus_drift_zero` | formal counter-example との双方向 lock |
+| `test.coverage_matrix_complete` | `count(cells[?drill_state=='verified']) == 90`（pending_with_artifact は品質不足として red） |
+| `test.regression_corpus_drift_zero` | `hard_fail_if_zero(entries) AND count(entries[?status=='open']) == 0`（entries=[] の形式的 drift zero を物理的に拒否） |
 | `test.mutation_score_monotonic` | quarter で monotonic increase |
 
 ### ops 軸 cells（参考、他軸 spec で詳述）

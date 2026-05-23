@@ -16,6 +16,8 @@ from tools.lock_yaml_generator.dsl import (
     eval_field,
     eval_len,
     eval_bidirectional,
+    eval_ratio,
+    eval_hard_fail_if_zero,
 )
 
 
@@ -273,3 +275,156 @@ def test_evaluate_dsl_empty_yields_yellow(tmp_path):
 def test_evaluate_dsl_unknown_yellow(tmp_path):
     r = evaluate_dsl("some_unknown_dsl(a, b)", tmp_path)
     assert r.status == "yellow"
+
+
+# ---------------------------------------------------------------------------
+# ratio()
+# ---------------------------------------------------------------------------
+
+def test_ratio_lte_green(tmp_path):
+    # 20 accepted_with_assumption / 100 total = 20% <= 20% → green
+    data = {
+        "total_cells": 100,
+        "cells": [{"cell_state": "v1_accepted_with_assumption"}] * 20
+                + [{"cell_state": "v1_baseline_verified"}] * 80,
+    }
+    (tmp_path / "proof_status.lock.yaml").write_text(yaml.safe_dump(data))
+    r = eval_ratio(
+        "ratio(`proof_status.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
+        tmp_path
+    )
+    assert r.status == "green"
+    assert "20.0%" in r.detail
+
+
+def test_ratio_lte_red(tmp_path):
+    # 61 accepted_with_assumption / 100 total = 61% > 20% → red
+    data = {
+        "total_cells": 100,
+        "cells": [{"cell_state": "v1_accepted_with_assumption"}] * 61
+                + [{"cell_state": "v1_baseline_verified"}] * 39,
+    }
+    (tmp_path / "proof_status.lock.yaml").write_text(yaml.safe_dump(data))
+    r = eval_ratio(
+        "ratio(`proof_status.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "61.0%" in r.detail
+
+
+def test_ratio_division_by_zero_red(tmp_path):
+    data = {"total_cells": 0, "cells": []}
+    (tmp_path / "proof_status.lock.yaml").write_text(yaml.safe_dump(data))
+    r = eval_ratio(
+        "ratio(`proof_status.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "division by zero" in r.detail
+
+
+def test_ratio_lock_missing_red(tmp_path):
+    r = eval_ratio(
+        "ratio(`no_such.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "not found" in r.detail
+
+
+def test_ratio_parse_fail_yellow(tmp_path):
+    r = eval_ratio("invalid ratio expression", tmp_path)
+    assert r.status == "yellow"
+    assert "parse" in r.detail
+
+
+def test_evaluate_dsl_ratio(tmp_path):
+    data = {
+        "total_cells": 100,
+        "cells": [{"cell_state": "v1_accepted_with_assumption"}] * 10
+                + [{"cell_state": "v1_baseline_verified"}] * 90,
+    }
+    (tmp_path / "proof_status.lock.yaml").write_text(yaml.safe_dump(data))
+    r = evaluate_dsl(
+        "ratio(`proof_status.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
+        tmp_path
+    )
+    assert r.status == "green"
+
+
+# ---------------------------------------------------------------------------
+# hard_fail_if_zero()
+# ---------------------------------------------------------------------------
+
+def test_hard_fail_if_zero_non_empty_green(tmp_path):
+    data = {"entries": [{"id": "e1", "status": "closed"}]}
+    (tmp_path / "regression_corpus.lock.yaml").write_text(yaml.safe_dump(data))
+    r = eval_hard_fail_if_zero(
+        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries)",
+        tmp_path
+    )
+    assert r.status == "green"
+    assert "1 item" in r.detail
+
+
+def test_hard_fail_if_zero_empty_list_red(tmp_path):
+    data = {"entries": [], "total_count": 0}
+    (tmp_path / "regression_corpus.lock.yaml").write_text(yaml.safe_dump(data))
+    r = eval_hard_fail_if_zero(
+        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries)",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "hard fail" in r.detail
+
+
+def test_hard_fail_if_zero_missing_field_red(tmp_path):
+    data = {"total_count": 0}  # entries フィールド自体が存在しない
+    (tmp_path / "regression_corpus.lock.yaml").write_text(yaml.safe_dump(data))
+    r = eval_hard_fail_if_zero(
+        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries)",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "hard fail" in r.detail
+
+
+def test_hard_fail_if_zero_lock_missing_red(tmp_path):
+    r = eval_hard_fail_if_zero(
+        "hard_fail_if_zero(`no_such.lock.yaml`, entries)",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "not found" in r.detail
+
+
+def test_hard_fail_if_zero_parse_fail_yellow(tmp_path):
+    r = eval_hard_fail_if_zero("invalid expression", tmp_path)
+    assert r.status == "yellow"
+    assert "parse" in r.detail
+
+
+def test_evaluate_dsl_hard_fail_and_count_compound(tmp_path):
+    # entries 非空 AND open エントリゼロ → green
+    data = {"entries": [{"id": "e1", "status": "closed"}], "total_count": 1}
+    (tmp_path / "regression_corpus.lock.yaml").write_text(yaml.safe_dump(data))
+    r = evaluate_dsl(
+        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries) AND "
+        "count(`regression_corpus.lock.yaml`, entries[?status=='open']) == 0",
+        tmp_path
+    )
+    assert r.status == "green"
+
+
+def test_evaluate_dsl_hard_fail_empty_entries_red(tmp_path):
+    # entries 空 → hard_fail_if_zero が red → compound は red
+    data = {"entries": [], "total_count": 0}
+    (tmp_path / "regression_corpus.lock.yaml").write_text(yaml.safe_dump(data))
+    r = evaluate_dsl(
+        "hard_fail_if_zero(`regression_corpus.lock.yaml`, entries) AND "
+        "count(`regression_corpus.lock.yaml`, entries[?status=='open']) == 0",
+        tmp_path
+    )
+    assert r.status == "red"
+    assert "hard fail" in r.detail

@@ -1,0 +1,13 @@
+{
+  "version": "0.45.4",
+  "input": {
+    "files": ["cross_pii_safety_temporal.tla"],
+    "main": "cross_pii_safety_temporal"
+  },
+  "checker": {
+    "length": 5,
+    "inv": ["TypeInvariant", "PIIIsolation"],
+    "noDeadlock": true,
+    "search": "TransitionFusion"
+  }
+}

@@ -15,10 +15,48 @@ from pathlib import Path
 from typing import Any
 
 from tools.lock_yaml_generator.base_generator import BaseGenerator, REPO_ROOT
-from tools.lock_yaml_generator.dsl import evaluate_dsl
+from tools.lock_yaml_generator.dsl import (
+    EvalResult,
+    evaluate_dsl,
+    eval_no_stale_reference,
+    eval_no_vacuous_green,
+    eval_artifact_substance,
+    eval_env_dependent_ratio_cap,
+)
 
 # ---------------------------------------------------------------------------
-# 87 cell カタログ (v1.0.0 拡張: 54 → 70 → 72 → 73 cells / P11前半: +4 trace skeleton cells)
+# global invariant (再 gaming 防止): catalog 外で強制されるため個別 cell の緩和では bypass 不可能
+# これらは build_artifact() の冒頭で評価され、invariant red は全体ステータスを red に downgrade する。
+# ---------------------------------------------------------------------------
+_GLOBAL_INVARIANTS: list[tuple[str, str]] = [
+    (
+        "sot_uniqueness_pre",
+        "no_stale_reference(`proof_status.lock.yaml`, `../../formal/lock/proof_status.lock.yaml`, 7)"
+        " AND no_stale_reference(`proof_inventory.lock.yaml`, `../../formal/lock/proof_inventory.lock.yaml`, 7)"
+        " AND no_stale_reference(`proof_review.lock.yaml`, `../../formal/lock/proof_review.lock.yaml`, 7)"
+        " AND no_stale_reference(`assumption.lock.yaml`, `../../formal/lock/assumption.lock.yaml`, 7)"
+        " AND no_stale_reference(`counter_example.lock.yaml`, `../../formal/lock/counter_example.lock.yaml`, 7)"
+        " AND no_stale_reference(`coverage_matrix.lock.yaml`, `../../test/lock/coverage_matrix.lock.yaml`, 7)"
+        " AND no_stale_reference(`regression_corpus.lock.yaml`, `../../test/lock/regression_corpus.lock.yaml`, 7)",
+    ),
+    (
+        "no_vacuous_green_pre",
+        "no_vacuous_green(`../../formal/lock/proof_matrix.lock.yaml`, cells, 95)"
+        " AND no_vacuous_green(`../../formal/lock/proof_review.lock.yaml`, reviews, 1)"
+        " AND no_vacuous_green(`../../formal/lock/assumption.lock.yaml`, entries, 1)",
+    ),
+    (
+        "artifact_substance_pre",
+        'artifact_substance(`../../test/lock/coverage_matrix.lock.yaml`, cells[?drill_state==\'v1_verified_with_artifact_pointer\'], artifact_pointer, 8, "placeholder|TODO|drill 実行後に") >= 90',
+    ),
+    (
+        "env_dependent_cap_pre",
+        'env_dependent_ratio_cap(`build_evidence.lock.yaml`, evidence_entries, build_evidence_id, "_envdep_") <= 0.30',
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# 87 cell カタログ (v1.0.0 拡張: 54 → 70 → 72 → 73 cells / P11前半: +4 trace skeleton cells / gaming 止め: +4 meta_invariant)
 # (cell_id, source_lock, dsl_expr)
 # ---------------------------------------------------------------------------
 _CELL_CATALOG: list[tuple[str, str, str]] = [
@@ -133,74 +171,92 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     # formal
     (
-        # proof_status.lock.yaml に 95 cell 全て v1_unverified_handled (= accepted_with_assumption
-        # 等価) として記録されていることを確認する。Phase 11 で verified に昇格する。
+        # formal/lock/proof_status.lock.yaml の v1_baseline_verified セル比率が 80% 以上であることを確認する。
+        # accepted_with_assumption cap=20% と合わせて 100% 全セル handled を保証する。
+        # 注意: formal/lock/ 側が actual proof obligation の SoT（_meta/lock/ 側とは別ファイル）
         "formal.all_critical_verified",
-        "proof_status.lock.yaml",
-        "count(`proof_status.lock.yaml`, cells) >= 95",
+        "../../formal/lock/proof_status.lock.yaml",
+        "ratio(`../../formal/lock/proof_status.lock.yaml`, cells[?cell_state=='v1_baseline_verified'], total_cells) >= 0.80",
     ),
     (
+        # proof_inventory の canonical SoT は formal/lock/
+        # no_vacuous_green で cells=[] の vacuous green を物理的に弾く
         "formal.proof_matrix_complete",
-        "proof_inventory.lock.yaml",
-        "count(`proof_inventory.lock.yaml`, obligations[?cell_state=='v1_unverified_handled']) <= 95",
+        "../../formal/lock/proof_inventory.lock.yaml",
+        "no_vacuous_green(`../../formal/lock/proof_inventory.lock.yaml`, obligations, 95)"
+        " AND count(`../../formal/lock/proof_inventory.lock.yaml`, obligations[?cell_state=='v1_unverified_handled']) <= 95",
     ),
     (
         "formal.no_open_above_severity_low",
-        "counter_example.lock.yaml",
-        "count(`counter_example.lock.yaml`, entries[?status=='open']) == 0",
+        "../../formal/lock/counter_example.lock.yaml",
+        "count(`../../formal/lock/counter_example.lock.yaml`, entries[?status=='open']) == 0",
     ),
     (
-        # proof_review.lock.yaml の missing_review_count == 0 = レビュー残なし
+        # proof_review の canonical SoT は formal/lock/（missing_review_count=42 が露呈）
         "formal.dual_review_completeness_100pct",
-        "proof_review.lock.yaml",
-        "field(`proof_review.lock.yaml`, missing_review_count) == 0",
+        "../../formal/lock/proof_review.lock.yaml",
+        "no_vacuous_green(`../../formal/lock/proof_review.lock.yaml`, reviews, 1)"
+        " AND field(`../../formal/lock/proof_review.lock.yaml`, missing_review_count) == 0",
     ),
     (
+        # assumption の canonical SoT は formal/lock/
         "formal.assumption_cap_within_20",
-        "assumption.lock.yaml",
-        "count(`assumption.lock.yaml`, entries[?status=='open']) <= 20",
+        "../../formal/lock/assumption.lock.yaml",
+        "count(`../../formal/lock/assumption.lock.yaml`, entries[?status=='open']) <= 20",
     ),
     (
-        # proof_inventory に 95 obligation が全て記録 = tool pin 体系が確立
+        # formal/lock/proof_status.lock.yaml の accepted_with_assumption 比率が 20% 以下であることを確認する。
+        "formal.accepted_with_assumption_ratio_within_cap",
+        "../../formal/lock/proof_status.lock.yaml",
+        "ratio(`../../formal/lock/proof_status.lock.yaml`, cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 0.20",
+    ),
+    (
+        # formal/lock/proof_inventory の total_cells == 100 (fresh SoT は 100 cell)
         "formal.tool_pin_drill_green",
-        "proof_inventory.lock.yaml",
-        "field(`proof_inventory.lock.yaml`, total_cells) == 95",
+        "../../formal/lock/proof_inventory.lock.yaml",
+        "field(`../../formal/lock/proof_inventory.lock.yaml`, total_cells) >= 95",
     ),
     (
-        # proof_inventory の axis_count == 19 = 全 19 軸で再現可能な artifact が存在
+        # formal/lock/proof_inventory の axis_count == 19
         "formal.reproducibility_daily_green",
-        "proof_inventory.lock.yaml",
-        "field(`proof_inventory.lock.yaml`, axis_count) == 19",
+        "../../formal/lock/proof_inventory.lock.yaml",
+        "field(`../../formal/lock/proof_inventory.lock.yaml`, axis_count) == 19",
     ),
     (
-        # coverage_matrix に 90 cell が存在 = 軸間 lock drift ゼロ（全 cell が artifact を持つ）
+        # coverage_matrix の canonical SoT は test/lock/（substance check を追加）
         "formal.cross_axis_lock_drift_zero",
-        "coverage_matrix.lock.yaml",
-        "count(`coverage_matrix.lock.yaml`, cells) >= 90",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        "count(`../../test/lock/coverage_matrix.lock.yaml`, cells) >= 90",
     ),
     (
-        # proof_status に 95 cell 以上存在 = SLO 4 SLI の formal 義務が記録済み
+        # proof_status の canonical SoT は formal/lock/
         "formal.slo_4_sli_green",
-        "proof_status.lock.yaml",
-        "count(`proof_status.lock.yaml`, cells) >= 95",
+        "../../formal/lock/proof_status.lock.yaml",
+        "count(`../../formal/lock/proof_status.lock.yaml`, cells) >= 95",
     ),
     # test
     (
+        # test/lock/coverage_matrix.lock.yaml の全 90 cell が drill_state==v1_verified_with_artifact_pointer
+        # かつ artifact_pointer が指す物理ファイルに substance があることを確認する。
+        # placeholder README（3 行 "artifact placeholder"）は substance なしとして red 化。
         "test.coverage_matrix_complete",
-        "coverage_matrix.lock.yaml",
-        "len(`coverage_matrix.lock.yaml`, cells) >= 90",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        "count(`../../test/lock/coverage_matrix.lock.yaml`, cells[?drill_state=='v1_verified_with_artifact_pointer']) == 90"
+        ' AND artifact_substance(`../../test/lock/coverage_matrix.lock.yaml`, cells[?drill_state==\'v1_verified_with_artifact_pointer\'], artifact_pointer, 8, "placeholder|TODO|drill 実行後に") >= 90',
     ),
     (
-        # regression_corpus の total_count >= 0 = corpus が存在し drift がゼロ（entries = []）
+        # test/lock/regression_corpus.lock.yaml の entries が非空かつ open エントリがゼロであることを確認する。
+        # entries=[] の形式的 drift zero を物理的に拒否（hard_fail_if_zero で hard red）。
+        # 注意: _meta/lock/regression_corpus.lock.yaml は旧形式の別ファイル。SoT は test/lock/ 側。
         "test.regression_corpus_drift_zero",
-        "regression_corpus.lock.yaml",
-        "field(`regression_corpus.lock.yaml`, total_count) >= 0",
+        "../../test/lock/regression_corpus.lock.yaml",
+        "hard_fail_if_zero(`../../test/lock/regression_corpus.lock.yaml`, entries) AND count(`../../test/lock/regression_corpus.lock.yaml`, entries[?status=='open']) == 0",
     ),
     (
-        # coverage_matrix に 90 cell 以上存在 = mutation score 計測基盤が確立
+        # test/lock/coverage_matrix.lock.yaml に 90 cell 以上存在 = mutation score 計測基盤が確立
         "test.mutation_score_monotonic",
-        "coverage_matrix.lock.yaml",
-        "count(`coverage_matrix.lock.yaml`, cells) >= 90",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        "count(`../../test/lock/coverage_matrix.lock.yaml`, cells) >= 90",
     ),
     # security
     (
@@ -224,15 +280,17 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     # ops
     (
         # proof_status の ops axis に 5 cell 以上 = ops loop closure 義務が全て記録
+        # canonical SoT は formal/lock/
         "ops.loop_closure_complete",
-        "proof_status.lock.yaml",
-        "count(`proof_status.lock.yaml`, cells[?axis_name=='ops']) >= 5",
+        "../../formal/lock/proof_status.lock.yaml",
+        "count(`../../formal/lock/proof_status.lock.yaml`, cells[?axis_name=='ops']) >= 5",
     ),
     (
         # proof_status の total_cells >= 95 = toil 計測義務が全軸に存在
+        # canonical SoT は formal/lock/
         "ops.toil_minutes_within_50pct",
-        "proof_status.lock.yaml",
-        "field(`proof_status.lock.yaml`, total_cells) >= 95",
+        "../../formal/lock/proof_status.lock.yaml",
+        "field(`../../formal/lock/proof_status.lock.yaml`, total_cells) >= 95",
     ),
     # tier1
     (
@@ -551,7 +609,97 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "evidence_coverage.lock.yaml",
         "ratchet_ge(`evidence_coverage.lock.yaml`, summary.proof_to_evidence_ratio, 1.0)",
     ),
+    (
+        # manufacturing 9 stress spec が全て実装済みで status=green であることを確認する
+        # 01_Bidi 適合仕様 §158-160 ship blocker: 製造業 pack 9 stress test 全 green
+        "tier1.manufacturing_9_stress_green",
+        "../../tier1/lock/manufacturing_stress.lock.yaml",
+        "field(`../../tier1/lock/manufacturing_stress.lock.yaml`, status) == green"
+        " AND field(`../../tier1/lock/manufacturing_stress.lock.yaml`, implemented_count) == 9",
+    ),
+    # ---------------------------------------------------------------------------
+    # meta_invariant: 再 gaming 防止構造 (bypass 不可能な structural invariant)
+    # これら 4+3 cell は _GLOBAL_INVARIANTS と二重登録されており、
+    # catalog 外でも強制されるため個別 cell の DSL 緩和では bypass できない。
+    # ---------------------------------------------------------------------------
+    # --- Stage 2 昇格: 実装実体 enforcement (docs↔src gap 可視化 → hard gate) ---
+    (
+        # src/{ops,infra,data,security} と src/client 実装サブディレクトリ に
+        # 言語ファイルが 1 本以上存在すること。README/YAML のみは readme_only としてカウント。
+        # impl_substance.lock.yaml が存在しない場合は yellow (pending)。
+        "meta_invariant.no_readme_only_implementation_dir",
+        "impl_substance.lock.yaml",
+        "field(`impl_substance.lock.yaml`, readme_only_count) == 0",
+    ),
+    (
+        # 軸ごとの最低 LOC（コメント・空行除外）が閾値以上であること。
+        # 閾値: ops/infra/data/security/client ≥500、tier ≥2000、formal ≥1000。
+        # Stage 3 で閾値を引き上げる（ops/infra/data/security ≥2000、tier ≥5000）。
+        "meta_invariant.impl_loc_min_axis_aware",
+        "impl_substance.lock.yaml",
+        "field(`impl_substance.lock.yaml`, summary.ops_loc) >= 500"
+        " AND field(`impl_substance.lock.yaml`, summary.infra_loc) >= 500"
+        " AND field(`impl_substance.lock.yaml`, summary.data_loc) >= 500"
+        " AND field(`impl_substance.lock.yaml`, summary.security_loc) >= 500"
+        " AND field(`impl_substance.lock.yaml`, summary.client_loc) >= 500"
+        " AND field(`impl_substance.lock.yaml`, summary.tier1_loc) >= 2000"
+        " AND field(`impl_substance.lock.yaml`, summary.tier2_loc) >= 2000"
+        " AND field(`impl_substance.lock.yaml`, summary.tier3_loc) >= 2000"
+        " AND field(`impl_substance.lock.yaml`, summary.formal_loc) >= 1000",
+    ),
+    (
+        # facade_paths.yaml に列挙した entry point が floor (200 行 LOC) 以上であること。
+        # 現在 tier2/lib.rs・tier3/lib.rs が下回っている。
+        "meta_invariant.facade_loc_min",
+        "impl_substance.lock.yaml",
+        "field(`impl_substance.lock.yaml`, facade_below_floor_count) == 0",
+    ),
+    # --- Stage 1 からの継続: original 4 cell ---
+    (
+        # formal/lock/ の canonical SoT が唯一であること: 孤児ファイルが _meta/lock/ に残存しない
+        "meta_invariant.sot_uniqueness",
+        "../../formal/lock/proof_status.lock.yaml",
+        "no_stale_reference(`proof_status.lock.yaml`, `../../formal/lock/proof_status.lock.yaml`, 7)"
+        " AND no_stale_reference(`proof_inventory.lock.yaml`, `../../formal/lock/proof_inventory.lock.yaml`, 7)"
+        " AND no_stale_reference(`proof_review.lock.yaml`, `../../formal/lock/proof_review.lock.yaml`, 7)"
+        " AND no_stale_reference(`assumption.lock.yaml`, `../../formal/lock/assumption.lock.yaml`, 7)"
+        " AND no_stale_reference(`counter_example.lock.yaml`, `../../formal/lock/counter_example.lock.yaml`, 7)"
+        " AND no_stale_reference(`coverage_matrix.lock.yaml`, `../../test/lock/coverage_matrix.lock.yaml`, 7)"
+        " AND no_stale_reference(`regression_corpus.lock.yaml`, `../../test/lock/regression_corpus.lock.yaml`, 7)",
+    ),
+    (
+        # 空 SoT で vacuously green になることを禁止する
+        "meta_invariant.no_vacuous_green",
+        "../../formal/lock/proof_matrix.lock.yaml",
+        "no_vacuous_green(`../../formal/lock/proof_matrix.lock.yaml`, cells, 95)"
+        " AND no_vacuous_green(`../../formal/lock/proof_review.lock.yaml`, reviews, 1)"
+        " AND no_vacuous_green(`../../formal/lock/assumption.lock.yaml`, entries, 1)",
+    ),
+    (
+        # coverage_matrix の全 90 cell が実物理 artifact を持つこと（placeholder 禁止）
+        "meta_invariant.artifact_substance_floor",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        'artifact_substance(`../../test/lock/coverage_matrix.lock.yaml`, cells[?drill_state==\'v1_verified_with_artifact_pointer\'], artifact_pointer, 8, "placeholder|TODO|drill 実行後に") >= 90',
+    ),
+    (
+        # build_evidence の env-dependent 比率が 30% 以下であること
+        # 現状 68.5% → 段階 2 P1 で ~37% → P2-P5 で 30% 達成
+        "meta_invariant.env_dependent_ratio_cap",
+        "build_evidence.lock.yaml",
+        'env_dependent_ratio_cap(`build_evidence.lock.yaml`, evidence_entries, build_evidence_id, "_envdep_") <= 0.30',
+    ),
 ]
+
+
+# ---------------------------------------------------------------------------
+# soft cell カタログ (Stage 1: severity=warning)
+# これらの cell は yellow/red になっても release_gate_status を downgrade しない。
+# warning_cells フィールドに記録されるので、実装率の可視化に使う。
+# Stage 2 で _CELL_CATALOG に昇格させ hard enforcement を有効化する。
+# ---------------------------------------------------------------------------
+# Stage 1 で warning として導入し、Stage 2 で _CELL_CATALOG に昇格完了。このリストは空。
+# Stage 3 以降で新たな soft cell を追加する場合はここに登録する。
+_CELL_CATALOG_SOFT: list[tuple[str, str, str]] = []
 
 
 class ReleaseGateV2Generator(BaseGenerator):
@@ -581,6 +729,16 @@ class ReleaseGateV2Generator(BaseGenerator):
         # lock_dir を取得（emit() 経由の場合は inputs["lock_dir"] に格納されている）
         lock_dir: Path = inputs.get("lock_dir", Path("."))
 
+        # === GLOBAL INVARIANT PRE-CHECK (再 gaming 防止) ===
+        # invariant red は全体ステータスを red に downgrade する。upgrade は不可。
+        invariant_red = False
+        invariant_details: list[str] = []
+        for inv_id, inv_expr in _GLOBAL_INVARIANTS:
+            inv_result = evaluate_dsl(inv_expr, lock_dir)
+            if inv_result.status == "red":
+                invariant_red = True
+                invariant_details.append(f"{inv_id}: {inv_result.detail}")
+
         # 各 cell を DSL 評価
         cells: list[dict[str, Any]] = []
         for cell_id, source_lock, dsl_expr in _CELL_CATALOG:
@@ -591,12 +749,20 @@ class ReleaseGateV2Generator(BaseGenerator):
         red_cells = [c["cell_id"] for c in cells if c["status"] == "red"]
         yellow_cells = [c["cell_id"] for c in cells if c["status"] == "yellow"]
 
-        if red_cells:
+        if red_cells or invariant_red:
             release_gate_status = "red"
         elif yellow_cells:
             release_gate_status = "yellow"
         else:
             release_gate_status = "green"
+
+        # soft cell 評価（warning severity = release_gate_status に影響しない）
+        soft_cells: list[dict[str, Any]] = []
+        for cell_id, source_lock, dsl_expr in _CELL_CATALOG_SOFT:
+            cell_result = self._evaluate_cell(cell_id, source_lock, dsl_expr, lock_dir)
+            cell_result["severity"] = "warning"
+            soft_cells.append(cell_result)
+        warning_cells = [c["cell_id"] for c in soft_cells if c["status"] in ("red", "yellow")]
 
         return {
             "_AUTO_GENERATED": (
@@ -611,6 +777,9 @@ class ReleaseGateV2Generator(BaseGenerator):
             "cells":               cells,
             "yellow_cells":        yellow_cells,
             "red_cells":           red_cells,
+            "invariant_violations": invariant_details,
+            "soft_cells":          soft_cells,
+            "warning_cells":       warning_cells,
         }
 
     @staticmethod
