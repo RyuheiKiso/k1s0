@@ -194,10 +194,13 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     ),
     (
         # proof_review の canonical SoT は formal/lock/（missing_review_count=42 が露呈）
+        # signoff_substance で dual_review の全 81 件が placeholder でないことを物理 enforce する。
         "formal.dual_review_completeness_100pct",
         "../../formal/lock/proof_review.lock.yaml",
         "no_vacuous_green(`../../formal/lock/proof_review.lock.yaml`, reviews, 1)"
-        " AND field(`../../formal/lock/proof_review.lock.yaml`, missing_review_count) == 0",
+        " AND field(`../../formal/lock/proof_review.lock.yaml`, missing_review_count) == 0"
+        " AND signoff_substance(`../../formal/lock/proof_review.lock.yaml`,"
+        ' "src/formal/dual_review/*.dual_review.lock.yaml", 2) >= 81',
     ),
     (
         # assumption の canonical SoT は formal/lock/

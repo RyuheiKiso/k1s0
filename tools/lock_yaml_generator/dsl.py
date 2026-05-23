@@ -872,6 +872,88 @@ def eval_env_dependent_ratio_cap(expr: str, lock_dir: Path) -> EvalResult:
 
 
 # ---------------------------------------------------------------------------
+# signoff_substance()
+# ---------------------------------------------------------------------------
+
+# cosign placeholder URI および zero-hash を物理 grep で検知するパターン。
+# 初版は 2 パターンに限定し、schema 層による拡張は別 plan で対応する。
+_FORBIDDEN_SIGNOFF_PATTERNS: tuple[str, ...] = (
+    "sigstore://placeholder",
+    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+)
+
+
+def eval_signoff_substance(expr: str, lock_dir: Path) -> EvalResult:
+    """signoff_substance(`lock`, "glob", min_reviewers) >= threshold
+
+    REPO_ROOT.glob(glob) にマッチする全 *.dual_review.lock.yaml を物理 open し、
+    各 file が以下を全て満たす場合のみ「real signoff」とカウントする:
+      - reviewers の要素数 >= min_reviewers
+      - file 内容に _FORBIDDEN_SIGNOFF_PATTERNS のいずれも含まない
+
+    real signoff 数 >= threshold なら green。
+    REPO_ROOT 起点の glob が空の場合は lock_dir 起点にフォールバック（テスト互換）。
+    """
+    m = re.fullmatch(
+        r'signoff_substance\((.+?),\s*"([^"]+)",\s*(\d+)\)\s*(>=|==|>)\s*(\d+)',
+        expr.strip(),
+    )
+    if not m:
+        return EvalResult("yellow", f"signoff_substance DSL parse 失敗: {expr!r}")
+
+    # source_lock は detail 出力用ラベルとして保持するのみ（glob が実 SoT）
+    _source_lock = _strip_backtick(m.group(1))
+    glob_pat = m.group(2)
+    min_reviewers = int(m.group(3))
+    op = m.group(4)
+    threshold = int(m.group(5))
+
+    from tools.lock_yaml_generator.base_generator import REPO_ROOT as _REPO_ROOT
+
+    # REPO_ROOT 起点で glob、空の場合は lock_dir 起点にフォールバック（テスト互換）
+    review_files = sorted(_REPO_ROOT.glob(glob_pat))
+    if not review_files:
+        review_files = sorted(lock_dir.glob(glob_pat))
+
+    if not review_files:
+        return EvalResult("red", f"signoff_substance: no review files at {glob_pat!r}")
+
+    real_count = 0
+    placeholder_count = 0
+    for rf in review_files:
+        try:
+            content = rf.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            placeholder_count += 1
+            continue
+
+        # ファイル内容に placeholder pattern が含まれれば placeholder 扱い
+        if any(p in content for p in _FORBIDDEN_SIGNOFF_PATTERNS):
+            placeholder_count += 1
+            continue
+
+        data = yaml.safe_load(content) or {}
+        reviewers = data.get("reviewers", [])
+        if not isinstance(reviewers, list) or len(reviewers) < min_reviewers:
+            placeholder_count += 1
+            continue
+
+        real_count += 1
+
+    total = len(review_files)
+    ok = (
+        (op == ">=" and real_count >= threshold)
+        or (op == "==" and real_count == threshold)
+        or (op == ">" and real_count > threshold)
+    )
+    status = "green" if ok else "red"
+    detail = f"signoff_substance: {real_count}/{total} real (>= {threshold})"
+    if not ok:
+        detail += f"; {placeholder_count} placeholder/zero-hash detected"
+    return EvalResult(status, detail)
+
+
+# ---------------------------------------------------------------------------
 # メインルーター
 # ---------------------------------------------------------------------------
 
@@ -923,5 +1005,7 @@ def evaluate_dsl(expr: str, lock_dir: Path) -> EvalResult:
         return eval_no_vacuous_green(expr, lock_dir)
     if expr.startswith("env_dependent_ratio_cap("):
         return eval_env_dependent_ratio_cap(expr, lock_dir)
+    if expr.startswith("signoff_substance("):
+        return eval_signoff_substance(expr, lock_dir)
 
     return EvalResult("yellow", f"DSL 未知パターン: {expr!r}")

@@ -26,6 +26,7 @@ from tools.lock_yaml_generator.dsl import (
     eval_no_stale_reference,
     eval_no_vacuous_green,
     eval_env_dependent_ratio_cap,
+    eval_signoff_substance,
 )
 from tools.lock_yaml_generator.lock_registry import CANONICAL_SOT_TABLE
 
@@ -83,11 +84,12 @@ def test_no_meta_lock_duplicate_paths():
 
 
 def test_invariant_evaluator_signatures():
-    """dsl.py に 4 evaluator が callable として export されている。"""
+    """dsl.py に 5 evaluator が callable として export されている。"""
     assert callable(eval_artifact_substance)
     assert callable(eval_no_stale_reference)
     assert callable(eval_no_vacuous_green)
     assert callable(eval_env_dependent_ratio_cap)
+    assert callable(eval_signoff_substance)
 
 
 def test_canonical_sot_table_complete():
@@ -233,3 +235,55 @@ def test_eval_env_dependent_ratio_cap_red(tmp_path):
         tmp_path,
     )
     assert r.status == "red", r.detail
+
+
+def test_signoff_substance_placeholder_detected(tmp_path):
+    """sigstore://placeholder を含む dual_review ファイルが全件 red になる。"""
+    review_dir = tmp_path / "_test_dual_review"
+    review_dir.mkdir()
+    # placeholder cosign URI を持つ 3 件のファイルを作成
+    for i in range(3):
+        (review_dir / f"obligation_{i}.dual_review.lock.yaml").write_text(
+            f"subject_digest: 'sha256:{'0' * 64}'\n"
+            "obligation_id: test\n"
+            "reviewers:\n"
+            "  - signer_id: RyuheiKiso\n"
+            "    reviewer_kind: human\n"
+            "    cosign_signature_uri: sigstore://placeholder/test\n"
+        )
+
+    r = eval_signoff_substance(
+        'signoff_substance(`proof_review.lock.yaml`,'
+        ' "_test_dual_review/*.dual_review.lock.yaml", 2) >= 3',
+        tmp_path,
+    )
+    # placeholder pattern 検知で 3/3 が real でない → red
+    assert r.status == "red", r.detail
+    assert "placeholder/zero-hash detected" in r.detail
+
+
+def test_signoff_substance_all_real_signed(tmp_path):
+    """placeholder pattern を含まない dual_review ファイルが全件 green になる。"""
+    review_dir = tmp_path / "_test_dual_review"
+    review_dir.mkdir()
+    real_digest = "sha256:" + "a" * 64
+    for i in range(3):
+        (review_dir / f"obligation_{i}.dual_review.lock.yaml").write_text(
+            f"subject_digest: '{real_digest}'\n"
+            "obligation_id: test\n"
+            "reviewers:\n"
+            "  - signer_id: RyuheiKiso\n"
+            "    reviewer_kind: human\n"
+            f"    cosign_signature_uri: sigstore://rekor.sigstore.dev/api/v1/log/entries/abc{i}\n"
+            "  - signer_id: ai_agent\n"
+            "    reviewer_kind: ai_static_analysis\n"
+            f"    cosign_signature_uri: sigstore://rekor.sigstore.dev/api/v1/log/entries/def{i}\n"
+        )
+
+    r = eval_signoff_substance(
+        'signoff_substance(`proof_review.lock.yaml`,'
+        ' "_test_dual_review/*.dual_review.lock.yaml", 2) >= 3',
+        tmp_path,
+    )
+    # placeholder なし・reviewers >= 2 → real 3/3 → green
+    assert r.status == "green", r.detail
