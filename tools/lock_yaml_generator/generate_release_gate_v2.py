@@ -283,11 +283,11 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "field(`threat_model.lock.yaml`, open_count) == 0",
     ),
     (
-        # artifact_inventory の total_signed >= 0 = SLSA L3+ provenance 体系確立
-        # (Phase J の cosign sign-blob 後に total_signed > 0 に昇格する)
+        # substance floor = 3 (tier3 declared 3 entry baseline)
+        # 実 artifact_inventory が 3 entry 以上必要。後続で tier3 → security bridging により充足
         "security.build_provenance_slsa_l3plus",
         "artifact_inventory.lock.yaml",
-        "field(`artifact_inventory.lock.yaml`, total_signed) >= 0 AND evidence(`build_evidence.lock.yaml`, security.build_provenance_slsa_l3plus, cosign_verify_pass) == green",
+        "no_vacuous_green(`artifact_inventory.lock.yaml`, artifacts, 3) AND evidence(`build_evidence.lock.yaml`, security.build_provenance_slsa_l3plus, cosign_verify_pass) == green",
     ),
     # ops
     (
