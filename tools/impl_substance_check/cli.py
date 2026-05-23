@@ -80,6 +80,14 @@ def main(argv: list[str] | None = None) -> int:
         mark = "OK" if f.get("meets_floor") else "BELOW_FLOOR"
         print(f"  [{mark}] {f['path']} ({f['loc']} lines / floor={f['floor']})")
 
+    floor_violations = data.get("axis_floor_violations", [])
+    print(f"axis_floor_violation_count: {data.get('axis_floor_violation_count', 0)}")
+    for v in floor_violations:
+        print(f"  BELOW_FLOOR  {v['axis']}: {v['loc']} LoC (floor={v['floor']}, deficit={v['deficit']})")
+
+    print(f"yaml_only_axis_count: {data.get('yaml_only_axis_count', 0)}")
+    print(f"  axes: {data.get('yaml_only_axes', [])}")
+
     return 0
 
 

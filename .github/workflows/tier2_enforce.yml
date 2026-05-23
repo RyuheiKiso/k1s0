@@ -69,7 +69,7 @@ jobs:
 
       # tier2 Rust build チェックを実行する（compile error を早期検出する）
       - name: cargo check
-        run: cd src/tier2/rust && cargo check 2>&1 | grep "^error" || true
+        run: cd src/tier2/rust && cargo check --message-format=short
 
   # ===== tier2 Rust integration テストジョブ ===================================
   # PostgreSQL RLS FORCE 環境で P1-P4 invariant を検証する

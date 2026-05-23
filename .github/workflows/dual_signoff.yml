@@ -71,8 +71,6 @@ jobs:
             --exclude=dist \
             src/ \
             2>&1 | tee /tmp/semgrep_result.txt
-        # semgrep が warning を出力しても workflow を続行する
-        continue-on-error: true
 
   # PR description に dual sign-off チェックボックスが含まれるか確認する
   check-pr-signoff-body:
@@ -123,16 +121,19 @@ jobs:
       - name: Check proof_review missing_review_count
         run: |
           python3 -c "
-          import yaml, sys
-          with open('src/_meta/lock/proof_review.lock.yaml') as f:
+          import yaml, sys, pathlib
+          lock_path = pathlib.Path('src/_meta/lock/proof_review.lock.yaml')
+          if not lock_path.exists():
+              print('ERROR: proof_review.lock.yaml not found — generate it before merging', file=sys.stderr)
+              sys.exit(1)
+          with lock_path.open() as f:
               data = yaml.safe_load(f)
           count = data.get('missing_review_count', -1)
           print(f'missing_review_count: {count}')
-          # missing_review_count > 0 は warning のみ (dual sign-off は人間が実施するため CI fail にしない)
           if count > 0:
-              print(f'INFO: {count} reviews pending human sign-off')
-          else:
-              print('OK: all reviews complete')
+              print(f'ERROR: {count} reviews pending human sign-off — all must complete before release', file=sys.stderr)
+              sys.exit(1)
+          print('OK: all reviews complete')
           "
 
   # release_gate.lock.yaml が green かどうかを確認する

@@ -24,10 +24,11 @@ jobs:
       # kyverno test でポリシーの静的検証を実行
       - name: validate policies
         run: |
-          kyverno test src/security/kyverno/tests/ 2>/dev/null || true
+          set -euo pipefail
+          kyverno test src/security/kyverno/tests/
 
       # ポリシー YAML のスキーマ整合性確認（kyverno lint）
       - name: lint policies
         run: |
-          find src/security/kyverno/policies/ -name '*.yaml' -print0 \
-            | xargs -0 -I{} kyverno apply {} --resource /dev/null 2>/dev/null || true
+          set -euo pipefail
+          kyverno lint src/security/kyverno/policies/

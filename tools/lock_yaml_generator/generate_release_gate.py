@@ -195,23 +195,23 @@ def _jsonpath_count(data: dict, path: str) -> int:
     return 0
 
 
-def evaluate_cell(cell: Cell, lock_dir: Path) -> dict:
-    """
-    cell の DSL を評価して {status: green|yellow|red, detail: str} を返す。
-    DSL が未実装または解析不能の場合は status: yellow を返す
-    （unknown は ship 可だが注意）。
-    """
-    dsl = cell.dsl_expr.strip()
-    lock_data = load_lock(lock_dir, cell.source_lock)
+def _dsl_get_field(data: dict, field_path: str):
+    """ドット区切りで data からフィールドを取得する。"""
+    parts = field_path.strip().split(".")
+    cur = data
+    for part in parts:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(part)
+    return cur
 
-    # DSL が空の場合は lock.yaml が存在するか確認
-    if not dsl:
-        if lock_data:
-            return {"status": "green", "detail": "lock exists (no DSL)"}
-        return {"status": "red", "detail": f"{cell.source_lock} not found"}
+
+def _evaluate_single_expr(expr: str, lock_dir: Path) -> dict:
+    """単一 DSL 式を評価する（AND/OR の子式として再帰呼び出しされる）。"""
+    expr = expr.strip()
 
     # count(lock, path) <= N
-    m = re.match(r"count\((.+?),\s*(.+?)\)\s*<=\s*(\d+)", dsl)
+    m = re.match(r"count\((.+?),\s*(.+?)\)\s*<=\s*(\d+)$", expr)
     if m:
         lock_name = m.group(1).strip("`")
         jsonpath = m.group(2)
@@ -221,8 +221,50 @@ def evaluate_cell(cell: Cell, lock_dir: Path) -> dict:
         status = "green" if items <= threshold else "red"
         return {"status": status, "detail": f"count={items}, threshold={threshold}"}
 
+    # compare(field, op, value) — data from source_lock implied
+    m = re.match(r"compare\((.+?),\s*([=<>!]+),\s*(.+)\)$", expr)
+    if m:
+        field_path, op, expected = m.group(1).strip(), m.group(2), m.group(3).strip().strip("'\"")
+        # source_lock を探す: caller から渡さないので evaluate_cell 内では直接使わない
+        return {"status": "yellow", "detail": f"compare DSL not fully resolved: {expr}"}
+
+    # grep_count(pattern, path) == 0
+    m = re.match(r"grep_count\((.+?),\s*(.+?)\)\s*==\s*(\d+)$", expr)
+    if m:
+        pattern = m.group(1).strip().strip("'\"")
+        target_path_str = m.group(2).strip().strip("'\"")
+        expected_count = int(m.group(3))
+        target = lock_dir.parent / target_path_str if not target_path_str.startswith("/") else Path(target_path_str)
+        found = 0
+        if target.is_file():
+            text = target.read_text(encoding="utf-8", errors="replace")
+            found = len(re.findall(pattern, text))
+        elif target.is_dir():
+            for p in target.rglob("*"):
+                if p.is_file():
+                    try:
+                        found += len(re.findall(pattern, p.read_text(encoding="utf-8", errors="replace")))
+                    except OSError:
+                        pass
+        status = "green" if found == expected_count else "red"
+        return {"status": status, "detail": f"grep_count({pattern!r})={found}, expected={expected_count}"}
+
+    # artifact_signature_valid(path)
+    m = re.match(r"artifact_signature_valid\((.+?)\)$", expr)
+    if m:
+        artifact_path = m.group(1).strip().strip("'\"")
+        bundle_path = lock_dir.parent / (artifact_path + ".bundle.json") if not artifact_path.startswith("/") else Path(artifact_path + ".bundle.json")
+        if bundle_path.exists():
+            return {"status": "green", "detail": f"bundle exists: {bundle_path.name}"}
+        return {"status": "red", "detail": f"cosign bundle not found: {bundle_path}"}
+
+    # age_days(field) <= N
+    m = re.match(r"age_days\((.+?)\)\s*<=\s*(\d+)$", expr)
+    if m:
+        return {"status": "yellow", "detail": f"age_days DSL not fully resolved: {expr}"}
+
     # all(lock, path, predicate)
-    m = re.match(r"all\((.+?),\s*(.+?),\s*(.+)\)", dsl)
+    m = re.match(r"all\((.+?),\s*(.+?),\s*(.+)\)$", expr)
     if m:
         lock_name = m.group(1).strip("`")
         data = load_lock(lock_dir, lock_name)
@@ -231,18 +273,71 @@ def evaluate_cell(cell: Cell, lock_dir: Path) -> dict:
         return {"status": "green", "detail": "all check (simplified)"}
 
     # field(lock, path) == value
-    m = re.match(r"field\((.+?),\s*(.+?)\)\s*==\s*(.+)", dsl)
+    m = re.match(r"field\((.+?),\s*(.+?)\)\s*==\s*(.+)$", expr)
     if m:
         lock_name = m.group(1).strip("`")
         data = load_lock(lock_dir, lock_name)
         if not data:
             return {"status": "red", "detail": f"{lock_name} not found"}
-        return {"status": "green", "detail": "field check (simplified)"}
+        field_path = m.group(2).strip()
+        expected_val = m.group(3).strip().strip("'\"")
+        actual_val = _dsl_get_field(data, field_path)
+        if actual_val is None:
+            return {"status": "yellow", "detail": f"field {field_path!r} not found in {lock_name}"}
+        status = "green" if str(actual_val) == expected_val else "red"
+        return {"status": status, "detail": f"field={actual_val!r}, expected={expected_val!r}"}
 
-    # lock 存在のみの確認（DSL が単純な場合）
+    return None  # unrecognized, handled by caller
+
+
+def evaluate_cell(cell: Cell, lock_dir: Path) -> dict:
+    """
+    cell の DSL を評価して {status: green|yellow|red, detail: str} を返す。
+
+    空 DSL は yellow を返す（spec catalog の欠落 = green を出すべきでない）。
+    AND / OR を含む複合式はサブ式を分割して評価する。
+    """
+    dsl = cell.dsl_expr.strip()
+    lock_data = load_lock(lock_dir, cell.source_lock)
+
+    # 空 DSL: spec catalog の DSL 未記入 — yellow (green は出さない)
+    if not dsl:
+        if lock_data:
+            return {"status": "yellow", "detail": "lock exists but DSL missing (spec catalog incomplete)"}
+        return {"status": "red", "detail": f"{cell.source_lock} not found"}
+
+    # AND 複合式: A AND B [AND C ...]
+    if " AND " in dsl:
+        parts = [p.strip() for p in dsl.split(" AND ")]
+        results = [_evaluate_single_expr(p, lock_dir) for p in parts]
+        results = [r for r in results if r is not None]
+        if any(r["status"] == "red" for r in results):
+            failed = [r["detail"] for r in results if r["status"] == "red"]
+            return {"status": "red", "detail": f"AND failed: {'; '.join(failed)}"}
+        if any(r["status"] == "yellow" for r in results):
+            return {"status": "yellow", "detail": "AND partial: some subexpressions pending"}
+        return {"status": "green", "detail": "AND all passed"}
+
+    # OR 複合式: A OR B [OR C ...]
+    if " OR " in dsl:
+        parts = [p.strip() for p in dsl.split(" OR ")]
+        results = [_evaluate_single_expr(p, lock_dir) for p in parts]
+        results = [r for r in results if r is not None]
+        if any(r["status"] == "green" for r in results):
+            return {"status": "green", "detail": "OR: at least one passed"}
+        if any(r["status"] == "yellow" for r in results):
+            return {"status": "yellow", "detail": "OR partial: pending"}
+        return {"status": "red", "detail": "OR all failed"}
+
+    # 単一式
+    result = _evaluate_single_expr(dsl, lock_dir)
+    if result is not None:
+        return result
+
+    # フォールバック: lock 存在のみで yellow (DSL は認識したが評価不能)
     if lock_data:
-        return {"status": "green", "detail": "lock exists (DSL simplified)"}
-    return {"status": "yellow", "detail": f"{cell.source_lock} not found (pending)"}
+        return {"status": "yellow", "detail": f"DSL unresolved: {dsl[:80]}"}
+    return {"status": "red", "detail": f"{cell.source_lock} not found"}
 
 
 # ---------------------------------------------------------------------------

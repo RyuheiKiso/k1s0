@@ -64,7 +64,8 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     (
         "meta.axis_registry_complete",
         "axis_registry.lock.yaml",
-        "field(`axis_registry.lock.yaml`, axes_count) == 19",
+        "field(`axis_registry.lock.yaml`, axes_count) == 19"
+        " AND field(`impl_substance.lock.yaml`, summary.meta_loc) >= 300",
     ),
     (
         "meta.ownership_table_complete",
@@ -632,20 +633,24 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "field(`impl_substance.lock.yaml`, readme_only_count) == 0",
     ),
     (
-        # 軸ごとの最低 LOC（コメント・空行除外）が閾値以上であること。
-        # 閾値: ops/infra/data/security/client ≥500、tier ≥2000、formal ≥1000。
-        # Stage 3 で閾値を引き上げる（ops/infra/data/security ≥2000、tier ≥5000）。
+        # 軸ごとの最低 LOC（コメント・空行除外）が至高路線 floor 以上であること。
+        # 至高路線 floor: ops≥2000、infra/data/security≥3000、client≥2500、
+        #   tier1≥20000、tier2/tier3≥10000、formal≥1500、test≥8000、
+        #   crosscutting≥5000、meta≥300。
         "meta_invariant.impl_loc_min_axis_aware",
         "impl_substance.lock.yaml",
-        "field(`impl_substance.lock.yaml`, summary.ops_loc) >= 500"
-        " AND field(`impl_substance.lock.yaml`, summary.infra_loc) >= 500"
-        " AND field(`impl_substance.lock.yaml`, summary.data_loc) >= 500"
-        " AND field(`impl_substance.lock.yaml`, summary.security_loc) >= 500"
-        " AND field(`impl_substance.lock.yaml`, summary.client_loc) >= 500"
-        " AND field(`impl_substance.lock.yaml`, summary.tier1_loc) >= 2000"
-        " AND field(`impl_substance.lock.yaml`, summary.tier2_loc) >= 2000"
-        " AND field(`impl_substance.lock.yaml`, summary.tier3_loc) >= 2000"
-        " AND field(`impl_substance.lock.yaml`, summary.formal_loc) >= 1000",
+        "field(`impl_substance.lock.yaml`, summary.ops_loc) >= 2000"
+        " AND field(`impl_substance.lock.yaml`, summary.infra_loc) >= 3000"
+        " AND field(`impl_substance.lock.yaml`, summary.data_loc) >= 3000"
+        " AND field(`impl_substance.lock.yaml`, summary.security_loc) >= 3000"
+        " AND field(`impl_substance.lock.yaml`, summary.client_loc) >= 2500"
+        " AND field(`impl_substance.lock.yaml`, summary.tier1_loc) >= 20000"
+        " AND field(`impl_substance.lock.yaml`, summary.tier2_loc) >= 10000"
+        " AND field(`impl_substance.lock.yaml`, summary.tier3_loc) >= 10000"
+        " AND field(`impl_substance.lock.yaml`, summary.formal_loc) >= 1500"
+        " AND field(`impl_substance.lock.yaml`, summary.test_loc) >= 8000"
+        " AND field(`impl_substance.lock.yaml`, summary.crosscutting_loc) >= 5000"
+        " AND field(`impl_substance.lock.yaml`, summary.meta_loc) >= 300",
     ),
     (
         # facade_paths.yaml に列挙した entry point が floor (200 行 LOC) 以上であること。

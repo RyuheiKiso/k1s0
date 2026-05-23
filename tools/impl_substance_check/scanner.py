@@ -60,8 +60,25 @@ _AXIS_DIRS: dict[str, str] = {
 
 # README-only チェックを実施する実装軸（宣言的 YAML のみで逃げやすい軸）
 _IMPL_CHECK_AXES: frozenset[str] = frozenset([
-    "ops", "infra", "data", "security",
+    "ops", "infra", "data", "security", "test", "meta", "crosscutting",
 ])
+
+# 至高路線: 軸別の最低実装 LoC floor
+# floor 未達の軸は `axis_floor_violation` としてカウントし release_gate red に昇格する
+_AXIS_FLOORS: dict[str, int] = {
+    "tier1": 20000,
+    "tier2": 10000,
+    "tier3": 10000,
+    "ops": 2000,
+    "infra": 3000,
+    "data": 3000,
+    "security": 3000,
+    "client": 2500,
+    "test": 8000,
+    "formal": 1500,
+    "crosscutting": 5000,
+    "meta": 300,
+}
 
 # client はサブディレクトリ単位でチェック
 _CLIENT_IMPL_SUBDIRS: list[str] = [
@@ -188,6 +205,31 @@ def _scan_facade_files(repo_root: Path, facade_file: Path | None) -> tuple[int, 
     return below_floor, results
 
 
+def _scan_axis_floors(summary: dict[str, int]) -> tuple[int, list[dict[str, Any]]]:
+    """axis_floor 未達の軸をカウントして返す。"""
+    violations: list[dict[str, Any]] = []
+    for axis, floor in _AXIS_FLOORS.items():
+        loc = summary.get(f"{axis}_loc", 0)
+        if loc < floor:
+            violations.append({"axis": axis, "loc": loc, "floor": floor, "deficit": floor - loc})
+    return len(violations), violations
+
+
+def _scan_yaml_only_axes(repo_root: Path) -> tuple[int, list[str]]:
+    """実装言語ファイルが 0 件で YAML/Markdown のみの軸を検出する。"""
+    yaml_only: list[str] = []
+    for axis in _IMPL_CHECK_AXES:
+        rel = _AXIS_DIRS.get(axis)
+        if rel is None:
+            continue
+        d = repo_root / rel
+        if not d.is_dir():
+            continue
+        if not _has_lang_files(d):
+            yaml_only.append(rel)
+    return len(yaml_only), sorted(yaml_only)
+
+
 def scan_all(repo_root: Path, facade_file: Path | None = None) -> dict[str, Any]:
     """全軸を走査して impl_substance.lock.yaml の内容を返す。"""
     summary: dict[str, int] = {}
@@ -200,6 +242,8 @@ def scan_all(repo_root: Path, facade_file: Path | None = None) -> dict[str, Any]
 
     readme_only_count, readme_only_dirs = _scan_readme_only(repo_root)
     facade_below_floor, facade_files = _scan_facade_files(repo_root, facade_file)
+    floor_violation_count, floor_violations = _scan_axis_floors(summary)
+    yaml_only_count, yaml_only_axes = _scan_yaml_only_axes(repo_root)
 
     return {
         "summary": summary,
@@ -207,5 +251,9 @@ def scan_all(repo_root: Path, facade_file: Path | None = None) -> dict[str, Any]
         "readme_only_dirs": readme_only_dirs,
         "facade_below_floor_count": facade_below_floor,
         "facade_files": facade_files,
+        "axis_floor_violation_count": floor_violation_count,
+        "axis_floor_violations": floor_violations,
+        "yaml_only_axis_count": yaml_only_count,
+        "yaml_only_axes": yaml_only_axes,
         "axes": axes_detail,
     }
