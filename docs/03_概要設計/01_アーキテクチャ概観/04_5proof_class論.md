@@ -20,7 +20,7 @@ covered_by:
 # 5 proof_class 論
 
 ## 一文方針
-- formal 軸は 5 proof_class（temporal_safety / temporal_liveness / refinement / program_correctness / runtime_modelcheck）で他軸の不変条件を数学的 proof として転写する。95 cell coverage（19 + 12 + 35 + 19 + 14）で 1.0.0 ship 時に verified または accepted_with_assumption green、counter-example は close_due_at 内に物理 closure。
+- formal 軸は 5 proof_class（temporal_safety / temporal_liveness / refinement / program_correctness / runtime_modelcheck）で他軸の不変条件を数学的 proof として転写する。98 cell coverage（proof_matrix 基底 95 + cross-cutting / meta 追加 3）で 1.0.0 ship 時に verified または accepted_with_assumption green、counter-example は close_due_at 内に物理 closure。
 
 ## 5 proof_class
 
@@ -54,8 +54,8 @@ covered_by:
 - **典型 obligation**: Rust 実装の memory safety / concurrency safety / overflow / kernel module / eBPF / HSM driver / PTP daemon
 - **cell 数**: 14 cell
 
-## 95 cell coverage
-95 cell = **19 軸 × 5 proof_class の matrix cell 数**（19 × 5 = 95）。
+## 98 cell coverage
+proof_matrix 基底 = **19 軸 × 5 proof_class = 95 cell**（matrix 構造は 19×5 で固定）。cross-cutting / meta の追加 cell 3 を合算して **release_gate 総 cell = 98**。
 
 各 proof_class の対象 obligation 件数（軸横断合計）は次の通り:
 - temporal_safety_proof: 19 件
@@ -63,9 +63,9 @@ covered_by:
 - refinement_proof: 35 件（refinement pair の数が多い）
 - program_correctness_proof: 19 件
 - runtime_modelcheck_proof: 14 件
-合計 obligation 件数: 19+12+35+19+14 = 99 obligation（1 cell に複数 obligation が集約される場合あり。cell 数自体は 19 軸 × 5 proof_class = 95 で固定）
+合計 obligation 件数: 19+12+35+19+14 = 99 obligation（1 cell に複数 obligation が集約される場合あり）
 
-これに cross-cutting / meta の追加 cell が加わり、`proof_inventory.lock.yaml` で全 coverage を固定する。各 cell は次のいずれかの状態:
+`proof_inventory.lock.yaml` で全 coverage を固定する。各 cell は次のいずれかの状態:
 - **verified**: proof artifact が CI で green、reviewer dual sign-off 済
 - **accepted_with_assumption**: assumption.lock.yaml に明示登録された assumption の下で verified
 - **counter_example_open**: counter-example が close_due_at 内（high=14d / medium=30d / low=90d）
@@ -92,7 +92,7 @@ covered_by:
 - audit hash chain と同型の物理機構
 
 ## 1.0.0 ship blocker
-- 95 cell の verified or accepted_with_assumption（counter_example_open は close_due_at 内）
+- 95 cell（proof_matrix 基底）の verified or accepted_with_assumption（counter_example_open は close_due_at 内）
 - proof reviewer dual sign-off 完備
 - mathlib_pin / tla_apalache_pin / kani_cbmc_pin の lock artifact green
 - accepted_as_bug cap ≤ 10 件

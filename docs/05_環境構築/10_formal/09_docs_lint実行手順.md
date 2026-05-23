@@ -17,6 +17,8 @@ covered_by:
 
 - formal 軸エンジニアは docs/ 配下のドキュメントに変更を加えた際、bash 版（run_lint.sh）と Python 版（run_lint.py）の両方を実行し、全 check が green になることを push 前の必須条件とする。
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
+
 ## bash 版: run_lint.sh（7 check）
 
 ```bash

@@ -16,11 +16,11 @@ covered_by:
 
 ## 一文方針
 
-- test 軸エンジニアは 5 verification_class × 19 軸 = 95 cell coverage matrix 管理 / mutation score 維持 / contract test / chaos test / property-based test / scenario replay の 6 責務を持ち、pytest / Vitest / Pact broker / Litmus / cargo-mutants が手元で動くことが環境構築の検収条件である。
+- test 軸エンジニアは 5 verification_class × 18 軸 = 90 cell coverage matrix 管理 / mutation score 維持 / contract test / chaos test / property-based test / scenario replay の 6 責務を持ち、pytest / Vitest / Pact broker / Litmus / cargo-mutants が手元で動くことが環境構築の検収条件である。
 
 ## 至高路線における立ち位置
 
-- test 軸の環境は「テストが書ける状態」ではなく「95 cell coverage matrix を局所生成して mutation score を計測できる状態」を到達目標とする。Pact broker + Litmus chaos hub が全て起動するまで「test 軸環境が整った」とは言わない。
+- test 軸の環境は「テストが書ける状態」ではなく「90 cell coverage matrix を局所生成して mutation score を計測できる状態」を到達目標とする。Pact broker + Litmus chaos hub が全て起動するまで「test 軸環境が整った」とは言わない。
 - 14 ページは test 責務の 14 側面に 1:1 対応し、それぞれが独立した検収コマンドを持つ。一括ではなくページ単位で green を確認してから次ページへ進む。
 - 段階的セットアップ禁止: 全言語ランタイム（Python / Node / Java / Rust）が揃ってから 05_主要OSS導入に進む。
 
@@ -47,8 +47,10 @@ covered_by:
 
 以下を全て満たすまで「test 軸エンジニアの環境構築完了」とはならない。
 
-1. `bash tools/docs_lint/run_lint.sh` → exit 0
-2. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実行不可）。src/ 依存手順は P10 完了後に有効。
+
+1. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
+2. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`（P2 deliverable）
 3. `pytest --version` が応答する
 4. `pnpm vitest --version` が応答する
 5. `cargo-mutants --version` が応答する

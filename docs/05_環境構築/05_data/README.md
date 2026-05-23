@@ -47,12 +47,14 @@ covered_by:
 
 以下を全て満たすまで「data 環境構築完了」とはならない。
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実行不可）。src/ 依存手順は P10 完了後に有効。
+
 1. `psql --version` → バージョン応答
 2. `docker compose up` で 5 サービス（postgres / kafka / clickhouse / apicurio / valkey）起動
 3. Apicurio schema register 成功
 4. restore_drill（backup → drop → restore → verify）完了
-5. `bash tools/docs_lint/run_lint.sh` → exit 0
-6. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`
+5. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
+6. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`（P2 deliverable）
 
 ## 上位フェーズとの bind
 

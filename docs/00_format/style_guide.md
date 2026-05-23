@@ -174,6 +174,8 @@ covered_by:
 
 ## 検証規約（Phase 5 で実装）
 
+> **pre-P0 注記**: 以下の機械検出は P2 deliverable（pre-P0 時点で未配線）。
+
 - `tools/docs_lint/textlint.config.mjs` で禁止表現を機械的に検出。
 - `tools/docs_lint/markdownlint.json` で MD 構造規約を機械的に検出。
 - `status: locked` のドキュメントで禁止表現が残存していれば CI fail。

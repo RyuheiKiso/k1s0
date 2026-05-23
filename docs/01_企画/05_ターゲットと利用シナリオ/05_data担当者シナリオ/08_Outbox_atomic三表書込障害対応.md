@@ -71,10 +71,10 @@ Outbox relay の障害、または atomic 三表書込（state / outbox / audit 
 
 ## 前提
 
-- [atomic 三表書込](../../../03_概要設計/03_tier2設計方針/13_状態遷移パターン.md)（`state` / `outbox` / `audit` を同一 DB トランザクション）が tier2 の設計原則として確立済み
-- [Outbox relay](../../../03_概要設計/02_tier1設計方針/01_Server系.md)（tier1 Sidecar コンポーネント）が Kafka に配送する構成が稼働済み
-- audit は audit hash chain に記録される
-- Kafka consumer が Idempotency-Key で de-dup する at-least-once 保証が実装済み
+- [atomic 三表書込](../../../03_概要設計/03_tier2設計方針/13_状態遷移パターン.md)（`state` / `outbox` / `audit` を同一 DB トランザクション）が tier2 の設計原則
+- [Outbox relay](../../../03_概要設計/02_tier1設計方針/01_Server系.md)（tier1 Sidecar コンポーネント）が Kafka に配送する構成
+- audit は audit hash chain に記録する
+- Kafka consumer が Idempotency-Key で de-dup する at-least-once 保証が必要（物理化未了）
 
 ## 流れ
 

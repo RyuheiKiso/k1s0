@@ -17,6 +17,8 @@ covered_by:
 
 - client 軸エンジニアは Tauri CLI / Playwright / WiX Toolset を導入し、electron は代替用に留め推奨しない旨を明記した上で、5 distribution_class 全ての手元ビルドが通ることを本ページの検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## Tauri CLI（cargo install tauri-cli）
 
 03_必須ランタイム でインストール済み。確認コマンド:

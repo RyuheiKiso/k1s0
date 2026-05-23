@@ -66,7 +66,7 @@ covered_by:
 - Stainless / Dafny による program_correctness_proof
 - Lean 4 + mathlib による KEK shamir threshold algebra の数学的 proof
 - Kani / CBMC による Rust / C 実装の runtime_modelcheck_proof
-- 5 proof_class の 95 cell coverage
+- 5 proof_class の 95 cell（proof_matrix 基底）coverage
 
 ## 軸別 defense-in-depth 層の組合せ
 - tier1 / tier2 / tier3 / client: 層 A〜E（formal は対象軸により層 F も）

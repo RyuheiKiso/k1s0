@@ -60,7 +60,7 @@ infra 担当者が OpenTofu を使って cluster 全体を隔離環境で replay
 ## 個人 KPI / 達成感
 
 - IaC ドリフト 0 件が CI で定量確認でき、infrastructure 管理精度の向上を実感できる
-- replay 訓練 green cadence の達成率を lock.yaml で確認でき、DR 準備の達成感を得られる
+- replay 訓練 green cadence の達成率を lock.yaml で確認できるようになり、DR 準備の達成感を得られる
 
 ## 工数 / 関与人数 / コスト感
 

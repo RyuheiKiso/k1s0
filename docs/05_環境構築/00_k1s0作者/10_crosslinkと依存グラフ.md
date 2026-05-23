@@ -17,6 +17,8 @@ covered_by:
 
 - `depends_on` は宣言的な DAG 依存関係であり、body 内のリンクと同期させる必要はないが dangling（存在しない id への参照）は CI fail になる。cyclic な depends_on も Python 版 lint で検出される。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## depends_on の役割
 
 - あるドキュメントが別ドキュメントの内容を前提とする場合、`depends_on` に相手の `id` を列挙する。
@@ -60,7 +62,7 @@ body リンクが存在しないファイルを指している場合、`run_lint
 ## 循環依存の発生を防ぐ作業手順
 
 1. 新規ドキュメントを作成する前に依存先ドキュメントを先に作成する（依存先が存在する状態にする）。
-2. depends_on を書いたら `python3 tools/docs_lint/run_lint.py` で循環 + dangling を確認する。
+2. depends_on を書いたら `python3 tools/docs_lint/run_lint.py`（P2 deliverable） で循環 + dangling を確認する。
 3. 循環が検出されたら `循環依存検出: A -> B -> A` のメッセージを確認し、どちらかの depends_on から edge を削除する。
 
 ## 検収コマンド

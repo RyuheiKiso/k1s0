@@ -41,12 +41,12 @@ trace:
 - cross_axis_links / assumption_refs の参照整合 check
 - proof_class / tool_kind / close_kind / severity の enum 整合
 - cell_state enum 整合
-- 19 軸 × 5 proof_class = 95 cell の `class_axis_cadence_table.yaml` の cadence_days enum 範囲内
+- 19 軸 × 5 proof_class = 95 cell（proof_matrix 基底）の `class_axis_cadence_table.yaml` の cadence_days enum 範囲内
 
 ### 層 B: lint（policy / 規約 check）
 
 #### Conftest custom rule（Rego）
-- `proof_status.lock.yaml` の 95 cell 完備、欠損 cell ゼロ
+- `proof_status.lock.yaml` の 95 cell（proof_matrix 基底）完備、欠損 cell ゼロ
 - cell の last_verified_at が cadence_days 以内
 - proof_inventory entry の statement_hash + expected_certificate_hash 完備
 - `counter_example.lock.yaml` の close_due_at 越え entry ゼロ（high=14d / medium=30d / low=90d）

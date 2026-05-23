@@ -59,7 +59,7 @@ covered_by:
 ## 個人 KPI / 達成感
 
 - postmortem action item の消化率を ticket で定量追跡でき、改善サイクルの達成感を得られる
-- table-top cadence の達成率を lock.yaml で確認でき、演習継続の実績を数値で確認できる
+- table-top cadence の達成率を lock.yaml で確認できるようになり、演習継続の実績を数値で確認できる
 
 ## 工数 / 関与人数 / コスト感
 

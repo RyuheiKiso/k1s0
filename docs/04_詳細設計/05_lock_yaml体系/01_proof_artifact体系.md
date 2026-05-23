@@ -95,11 +95,11 @@ trace:
     - `proof_status.lock.yaml`
     - `axis_registry.lock.yaml`
 - 出力 schema:
-    - 19 axis × 5 proof_class = 95 cell の matrix
+    - 19 axis × 5 proof_class = 95 cell（proof_matrix 基底）の matrix
     - 各 cell に `cell_state` + `last_verified_at` + `coverage_weight`
 - enforce 経路:
     - 層 A: schema 検証
-    - 層 B: Conftest による 95 cell 完備 check
+    - 層 B: Conftest による 95 cell（proof_matrix 基底）完備 check
     - 層 D: `require-proof-cell-verified` の入力
     - 層 E: cosign signed + retention
 

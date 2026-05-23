@@ -47,7 +47,7 @@ covered_by:
 ## 1.0.0 ship blocker（要件）
 - 全 19 軸の release_gate.lock.yaml cell が green
 - 4 primary pair の dry_run.lock.yaml の last_green_at が 365 日以内
-- formal proof 95 cell verified or accepted_with_assumption
+- formal proof 95 cell（proof_matrix 基底）verified or accepted_with_assumption
 - 製造業 pack 9 stress test 全 green
 - cosign signed tag が物理 prerequisite
 

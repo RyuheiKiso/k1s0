@@ -30,7 +30,7 @@ trace:
 
 ## 一文方針
 
-19 軸 × 5 proof_class = 95 cell の proof_matrix.lock.yaml を SoT として、全 obligation の verified/accepted_with_assumption 状態を machine-readable に管理し、release_gate `formal.all_critical_verified` cell への input とする。
+19 軸 × 5 proof_class = 95 cell（proof_matrix 基底）の proof_matrix.lock.yaml を SoT として、全 obligation の verified/accepted_with_assumption 状態を machine-readable に管理し、release_gate `formal.all_critical_verified` cell への input とする。
 
 ## cell 数
 

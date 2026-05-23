@@ -48,13 +48,15 @@ covered_by:
 
 以下を全て満たすまで「プラットフォーム運営者の環境構築完了」とはならない。
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実行不可）。src/ 依存手順は P10 完了後に有効。
+
 1. `bao --version` が応答する
 2. `ykman --version` が応答する
 3. `kubectl version --client` が応答する
 4. shamir assembly 演習（ローカル rehearsal）完了
 5. break-glass dry-run 完了
 6. audit hash chain replay 成功
-7. `bash tools/docs_lint/run_lint.sh` → exit 0
+7. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
 
 ## 上位フェーズとの bind
 

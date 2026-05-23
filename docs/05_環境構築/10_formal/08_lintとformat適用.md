@@ -75,6 +75,9 @@ proof spec ファイル（.tla / .dfy / .lean / Rust）は `docs/` 配下には�
 
 ```bash
 # docs lint は docs/ 配下のみを対象とするため、src/ の spec は個別に実行
+
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
+
 bash tools/docs_lint/run_lint.sh
 python3 tools/docs_lint/run_lint.py
 ```

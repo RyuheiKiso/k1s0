@@ -17,6 +17,8 @@ covered_by:
 
 - 業務管理者が docs/ 配下のドキュメント（runbook・操作手順書）を変更した場合は WSL2 上で bash 版（run_lint.sh）と Python 版（run_lint.py）を実行し、全 check が green であることを push 前に確認する。
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
+
 ## bash 版: run_lint.sh（7 check）
 
 ```bash

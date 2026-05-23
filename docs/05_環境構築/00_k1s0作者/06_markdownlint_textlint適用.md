@@ -17,9 +17,9 @@ covered_by:
 
 - markdownlint と textlint は CI 未配線（echo placeholder 段階）だが、作者は手元での実行責任を持つ。lint 設定ファイルは `docs/00_format/linters/` に定義済みであり、CI 配線は作者が行う。
 
-## 現状（2026-05-13 時点）
+## 現状
 
-`.github/workflows/docs_lint.yml` の `release_gate_check` job は echo のみ（`run_lint.py` の `[8/8]` 参照）。markdownlint / textlint の CI runner は未作成。
+`.github/workflows/docs_lint.yml` の `release_gate_check` job は未配線（echo placeholder）。`run_lint.py` 自体が pre-P0 時点で実体ゼロ（P2 deliverable）。markdownlint / textlint の CI runner は未作成。
 
 ## markdownlint のローカル適用
 

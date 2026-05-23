@@ -17,6 +17,8 @@ covered_by:
 
 - test 軸エンジニアは pytest + Hypothesis / Vitest + fast-check / Pact broker（docker）/ Playwright / k6 / Litmus CLI / pitest（Maven）/ mutmut / Stryker / cargo-mutants / AFL++ / Testcontainers を導入し、全ツールの `--version` 応答またはコンテナ起動確認が取れることを本ページの検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## pytest + Hypothesis
 
 03_必須ランタイム でインストール済み。確認コマンド:

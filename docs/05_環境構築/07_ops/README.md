@@ -47,8 +47,10 @@ covered_by:
 
 以下を全て満たすまで「ops 軸エンジニアの環境構築完了」とはならない。
 
-1. `bash tools/docs_lint/run_lint.sh` → exit 0
-2. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実行不可）。src/ 依存手順は P10 完了後に有効。
+
+1. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
+2. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`（P2 deliverable）
 3. `docker compose up -d` （Backstage + Grafana + Prometheus）が全コンテナ Up
 4. `k6 run --version` が応答する
 5. `kubectl version --client` が応答する

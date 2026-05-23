@@ -17,6 +17,8 @@ covered_by:
 
 - OpenBao CLI / ykman / Cosign / kubectl / Grafana CLI の 5 ツールをそれぞれのインストール手順に従い導入し、各コマンドが正常応答することを確認してから次のステップへ進む。
 
+> **pre-P0 注記**: `src/ops/` は P10 deliverable（pre-P0 時点で実体ゼロ）。src/ 依存手順は P10 完了後に有効。
+
 ## 1. OpenBao CLI（bao）
 
 OpenBao は HashiCorp Vault の OSS fork。KEK shamir ceremony に使用する。

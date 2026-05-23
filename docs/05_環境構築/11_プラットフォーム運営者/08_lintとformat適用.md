@@ -53,6 +53,8 @@ cosign verify --key cosign.pub <image-reference>
 
 RBAC マニフェスト / policy ファイルは `docs/` 配下には置かない。`src/ops/` に配置し、docs lint の対象外とする。
 
+
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
 ```bash
 bash tools/docs_lint/run_lint.sh
 python3 tools/docs_lint/run_lint.py

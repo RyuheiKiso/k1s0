@@ -29,7 +29,7 @@ covered_by:
 | ファイル | 形式 | 内容 |
 |---|---|---|
 | `formal_classes.yaml` | 手書き | 5 proof_class 定義 |
-| `proof_inventory.lock.yaml` | build artifact | 95 cell の obligation catalog |
+| `proof_inventory.lock.yaml` | build artifact | 95 cell（proof_matrix 基底）の obligation catalog |
 | `proof_status.lock.yaml` | build artifact | 各 cell の verified state |
 | `counter_example.lock.yaml` | build artifact | 反例 catalog + close_kind |
 | `proof_review.lock.yaml` | build artifact | dual signoff |
@@ -39,7 +39,7 @@ covered_by:
 | `kani_cbmc_pin.lock.yaml` | 手書き＋ validate | Kani / CBMC version + bound parameter pin |
 | `proof_review_assignment.yaml` | 手書き | reviewer pool 管理 |
 | `proof_minutes_budget.yaml` | 手書き | 四半期 budget |
-| `proof_matrix.lock.yaml` | build artifact | 19 axis × 5 proof_class = 95 cell の cell_state matrix |
+| `proof_matrix.lock.yaml` | build artifact | 19 axis × 5 proof_class = 95 cell（proof_matrix 基底）の cell_state matrix |
 | `formal_enforcement.lock.yaml` | build artifact | formal 強制機構の admission policy 集約 |
 
 詳細: [proof_artifact 体系](01_proof_artifact体系.md), [counter_example 体系](02_counter_example体系.md)
@@ -88,7 +88,7 @@ covered_by:
 | 04 | [artifact_lock 命名規約](04_artifact_lock命名規約.md) | lock.yaml ファイル命名・バージョニング規約 |
 | 05 | [immutable archive 体系](05_immutable_archive体系.md) | Object Lock retention / hash chain / cosign 規律 |
 | 06 | [dual signoff 体系](05_dual_signoff体系.md) | dual_review.lock.yaml のスキーマと dual signoff CI 8 cell |
-| 07 | [proof_matrix 体系](06_proof_matrix体系.md) | proof_matrix.lock.yaml 95 cell スキーマ、cell_state enum、close_kind enum |
+| 07 | [proof_matrix 体系](06_proof_matrix体系.md) | proof_matrix.lock.yaml 95 cell（proof_matrix 基底）スキーマ、cell_state enum、close_kind enum |
 | 08 | [verification_matrix 体系](07_verification_matrix体系.md) | coverage_matrix.lock.yaml 90 cell スキーマ、drill_state enum |
 | 09 | [assumption 体系](08_assumption体系.md) | assumption.lock.yaml TTL/cap 体系、軸別 cap 表 |
 

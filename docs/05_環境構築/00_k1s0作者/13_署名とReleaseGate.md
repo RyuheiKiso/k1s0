@@ -22,16 +22,16 @@ covered_by:
 
 ```yaml
 release_gate:
-  and_gate: green   # 全 20 cell が green になった場合のみ green
+  and_gate: green   # 全 98 cell が green になった場合のみ green
   cells:
     - name: meta.docs_lint_green
       status: green  # run_lint.py 全 green
     - name: tier1.transport_bidi
       status: red    # 未達
-    ...（全 20 cell）
+    ...（全 98 cell）
 ```
 
-全 20 cell が `status: green` にならない限り `and_gate` は `red` のまま。`and_gate: green` が 1.0.0 git tag の物理前提（cosign sign-blob で署名する前にチェックする）。
+全 98 cell が `status: green` にならない限り `and_gate` は `red` のまま。`and_gate: green` が 1.0.0 git tag の物理前提（cosign sign-blob で署名する前にチェックする）。
 
 ## cosign のインストール
 

@@ -17,6 +17,8 @@ covered_by:
 
 - ops 軸エンジニアは Backstage TechDocs lint（techdocs-cli）/ Prometheus alerting rule lint（promtool check rules）/ k6 スクリプト ESLint の 3 lint を手元で実行できることを本ページの検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の lint / format 手順は P10 完了後に有効。
+
 ## Backstage TechDocs lint（techdocs-cli）
 
 ```bash

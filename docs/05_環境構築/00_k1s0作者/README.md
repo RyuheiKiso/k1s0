@@ -35,7 +35,7 @@ covered_by:
 | 05 | [05_docs_lint実行手順](05_docs_lint実行手順.md) | run_lint.sh 7 check + run_lint.py 8 check | enforcement |
 | 06 | [06_markdownlint_textlint適用](06_markdownlint_textlint適用.md) | markdown / textlint ローカル適用 | enforcement |
 | 07 | [07_drawio作図ツール手順](07_drawio作図ツール手順.md) | drawio-lint / drawio-export / svg-postcheck | enforcement |
-| 08 | [08_lock_yaml生成器手順](08_lock_yaml生成器手順.md) | generate_release_gate.py / 20 cell catalog | enforcement |
+| 08 | [08_lock_yaml生成器手順](08_lock_yaml生成器手順.md) | generate_release_gate.py / 98 cell catalog | enforcement |
 | 09 | [09_frontmatter規約適用](09_frontmatter規約適用.md) | id 導出 / 7 required / 8 forbidden | convention |
 | 10 | [10_crosslinkと依存グラフ](10_crosslinkと依存グラフ.md) | depends_on DAG / body link parity | convention |
 | 11 | [11_19軸登録手順](11_19軸登録手順.md) | registry.yaml 操作 / v1 cap 20 残 1 | enforcement |
@@ -47,11 +47,13 @@ covered_by:
 
 以下を全て満たすまで「作者の環境構築完了」とはならない。
 
-1. `bash tools/docs_lint/run_lint.sh` → exit 0
-2. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`
+> **pre-P0 注記**: 手順 1・2（run_lint）は P2 deliverable、手順 5（generate_release_gate.py）は P0 deliverable（pre-P0 時点で実行不可）。
+
+1. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
+2. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`（P2 deliverable）
 3. `python3 .claude/skills/drawio-authoring/bin/drawio-lint --help` が起動する
 4. `/mnt/c/Program\ Files/draw.io/draw.io.exe --version` または `$DRAWIO_BIN --version` が応答する
-5. `python3 tools/lock_yaml_generator/generate_release_gate.py` → `tools/lock_yaml_generator/samples/release_gate.lock.yaml` が出力される
+5. `python3 tools/lock_yaml_generator/generate_release_gate.py` → `tools/lock_yaml_generator/samples/release_gate.lock.yaml` が出力される（P0 deliverable）
 6. git tag で cosign を使った署名が `cosign sign-blob` で実行できる（鍵の確保含む）
 
 ## 上位フェーズとの bind

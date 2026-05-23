@@ -59,7 +59,7 @@ tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が
 ## 個人 KPI / 達成感
 
 - rollback 不可 migration 混入 0 件が CI で定量確認でき、migration 品質向上の達成感を得られる
-- migration 所要時間の短縮を lock.yaml で確認でき、作業効率の改善を実感できる
+- migration 所要時間の短縮を lock.yaml で確認できるようになり、作業効率の改善を実感できる
 
 ## 工数 / 関与人数 / コスト感
 

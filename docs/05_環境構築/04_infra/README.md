@@ -47,14 +47,16 @@ covered_by:
 
 以下を全て満たすまで「infra 環境構築完了」とはならない。
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実行不可）。src/ 依存手順は P10 完了後に有効。
+
 1. `kubectl version` → 1.30 以上応答
 2. `helm version` → 3.15 以上応答
 3. `kind version` → 0.23 以上応答
 4. `istioctl version` → バージョン応答
 5. `argocd version` → バージョン応答
 6. kind cluster が Running 状態
-7. `bash tools/docs_lint/run_lint.sh` → exit 0
-8. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`
+7. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
+8. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`（P2 deliverable）
 
 ## 上位フェーズとの bind
 

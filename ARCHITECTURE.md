@@ -145,6 +145,8 @@ A=compile / B=lint / C=integration test / D=runtime / E=物理 / F=数学的（f
 
 ## 物理 enforcement
 
+> **pre-P0 現状**: 本節に記載の `tools/docs_lint/run_lint.py`（P2 deliverable）および `tools/lock_yaml_generator/generate_release_gate.py`（P0 deliverable）は、pre-P0 時点で実体ゼロ（未物理化）。
+
 本書の内容は文章宣言に留まらず、以下の機構で **B 層 lint** として物理 enforce する。
 
 ### `tools/docs_lint/run_lint.py` — root layout check

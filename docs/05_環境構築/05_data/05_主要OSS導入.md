@@ -17,6 +17,8 @@ covered_by:
 
 - `docker compose up` で postgres / kafka / clickhouse / apicurio / valkey の 5 サービスを同時起動し、全て Healthy 状態になることを主要 OSS 導入の検収条件とする。
 
+> **pre-P0 注記**: `src/data/` は P9 deliverable（pre-P0 時点で実体ゼロ）。src/ 依存手順は P9 完了後に有効。
+
 ## docker-compose.yml の雛形
 
 以下の `docker-compose.yml` を作業ディレクトリに配置する（リポジトリには `src/data/local/docker-compose.yml` として管理する）。

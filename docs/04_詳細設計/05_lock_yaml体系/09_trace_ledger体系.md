@@ -26,7 +26,7 @@ trace:
 
 ## 背景：mechanical green 問題
 
-`release_gate.lock.yaml` の 83 cell は `count(lock.yaml, ...) >= N` による field 充足判定であり、docs 仕様 → src 実装の semantic 対応を確認していない。commit 履歴中「全 gap 解消」が 10 回以上反復された事実（1930 commit 中 161 件が audit 系）は、測定基盤が無いまま fix を回す構造的問題を示す。本体系はこの振動を物理的に止める。
+`release_gate.lock.yaml` の cell は `count(lock.yaml, ...) >= N` による field 充足判定であり、docs 仕様 → src 実装の semantic 対応を確認していない。測定基盤が無いまま fix を回すと「全 gap 解消」が反復する構造的問題が生じる。本体系はこの振動を物理的に止める。
 
 ## 6 層 trace ID skeleton
 
@@ -65,7 +65,7 @@ edges:
 
 ## release_gate への 4 ratchet cell 統合
 
-`generate_release_gate_v2.py` の `_CELL_CATALOG` に追加済みの 4 cell:
+`generate_release_gate_v2.py` の `_CELL_CATALOG` に追加する 4 cell:
 
 | cell_id | 閾値 | 対応 rollout |
 |---|---|---|
@@ -91,7 +91,7 @@ FR-ID 命名規約: `FR-<axis_name>-<NNN>` (axis_name は axis_registry の axis
 
 ## docs_lint check [12] 対応
 
-`tools/docs_lint/run_lint.py` に追加された check [12]:
+`tools/docs_lint/run_lint.py` に追加する check [12]:
 
 - `trace.fr_ids` が存在する場合、各要素が `^FR-[a-z][a-z0-9_]*-[0-9]{3}$` パターンに適合することを検証
 - パターン違反は CI fail
@@ -103,8 +103,8 @@ FR-ID 命名規約: `FR-<axis_name>-<NNN>` (axis_name は axis_registry の axis
 | R0 | `meta.trace_skeleton_schema_locked` == green（本 spec 作成 + generator 実装）|
 | R1 | `meta.requirement_coverage_ratchet` >= 0.5（21 published 適合仕様に trace.fr_ids 追加）|
 | R2 | `meta.requirement_coverage_ratchet` == 1.0（全 61 spec に trace.fr_ids 追加）|
-| R3 | `meta.trace_coverage_ratchet` >= 0.95（src 4418 ファイルへ AST annotation 注入）|
-| R4 | `meta.proof_coverage_ratchet` == 1.0（proof 95 cell の @k1s0:proof annotation 完備）|
+| R3 | `meta.trace_coverage_ratchet` >= 0.95（src 配下 AST annotation 注入）|
+| R4 | `meta.proof_coverage_ratchet` == 1.0（proof 95 cell（proof_matrix 基底）の @k1s0:proof annotation 完備）|
 | R5 | `meta.evidence_coverage_ratchet` == 1.0（build_evidence の trace_id 列追加）|
 
 ## counter_example 対応
@@ -115,7 +115,7 @@ FR-ID 命名規約: `FR-<axis_name>-<NNN>` (axis_name は axis_registry の axis
 | trace_drift: ratchet 値が前回より低下 | medium | 30 day |
 | trace_orphan: src annotation が孤立 | low | 90 day |
 
-`counter_example.lock.yaml` schema の `tool_kind` enum に `docs_src_audit` / `proof_trace` / `coverage_oracle` を追加済み。
+`counter_example.lock.yaml` schema の `tool_kind` enum に `docs_src_audit` / `proof_trace` / `coverage_oracle` を追加する（P0 generator 実装時）。
 
 ## 関連参照
 

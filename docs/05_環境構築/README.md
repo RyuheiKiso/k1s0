@@ -17,6 +17,8 @@ covered_by:
 
 - 本フォルダは役割ごとに分離された環境構築手順を集約する。CI 強制機構（docs_lint / drawio-lint / lock_yaml 生成器）を手元で完全再現できる状態を各ロールの受け入れ基準とし、push 前に全 green を確認することを規律とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## 至高路線における立ち位置
 
 - 環境構築は実装前提であり、段階的構築は許容しない。clone 直後に全 lint が green になる状態を「環境が整った」とする唯一の定義とする。
@@ -28,7 +30,7 @@ covered_by:
 - **OS**: WSL2 + Ubuntu 22.04 LTS 以上（Windows 11 host）
 - **git**: 2.40 以上
 - **bash**: 5.0 以上 + GNU coreutils（find / awk / grep / sort / uniq / sed / mktemp）
-- **clone 後の初回検証コマンド**: `bash tools/docs_lint/run_lint.sh`
+- **clone 後の初回検証コマンド**: `bash tools/docs_lint/run_lint.sh`（P2 deliverable）
 
 ## 配下サブフォルダ
 

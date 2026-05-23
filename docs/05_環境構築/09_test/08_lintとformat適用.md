@@ -17,6 +17,8 @@ covered_by:
 
 - test 軸エンジニアは Playwright ESLint / pytest lint（ruff）/ mutation threshold check スクリプトの 3 lint を手元で実行できることを本ページの検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の lint / format 手順は P10 完了後に有効。
+
 ## Playwright ESLint
 
 ```bash

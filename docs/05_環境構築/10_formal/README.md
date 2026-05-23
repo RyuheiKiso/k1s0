@@ -16,7 +16,7 @@ covered_by:
 
 ## 一文方針
 
-- formal 軸エンジニアは TLA+ / Apalache / Stainless / Dafny / Lean 4 / Kani / CBMC の 7 ツールを手元で動作させ、5 proof_class × 19 軸 = 95 cell の proof_matrix で sample proof 5 件が成功することを環境構築の検収条件とする。
+- formal 軸エンジニアは TLA+ / Apalache / Stainless / Dafny / Lean 4 / Kani / CBMC の 7 ツールを手元で動作させ、5 proof_class × 19 軸 = 95 cell（proof_matrix 基底）の proof_matrix で sample proof 5 件が成功することを環境構築の検収条件とする。
 
 ## 至高路線における立ち位置
 
@@ -47,6 +47,8 @@ covered_by:
 
 以下を全て満たすまで「formal 軸エンジニアの環境構築完了」とはならない。
 
+> **pre-P0 注記**: 手順 7（sample proof）は P5/P11 deliverable、手順 8（run_lint.sh）は P2 deliverable（pre-P0 時点で実行不可）。
+
 1. `tlc -help` が応答する
 2. `apalache-mc help` が応答する
 3. `dafny --version` が応答する
@@ -54,7 +56,7 @@ covered_by:
 5. `cargo kani --version` が応答する
 6. `cbmc --version` が応答する
 7. 5 proof_class の sample proof が全て成功する
-8. `bash tools/docs_lint/run_lint.sh` → exit 0
+8. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
 
 ## 上位フェーズとの bind
 
