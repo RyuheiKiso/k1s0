@@ -43,14 +43,20 @@ def test_global_invariants_present():
 
 
 def test_meta_invariant_cells_in_catalog():
-    """_CELL_CATALOG に meta_invariant.* cell が 4 件存在する。"""
+    """_CELL_CATALOG に meta_invariant.* cell が存在し、必須 4 cell + Stage 2 昇格 3 cell を含む。"""
     meta_inv_cells = [cell_id for cell_id, _, _ in _CELL_CATALOG
                       if cell_id.startswith("meta_invariant.")]
-    assert len(meta_inv_cells) == 4, f"Expected 4 meta_invariant cells, got: {meta_inv_cells}"
+    # Stage 2 で 3 cell 追加: no_readme_only_implementation_dir / impl_loc_min_axis_aware / facade_loc_min
+    assert len(meta_inv_cells) >= 4, f"meta_invariant cells too few: {meta_inv_cells}"
+    # original 4 cell は必ず存在する
     assert "meta_invariant.sot_uniqueness" in meta_inv_cells
     assert "meta_invariant.no_vacuous_green" in meta_inv_cells
     assert "meta_invariant.artifact_substance_floor" in meta_inv_cells
     assert "meta_invariant.env_dependent_ratio_cap" in meta_inv_cells
+    # Stage 2 昇格 3 cell
+    assert "meta_invariant.no_readme_only_implementation_dir" in meta_inv_cells
+    assert "meta_invariant.impl_loc_min_axis_aware" in meta_inv_cells
+    assert "meta_invariant.facade_loc_min" in meta_inv_cells
 
 
 def test_no_meta_lock_duplicate_paths():

@@ -1,0 +1,6 @@
+# todo_allowlist.yaml
+# src/ 配下の言語ファイルにある TODO/FIXME/XXX 等の例外リスト。
+# 各 entry は expiry が必須。期限切れ entry は meta_invariant.no_todo_marker_in_src で red 化。
+# 追加は dual sign-off 必須 (docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md 参照)
+
+entries: []

@@ -1,0 +1,14 @@
+# facade_paths.yaml
+# lib.rs / entry point が薄い facade の列挙。
+# floor を下回るファイルが impl_substance_check で検出される。
+# 追加・削除は dual sign-off 必須 (docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md 参照)
+
+# floor: lib.rs / entry point が「実装が全くない空スケルトン」かどうかの基準。
+# 設計上 lib.rs は thin facade（pub mod + pub use のみ）が正しいため、
+# floor=10 で「pub mod 宣言すら 1 行もない完全空ファイル」を検出する。
+# Stage 3 で実装の充実度に応じて floor を引き上げる。
+floor: 10
+
+paths:
+  - src/tier2/rust/src/lib.rs
+  - src/tier3/rust/src/lib.rs
