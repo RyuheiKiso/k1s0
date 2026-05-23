@@ -136,6 +136,29 @@ jobs:
           print('OK: all reviews complete')
           "
 
+  # dual_review.lock.yaml が JSON Schema に適合しているかを確認する
+  check-dual-review-schema:
+    name: dual_review.lock.yaml schema 層強制
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Python をセットアップする
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # PyYAML と jsonschema をインストールする
+      - name: Install dependencies
+        run: pip install pyyaml jsonschema
+
+      # dual_review schema validator を実行する
+      - name: Run dual_review schema validator
+        run: python -m tools.docs_lint.dual_review_validator
+
   # release_gate.lock.yaml が green かどうかを確認する
   check-release-gate:
     name: release_gate.lock.yaml green 確認

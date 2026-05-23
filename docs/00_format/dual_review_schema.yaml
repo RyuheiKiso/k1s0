@@ -1,62 +1,183 @@
 # dual_review.lock.yaml の JSON Schema draft 2020-12 互換
 # 詳細規約は docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md を参照
+#
+# 2 形式を oneOf で区別する:
+#   standard_form            — 通常の proof obligation (81 件)
+#   implementation_review_form — v1.0.0 全体レビュー用特殊形 (1 件)
+#
+# placeholder 拒否ポリシー:
+#   subject_digest / ai_evidence_diff_sha256 : zero-hash (sha256:0{64}) を not pattern で拒否
+#   cosign_signature_uri                     : sigstore://placeholder 接頭辞を not pattern で拒否
 
 $schema: "https://json-schema.org/draft/2020-12/schema"
 $id: "https://k1s0.local/schemas/docs/dual_review.yaml"
 title: "k1s0 dual review lock"
-type: object
-additionalProperties: false
 
-required:
-  - subject_digest
-  - reviewers
-  - cooldown_check
+oneOf:
+  - $ref: "#/$defs/standard_form"
+  - $ref: "#/$defs/implementation_review_form"
 
-properties:
-  subject_digest:
+$defs:
+
+  # zero-hash と英字 placeholder を構造的に拒否する subject_digest / ai_evidence_diff_sha256 用型
+  real_sha256:
     type: string
-    pattern: "^sha256:[a-f0-9]{64}$"
-    description: 署名対象成果物の SHA-256 ダイジェスト
+    allOf:
+      - pattern: "^sha256:[a-f0-9]{64}$"
+      - not:
+          pattern: "^sha256:0{64}$"
 
-  reviewers:
-    type: array
-    minItems: 2
-    items:
-      type: object
-      additionalProperties: false
-      required:
-        - signer_id
-        - reviewer_kind
-        - signed_at
-        - cosign_signature_uri
-      properties:
-        signer_id:
-          type: string
-          description: GitHub handle (human) or AI model ID (ai_static_analysis)
-        reviewer_kind:
-          type: string
-          enum: [human, ai_static_analysis, cosign_history]
-        signed_at:
-          type: string
-          format: date-time
-        cosign_signature_uri:
-          type: string
-        ai_evidence_uri:
-          type: string
-          description: kind=ai_static_analysis 時のみ必須
-        cosign_history_uri:
-          type: string
-          description: kind=cosign_history 時のみ必須
+  # sigstore://placeholder 接頭辞を拒否する cosign_signature_uri 用型
+  real_cosign_uri:
+    type: string
+    minLength: 8
+    not:
+      pattern: "^sigstore://placeholder"
 
-  cooldown_check:
+  reviewer:
     type: object
     additionalProperties: false
-    required:
-      - ai_evidence_diff_sha256
+    required: [signer_id, reviewer_kind, signed_at, cosign_signature_uri]
+    properties:
+      signer_id:
+        type: string
+        minLength: 1
+      reviewer_kind:
+        type: string
+        enum: [human, ai_static_analysis, cosign_history]
+      signed_at:
+        # standard_form は ISO 8601 date-time。implementation_review_form は "PENDING" を一時許容
+        type: string
+      cosign_signature_uri:
+        $ref: "#/$defs/real_cosign_uri"
+      ai_evidence_uri:
+        type: string
+        description: kind=ai_static_analysis 時のみ使用
+      cosign_history_uri:
+        type: string
+        description: kind=cosign_history 時のみ使用
+      ai_generator_id:
+        type: string
+        description: AI モデル識別子 (ai_static_analysis 時に付与)
+      model_version:
+        type: string
+        description: AI モデルバージョン
+      prompt_hash:
+        type: string
+        description: プロンプトハッシュ (sha256:p11_... のような非 hex 値も許容)
+
+  cooldown_check_strict:
+    type: object
+    additionalProperties: false
+    required: [ai_evidence_diff_sha256]
     properties:
       last_sign_by_same_author:
         type: [string, "null"]
-        description: 直前 sign の ai_evidence sha256（reuse check 用）
       ai_evidence_diff_sha256:
+        $ref: "#/$defs/real_sha256"
+
+  standard_form:
+    type: object
+    additionalProperties: false
+    required:
+      - _AUTO_GENERATED
+      - subject_digest
+      - obligation_id
+      - reviewers
+      - cooldown_check
+    properties:
+      _AUTO_GENERATED:
         type: string
-        description: 今回 ai_evidence の sha256
+        minLength: 1
+      subject_digest:
+        $ref: "#/$defs/real_sha256"
+      obligation_id:
+        type: string
+        pattern: "^[a-z0-9_]+$"
+      axis:
+        type: string
+        enum: [tier1, tier2, tier3, infra, data, security, ops, client, test, formal, cross, meta]
+      reviewers:
+        type: array
+        minItems: 2
+        items:
+          $ref: "#/$defs/reviewer"
+      cooldown_check:
+        $ref: "#/$defs/cooldown_check_strict"
+
+  implementation_review_form:
+    type: object
+    additionalProperties: false
+    required:
+      - _AUTO_GENERATED
+      - subject
+      - subject_digest
+      - obligation_id
+      - review_scope
+      - ai_analysis_findings
+      - reviewers
+      - cooldown_check
+      - v1_0_0_readiness
+    properties:
+      _AUTO_GENERATED:
+        type: string
+      subject:
+        type: string
+        minLength: 10
+      subject_digest:
+        $ref: "#/$defs/real_sha256"
+      obligation_id:
+        type: string
+        const: "v1_implementation_review"
+      review_scope:
+        type: array
+        minItems: 1
+        items:
+          type: string
+      ai_analysis_findings:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [finding, severity, evidence_ref]
+          properties:
+            finding:
+              type: string
+            severity:
+              type: string
+              enum:
+                - resolved
+                - implemented
+                - implemented_with_integration_todo
+                - known_violation_requires_fix
+                - pending_human_sign
+            evidence_ref:
+              type: string
+      reviewers:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/reviewer"
+      cooldown_check:
+        $ref: "#/$defs/cooldown_check_strict"
+      v1_0_0_readiness:
+        type: object
+        additionalProperties: false
+        required: [release_gate_status, yellow_cells, red_cells]
+        properties:
+          release_gate_status:
+            type: string
+            enum: [green, yellow, red]
+          yellow_cells:
+            type: integer
+            minimum: 0
+          red_cells:
+            type: integer
+            minimum: 0
+          implementation_coverage:
+            type: object
+          remaining_for_production:
+            type: array
+            items:
+              type: string
