@@ -463,16 +463,16 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         "field(`../../tier3/lock/forms_lint.lock.yaml`, violations) == 0 AND evidence(`build_evidence.lock.yaml`, tier3.forms_eslint_no_tenant_id_green, eslint_boundaries_pass) == green",
     ),
     (
-        # notifications package の idempotency property が宣言済みであることを確認する
+        # notifications_property の property_status == green = 実 idempotency test pass 達成 (generator 実計測化までは red)
         "tier3.notifications_idempotent_green",
         "../../tier3/lock/notifications_property.lock.yaml",
-        "field(`../../tier3/lock/notifications_property.lock.yaml`, property_status) == declared AND evidence(`build_evidence.lock.yaml`, tier3.notifications_idempotent_green, pnpm_test_pass) == green",
+        "field(`../../tier3/lock/notifications_property.lock.yaml`, property_status) == green AND evidence(`build_evidence.lock.yaml`, tier3.notifications_idempotent_green, pnpm_test_pass) == green",
     ),
     (
-        # design-tokens の WCAG AA コントラスト比が宣言済みであることを確認する
+        # design_tokens_contrast の wcag_aa_status == green = 実 WCAG 2.1 AA contrast 検証 pass (generator 実計測化までは red)
         "tier3.design_tokens_contrast_green",
         "../../tier3/lock/design_tokens_contrast.lock.yaml",
-        "field(`../../tier3/lock/design_tokens_contrast.lock.yaml`, wcag_aa_status) == declared AND evidence(`build_evidence.lock.yaml`, tier3.design_tokens_contrast_green, pnpm_test_pass) == green",
+        "field(`../../tier3/lock/design_tokens_contrast.lock.yaml`, wcag_aa_status) == green AND evidence(`build_evidence.lock.yaml`, tier3.design_tokens_contrast_green, pnpm_test_pass) == green",
     ),
     # tier3 extended (v1.0.0)
     (
