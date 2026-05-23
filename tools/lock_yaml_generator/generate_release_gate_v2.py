@@ -246,6 +246,14 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
         ' AND artifact_substance(`../../test/lock/coverage_matrix.lock.yaml`, cells[?drill_state==\'v1_verified_with_artifact_pointer\'], artifact_pointer, 8, "placeholder|TODO|drill 実行後に") >= 90',
     ),
     (
+        # test 軸 90 cell の artifact_manifest.yaml が指す source_path が repo 上に実在し、
+        # last_green_at が 90 days 以内であることを test_binding_check で物理検証済みであることを確認する。
+        # coverage_matrix.lock.yaml の全 cell に last_green_at フィールドが存在することが前提。
+        "test.coverage_matrix_source_binding_valid",
+        "../../test/lock/coverage_matrix.lock.yaml",
+        "count(`../../test/lock/coverage_matrix.lock.yaml`, cells[?last_green_at]) == 90",
+    ),
+    (
         # test/lock/regression_corpus.lock.yaml の entries が非空かつ open エントリがゼロであることを確認する。
         # entries=[] の形式的 drift zero を物理的に拒否（hard_fail_if_zero で hard red）。
         # 注意: _meta/lock/regression_corpus.lock.yaml は旧形式の別ファイル。SoT は test/lock/ 側。

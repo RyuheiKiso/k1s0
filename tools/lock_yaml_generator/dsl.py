@@ -93,6 +93,14 @@ def _jsonpath_items(data: dict[str, Any], path: str) -> list[Any]:
         return [item for item in (items if isinstance(items, list) else [])
                 if isinstance(item, dict) and item.get(field_name) == value]
 
+    # truthy フィルタ: key[?field_name] (field が存在かつ truthy な item を選択)
+    m = re.fullmatch(r"(\w+)\[\?(\w+)\]", path.strip())
+    if m:
+        key, field_name = m.group(1), m.group(2)
+        items = data.get(key, [])
+        return [item for item in (items if isinstance(items, list) else [])
+                if isinstance(item, dict) and item.get(field_name)]
+
     # 全要素: key[*]
     m = re.fullmatch(r"(\w+)\[\*\]", path.strip())
     if m:

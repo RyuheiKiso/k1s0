@@ -91,8 +91,19 @@ class CoverageMatrixGenerator(BaseGenerator):
         for entry in raw:
             # artifact_pointer: scaffold.yaml の値を引き継ぐ（存在しない場合は None）
             artifact_pointer = entry.get("artifact_pointer")
-            # last_green_at: scaffold.yaml の値を引き継ぐ（存在しない場合は None）
+            # last_green_at: scaffold.yaml の値を引き継ぐ。null の場合は artifact_manifest.yaml の
+            # last_verified_at を fallback として使用する（runner が記録した実行日時を保存する）
             last_green_at = entry.get("last_green_at")
+            if last_green_at is None and artifact_pointer:
+                import pathlib, yaml as _yaml  # noqa: PLC0415
+                _repo = pathlib.Path(__file__).resolve().parent.parent.parent
+                _manifest_path = _repo / str(artifact_pointer)
+                if _manifest_path.exists():
+                    try:
+                        _manifest = _yaml.safe_load(_manifest_path.read_text(encoding="utf-8")) or {}
+                        last_green_at = _manifest.get("last_verified_at")
+                    except Exception:  # noqa: BLE001
+                        pass
             # wsl2_constraint: WSL2 制約による accepted_with_assumption の記録
             wsl2_constraint = entry.get("wsl2_constraint")
             # drill_state: scaffold.yaml の値を引き継ぐ（存在しない場合はデフォルト値）

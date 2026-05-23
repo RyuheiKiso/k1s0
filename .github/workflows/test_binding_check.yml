@@ -1,0 +1,62 @@
+name: test-binding-check
+# coverage_matrix.lock.yaml の 90 cell が artifact_manifest.yaml と正しく binding されていることを CI で物理検査する
+# Stage 3: test 軸 90 cell を実 runner に物理 binding する enforcement
+
+on:
+  push:
+    branches: [main, reamke2]
+    paths:
+      - 'src/test/**'
+      - 'tools/impl_substance_check/**'
+      - 'tools/lock_yaml_generator/generate_coverage_matrix.py'
+      - '.github/workflows/test_binding_check.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/test/**'
+      - 'tools/impl_substance_check/**'
+      - 'tools/lock_yaml_generator/generate_coverage_matrix.py'
+      - '.github/workflows/test_binding_check.yml'
+
+jobs:
+  test-binding-check:
+    name: coverage_matrix 90 cell artifact binding 検証
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: coverage_matrix を再生成する
+        run: |
+          pip install pyyaml click rich jsonschema
+          python3 -m tools.lock_yaml_generator.cli coverage_matrix
+
+      - name: test_binding_check — 全 90 cell の source_path 実在 + age 検証
+        run: |
+          set -euo pipefail
+          python3 -m tools.impl_substance_check.test_binding_check
+
+      - name: test_binding_check 結果を summary に出力する
+        if: always()
+        run: |
+          python3 -c "
+          import yaml, sys
+          d = yaml.safe_load(open('src/test/lock/coverage_matrix.lock.yaml'))
+          cells = d.get('cells', [])
+          drill_states = {}
+          for c in cells:
+              ds = c.get('drill_state', 'unknown')
+              drill_states[ds] = drill_states.get(ds, 0) + 1
+          print('## test-binding-check summary')
+          print(f'total cells: {len(cells)}')
+          for k, v in sorted(drill_states.items()):
+              print(f'  {k}: {v}')
+          " >> \"\${GITHUB_STEP_SUMMARY}\"
