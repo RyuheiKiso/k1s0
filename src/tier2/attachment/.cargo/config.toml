@@ -1,6 +1,0 @@
-# k1s0 tier2 attachment .cargo/config.toml
-# Zig CC 環境 (WSL2) で C ライブラリ (ring / openssl-sys 等) をビルドするための設定
-# Zig Clang は x86_64-unknown-linux-gnu triple を認識しないため musl triple で代替する
-[env]
-# C コンパイラが musl ターゲットで動くよう CFLAGS を設定する
-CFLAGS = { value = "-target x86_64-linux-musl", force = true }

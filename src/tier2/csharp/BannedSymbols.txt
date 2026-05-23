@@ -1,8 +1,0 @@
-# tier2 C# banned symbols: 業界固有語を含む public API を禁止する
-# BannedApiAnalyzers で CI fail にする対象シンボル一覧
-# 各行は <全修飾名> の形式
-
-# 業界固有語 API 禁止 (製造業用語)
-T:ManufacturingOrder;業界固有語禁止: ManufacturingOrder は pack/manufacturing に限定してください
-T:ProductionLot;業界固有語禁止: ProductionLot は pack/manufacturing に限定してください
-T:BillOfMaterials;業界固有語禁止: BillOfMaterials は pack/manufacturing に限定してください

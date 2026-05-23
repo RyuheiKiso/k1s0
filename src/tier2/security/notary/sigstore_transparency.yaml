@@ -1,7 +1,0 @@
-# sigstore_transparency.yaml — Sigstore transparency log 連携設定
-tlog_url: "https://rekor.sigstore.dev"
-signing_key_class: v1_audit_root_signing
-bundle_format: sigstore_bundle_v0.3
-targets:
-  - type: audit_hash_root
-    attestation_subject: "sha256:${AUDIT_ROOT_HASH}"

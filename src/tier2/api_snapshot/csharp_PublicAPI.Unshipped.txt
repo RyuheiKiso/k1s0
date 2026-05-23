@@ -1,2 +1,0 @@
-# tier2 C# unshipped (pending) public API
-# このファイルに追加した API は次回 ship 時に Shipped.txt に移動する
