@@ -20,7 +20,7 @@ covered_by:
 # 数学的 enforcement
 
 ## 一文方針
-- formal 軸が 5 proof_class（temporal_safety / liveness / refinement / program_correctness / runtime_modelcheck）で他 18 軸の不変条件を数学的 proof として転写し、95 cell coverage + counter-example 物理 closure + reviewer dual sign-off + cosign signature + 外部公証 attestation の 6 機構で物理 enforce する。defense-in-depth 層 F として全軸の最終 safety net。
+- formal 軸が 5 proof_class（temporal_safety / liveness / refinement / program_correctness / runtime_modelcheck）で他 18 軸の不変条件を数学的 proof として転写し、98 cell coverage + counter-example 物理 closure + reviewer dual sign-off + cosign signature + 外部公証 attestation の 6 機構で物理 enforce する。defense-in-depth 層 F として全軸の最終 safety net。
 
 ## 5 proof_class の対象軸
 
@@ -32,13 +32,13 @@ covered_by:
 | program_correctness_proof | Stainless / Dafny / Lean 4 + mathlib | tier1 Library API contract / KEK shamir threshold algebra / HLC happens-before |
 | runtime_modelcheck_proof | Kani / CBMC | infra eBPF / HSM driver / PTP daemon / Rust 実装 memory safety |
 
-## 95 cell coverage
-- temporal_safety_proof: 19 cell
-- temporal_liveness_proof: 12 cell
-- refinement_proof: 35 pair
-- program_correctness_proof: 19 cell
-- runtime_modelcheck_proof: 14 cell
-- 合計: 99 obligation（複数 obligation が 1 cell に集約、cell 数自体は 19 軸 × 5 proof_class = 95）
+## formal proof obligation 内訳（proof_matrix 基底 95 cell）
+- temporal_safety_proof: 19 obligation（19 軸 × 1）
+- temporal_liveness_proof: 12 obligation（liveness 対象 12 軸）
+- refinement_proof: 35 pair（等価性証明 35 組）
+- program_correctness_proof: 19 obligation（19 軸 × 1）
+- runtime_modelcheck_proof: 14 obligation（runtime 対象 14 軸）
+- obligation 合計: 99（複数 obligation が 1 cell に集約される場合あり。cell 数 = 19 軸 × 5 proof_class = 95 base + cross-cutting / meta 3 = 計 98 cell）
 
 ## counter-example の物理 closure
 - 4 close_kind: `fixed_in_code` / `fixed_in_spec` / `accepted_as_bug` / `scope_narrowed`
@@ -78,7 +78,7 @@ covered_by:
 
 ## 形式検証の長期収斂
 - 19 軸の不変条件 を 5 proof_class で完全 cover
-- 95 cell の 1.0.0 ship 後の維持は cadence（mathlib monthly / TLA+ / Apalache 6 month / Lean 4 6 month）
+- 98 cell の 1.0.0 ship 後の維持は cadence（mathlib monthly / TLA+ / Apalache 6 month / Lean 4 6 month）
 - v2 候補: post-quantum 暗号 proof / ZK proof 連携 / WASM verifier 統合
 
 ## 関連参照

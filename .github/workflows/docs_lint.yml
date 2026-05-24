@@ -49,7 +49,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify meta.docs_lint_green cell
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyyaml click rich jsonschema
+
+      - name: Regen and verify meta.docs_lint_green cell
         run: |
-          echo "lint job が green であれば release_gate.lock.yaml の meta.docs_lint_green cell が green に到達"
-          echo "本 cell は 1.0.0 ship blocker"
+          python3 -m tools.lock_yaml_generator.cli all
+          python3 -c "
+          import yaml, sys
+          with open('src/_meta/lock/release_gate.lock.yaml') as f:
+              data = yaml.safe_load(f)
+          cells = {c['cell_id']: c['status'] for c in data.get('cells', [])}
+          cell_status = cells.get('meta.docs_lint_green', 'missing')
+          print(f'meta.docs_lint_green: {cell_status}')
+          if cell_status != 'green':
+              print(f'FAIL: meta.docs_lint_green is {cell_status!r}', file=sys.stderr)
+              sys.exit(1)
+          print('OK: meta.docs_lint_green is green')
+          "

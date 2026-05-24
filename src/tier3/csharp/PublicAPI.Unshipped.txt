@@ -1,9 +1,0 @@
-#nullable enable
-K1s0.Tier3.State.ClientPurgeEmitter
-K1s0.Tier3.State.ClientPurgeEmitter.EmitClientPurgeEvent(K1s0.Tier3.State.PurgeTrigger trigger, string tenantId) -> void
-K1s0.Tier3.State.PurgeTrigger
-K1s0.Tier3.State.PurgeTrigger.ActorSwitch = 3 -> K1s0.Tier3.State.PurgeTrigger
-K1s0.Tier3.State.PurgeTrigger.DeviceBoundKeyRotate = 4 -> K1s0.Tier3.State.PurgeTrigger
-K1s0.Tier3.State.PurgeTrigger.Logout = 0 -> K1s0.Tier3.State.PurgeTrigger
-K1s0.Tier3.State.PurgeTrigger.RefreshTokenExpiry = 1 -> K1s0.Tier3.State.PurgeTrigger
-K1s0.Tier3.State.PurgeTrigger.TenantSwitch = 2 -> K1s0.Tier3.State.PurgeTrigger

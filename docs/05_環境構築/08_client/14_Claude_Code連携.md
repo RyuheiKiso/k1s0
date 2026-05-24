@@ -17,6 +17,8 @@ covered_by:
 
 - client 軸エンジニアは Claude Code を SDK wrapper 草案 / Playwright テストスクリプト生成 / conformance test 草案の補助ツールとして活用するが、SDK public API の breaking change / distribution_class の追加・廃止 / conformance test pass 基準の変更は人間 dual sign-off を必須とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## CLAUDE.md ポリシー（root）
 
 ```markdown

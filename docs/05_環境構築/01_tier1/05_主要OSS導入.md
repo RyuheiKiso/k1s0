@@ -17,6 +17,8 @@ covered_by:
 
 - tier1 の proto / schema エコシステムである Buf CLI / protoc / Apicurio Registry / ts-proto を導入し、`buf --version` と `protoc --version` が応答することを本ページの検収とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## Buf CLI
 
 Go ツールチェーンでインストールする。

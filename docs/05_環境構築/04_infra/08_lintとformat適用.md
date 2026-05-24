@@ -17,6 +17,8 @@ covered_by:
 
 - kubeconform（manifest バリデーション）/ conftest（OPA policy）/ helm lint / kustomize build の 4 ツールを手元で実行し、全 check が通ることを infra 軸の lint 検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の lint / format 手順は P10 完了後に有効。
+
 ## kubeconform のインストールと実行
 
 kubeconform は k8s manifest を JSON Schema で検証するツール。

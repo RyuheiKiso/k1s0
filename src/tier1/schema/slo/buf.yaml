@@ -1,9 +1,0 @@
-version: v1
-name: buf.build/k1s0/tier1-slo
-lint:
-  use:
-    - DEFAULT
-    - COMMENTS
-breaking:
-  use:
-    - FILE

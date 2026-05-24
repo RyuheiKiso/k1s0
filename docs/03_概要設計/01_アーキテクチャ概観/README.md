@@ -48,7 +48,7 @@ covered_by:
 - cosign signed tag が物理 prerequisite
 - 4 primary pair の dry_run.lock.yaml の last_green_at が 365 日以内
 - 製造業 pack 9 stress test 全 green
-- formal proof 95 cell の verified or accepted_with_assumption
+- formal proof 95 cell（proof_matrix 基底）の verified or accepted_with_assumption
 
 ## 関連参照
 - [背景と目的](../../01_企画/01_背景と目的/README.md)

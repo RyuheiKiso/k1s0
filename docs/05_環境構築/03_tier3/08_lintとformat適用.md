@@ -17,6 +17,8 @@ covered_by:
 
 - `pnpm eslint + prettier` / `dotnet format` / `cargo clippy` の全ツールが exit 0 になることを push 前の必須確認事項とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の lint / format 手順は P10 完了後に有効。
+
 ## TypeScript / React: ESLint + Prettier
 
 ```bash

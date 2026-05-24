@@ -65,7 +65,7 @@ covered_by:
 
 ### formal 軸（メタ専任、シニア級）
 - **必須スキル**: TLA+ / Apalache / Stainless / Dafny / Lean 4 / Kani / CBMC / formal methods
-- **責務**: 5 proof_class / 95 cell coverage / counter-example closure
+- **責務**: 5 proof_class / 95 cell（proof_matrix 基底）coverage / counter-example closure
 - **想定人数**: 2-3 名
 
 ### security 軸（メタ専任、シニア級）

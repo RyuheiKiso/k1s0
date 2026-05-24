@@ -47,11 +47,13 @@ covered_by:
 
 以下を全て満たすまで「業務管理者の環境構築完了」とはならない。
 
+> **pre-P0 注記**: 手順 1〜4（Backstage / tier2 admin API / demo）は P10 deliverable、手順 5（run_lint.sh）は P2 deliverable（pre-P0 時点で実行不可）。
+
 1. Backstage UI へのアクセス成功
 2. tier2 admin API 接続成功（staging 環境）
 3. tenant マスタ操作 demo 完了（作成・編集・削除）
 4. 監査検索 1 件ヒット
-5. `bash tools/docs_lint/run_lint.sh` → exit 0
+5. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
 
 ## 上位フェーズとの bind
 

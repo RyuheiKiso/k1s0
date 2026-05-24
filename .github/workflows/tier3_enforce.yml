@@ -51,7 +51,7 @@ jobs:
         run: |
           # spa ディレクトリに ESLint が存在する場合のみ実行する
           if [ -f src/tier3/typescript/spa/.eslintrc.json ]; then
-            cd src/tier3/typescript/spa && npx eslint src/ --max-warnings 0 || true
+            cd src/tier3/typescript/spa && npx eslint src/ --max-warnings 0
           fi
 
       # 層 7: .proto ファイルが tier3 に存在しないことを確認する
@@ -67,12 +67,14 @@ jobs:
           echo "OK: no .proto files in tier3"
 
       # 層 8: PII を localStorage/cookie に平文書き込みする箇所がないことを確認する
-      # localStorage.setItem への書き込みを検出して警告する（例外: 暗号化 Outbox のみ）
-      - name: Layer 8 - no PII in localStorage (audit)
+      # localStorage.setItem は暗号化 Outbox 以外では禁止
+      - name: Layer 8 - no PII in localStorage
         run: |
-          # localStorage.setItem の使用箇所を列挙する（CI fail ではなく audit ログとして出力する）
-          echo "=== localStorage.setItem audit ==="
-          grep -rn 'localStorage\.setItem' src/tier3/typescript/src 2>/dev/null || echo "OK: no localStorage.setItem found"
+          if grep -rn 'localStorage\.setItem' src/tier3/typescript/src 2>/dev/null; then
+            echo "ERROR: localStorage.setItem detected — must use encrypted Outbox only"
+            exit 1
+          fi
+          echo "OK: no localStorage.setItem found"
 
   # ---------------------------------------------------------
   # 層 9: Rust（Tauri companion）cargo check

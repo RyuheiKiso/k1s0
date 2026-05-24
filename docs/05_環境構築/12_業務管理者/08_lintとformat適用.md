@@ -57,6 +57,8 @@ lint が失敗した場合、エディタがインラインでエラーを表示
 
 docs/ 配下のドキュメントを変更した場合は docs lint を実行する。
 
+
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
 ```bash
 bash tools/docs_lint/run_lint.sh
 python3 tools/docs_lint/run_lint.py

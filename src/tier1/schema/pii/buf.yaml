@@ -1,5 +1,0 @@
-# k1s0 tier1 PII annotation: buf module 設定
-# tier1.pii.v1.field_pii フィールド option を提供する。
-version: v1
-# モジュール名: tier1 annotation の命名規則に従う
-name: buf.build/k1s0-io/tier1-pii

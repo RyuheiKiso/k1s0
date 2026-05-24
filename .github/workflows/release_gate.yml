@@ -29,7 +29,7 @@ jobs:
             --no-project \
             python -m tools.lock_yaml_generator.cli release_gate
 
-      # release_gate_status が red の場合は CI を失敗させる
+      # release_gate_status が green 以外の場合は CI を失敗させる（yellow も block）
       - name: check status
         run: |
           status=$(python3 -c "
@@ -38,8 +38,8 @@ jobs:
           print(d['release_gate_status'])
           ")
           echo "release_gate_status=${status}"
-          if [ "${status}" = "red" ]; then
-            echo "::error::release_gate_status is red"
+          if [ "${status}" != "green" ]; then
+            echo "::error::release_gate_status is ${status} (must be green)"
             exit 1
           fi
 

@@ -1,7 +1,0 @@
-# Monthly SBOM/CVE triage log
-triage_month: '2026-05'
-cve_critical_count: 0
-cve_high_count: 0
-cve_medium_count: 2
-medium_accepted_with_justification: 2
-triage_status: green

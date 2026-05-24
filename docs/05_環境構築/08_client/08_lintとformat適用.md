@@ -17,6 +17,8 @@ covered_by:
 
 - client 軸エンジニアは `pnpm eslint + prettier` / `cargo clippy + fmt` / `dotnet format` / Playwright lint config の 4 lint を手元で実行できることを本ページの検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の lint / format 手順は P10 完了後に有効。
+
 ## pnpm ESLint + Prettier（TypeScript）
 
 ```bash

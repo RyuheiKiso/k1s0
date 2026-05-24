@@ -47,11 +47,13 @@ covered_by:
 
 以下を全て満たすまで「tier2 環境構築完了」とはならない。
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実行不可）。src/ 依存手順は P10 完了後に有効。
+
 1. `cargo --version` / `go version` / `dotnet --version` / `pnpm --version` → 全応答
 2. `docker compose up` で postgres / kafka / clickhouse / apicurio の 4 サービスが起動
 3. ドメイン bound CT が全 pass
-4. `bash tools/docs_lint/run_lint.sh` → exit 0
-5. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`
+4. `bash tools/docs_lint/run_lint.sh` → exit 0（P2 deliverable）
+5. `python3 tools/docs_lint/run_lint.py` → `8 check 全 green`（P2 deliverable）
 
 ## 上位フェーズとの bind
 

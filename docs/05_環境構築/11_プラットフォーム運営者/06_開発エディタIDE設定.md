@@ -17,6 +17,8 @@ covered_by:
 
 - プラットフォーム運営者の作業は CLI 中心であり、GUI IDE は必須ではない。runbook 編集には VS Code（任意）を使い、Yubikey manager GUI（ykman-gui）は PIV スロット設定の補助として任意で導入する。
 
+> **pre-P0 注記**: `src/ops/` は P10 deliverable（pre-P0 時点で実体ゼロ）。`bash src/ops/audit-trail/replay-audit.sh` は P10 完了後に有効。
+
 ## CLI 中心の作業環境
 
 プラットフォーム運営者の主要作業はすべて terminal で完結する。

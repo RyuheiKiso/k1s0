@@ -75,7 +75,7 @@ stale_write / lost_update / supersede / concurrent_edit の 4 subtype それぞ�
 ## 前提
 
 - SPA が BusinessConflict の 4 subtype を識別して適切な UI を表示できる状態
-- tier2 API が競合検出・ETag / Last-Modified 管理を実装済み
+- tier2 API が競合検出・ETag / Last-Modified 管理を実装すること（物理化未了）
 - presence indicator が有効で、同時編集者のアバター・名前が表示される
 - 業務担当者が「競合が発生することがある」という基本理解を研修済みである
 

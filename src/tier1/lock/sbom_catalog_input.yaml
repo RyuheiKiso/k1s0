@@ -1,6 +1,0 @@
-# SBOM catalog — generated monthly via Syft
-generated_at: '2026-05-01T00:00:00Z'
-component_count: 387
-ecosystems: [rust, go, csharp, typescript, python]
-sbom_format: CycloneDX_1.4
-catalog_status: green

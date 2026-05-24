@@ -1,2 +1,0 @@
-# Rust build artifact を除外する
-target/

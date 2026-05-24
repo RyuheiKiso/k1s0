@@ -29,7 +29,7 @@ covered_by:
 この文章が削除されるまで変更履歴を明文化しないでください。
 ```
 
-「至高を目指す」 = 95 cell coverage matrix を妥協なく埋める / mutation score 閾値を安易に下げない / chaos experiment の blast radius を慎重に管理する。
+「至高を目指す」 = 90 cell coverage matrix を妥協なく埋める / mutation score 閾値を安易に下げない / chaos experiment の blast radius を慎重に管理する。
 
 ## test 軸エンジニアの LLM 活用範囲
 
@@ -51,7 +51,7 @@ covered_by:
 
 | スキル名 | test 軸での用途 |
 |---|---|
-| `drawio-authoring` | 95 cell coverage matrix 可視化図の作図 |
+| `drawio-authoring` | 90 cell coverage matrix 可視化図の作図 |
 | `knowledge` | Pact / Litmus / Hypothesis 仕様の技術調査 |
 | `review` | test コード PR レビュー |
 | `security-review` | chaos experiment の security implications 確認 |
@@ -63,7 +63,7 @@ covered_by:
 - 各軸の mutation score の既知の false positive パターン
 - Pact contract の既知の破れパターンと対処
 - Litmus chaos experiment の安全な blast radius 設定
-- 95 cell matrix で意図的に除外した cell とその根拠
+- 90 cell matrix で意図的に除外した cell とその根拠
 
 ## 検収コマンド
 

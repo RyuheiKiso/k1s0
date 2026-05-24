@@ -17,6 +17,8 @@ covered_by:
 
 - Semgrep (SAST) / conftest OPA policy for k8s / checkov (IaC lint) の 3 ツールを手元で実行し、全 check が通ることを security 軸の lint 検収条件とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の lint / format 手順は P10 完了後に有効。
+
 ## Semgrep (SAST) の実行
 
 Semgrep はソースコードのセキュリティパターンを静的解析するツール。

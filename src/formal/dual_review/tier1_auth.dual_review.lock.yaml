@@ -1,9 +1,0 @@
-# tier1_auth.dual_review.lock.yaml
-# tier1 auth temporal safety dual review record
-# 04_認証適合仕様: auth_class step-up FSM NoSilentDemotion property
-phase_id: tier1_auth_tsp_v1_0_0
-human_cosign_status: stub
-ai_evidence_type: semgrep_tier1
-ai_evidence_status: stub
-spec_file: src/formal/tla/tier1_auth_temporal_safety.tla
-reviewed_at: '2026-05-18T00:00:00Z'

@@ -1,7 +1,0 @@
-# tier1 oss_lifecycle テスト Python 依存関係
-# 08_OSSライフサイクル適合仕様: cosign_kyverno_check.py が使用するパッケージを定義する
-
-# pytest: テストフレームワーク（@pytest.mark.skipif による環境依存スキップに使用する）
-pytest>=7.4.0
-# pytest-subprocess: subprocess のモック化に使用する（cosign / kubectl コマンドのテスト用）
-pytest-subprocess>=1.5.0

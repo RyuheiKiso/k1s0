@@ -28,7 +28,7 @@ covered_by:
 | 07 | [業界 pack 戦略](07_業界pack戦略/README.md) | 1.0.0 製造業のみ ship、業界並立構造 day-1 有効、業界中立性 3 種機械的担保 |
 | 08 | [開発体制](08_開発体制/README.md) | 5 階層エンジニア + 4 横断軸専任 + プラットフォーム運営者 + 業務管理者 |
 | 09 | [用語集](09_用語集/README.md) | 19 軸 / 5 階層論 / L1+ / 業界 pack / 4 layer state 等の主要術語 |
-| 10 | 実装ロードマップ（未作成） | 11 実装 Phase / release_gate 20 cell 対応 / 軸内依存順序 / crosscutting blocking |
+| 10 | 実装ロードマップ（未作成） | 11 実装 Phase / release_gate 98 cell 対応 / 軸内依存順序 / crosscutting blocking |
 
 ## 1.0.0 ship スコープ（再掲）
 - 業界 pack: 製造業のみ（業界並立構造は day-1 から有効）

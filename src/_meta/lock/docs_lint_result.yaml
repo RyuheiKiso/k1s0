@@ -1,5 +1,0 @@
-checks:
-- check_name: full_lint
-  detail: 12 checks all green (check [12] trace.fr_ids パターン検証追加)
-  result: pass
-status: green

@@ -1,1 +1,0 @@
-{"mediaType":"application/vnd.cncf.notary.signature","payload":"SAMPLE_PAYLOAD_BASE64","protected":"SAMPLE_PROTECTED_BASE64","header":{"timestamp":"SAMPLE_TIMESTAMP","certChain":["SAMPLE_CERT_BASE64"]},"signature":"SAMPLE_SIGNATURE_BASE64"}

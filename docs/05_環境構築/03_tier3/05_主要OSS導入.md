@@ -17,6 +17,8 @@ covered_by:
 
 - Vite / React 19 / Storybook / Playwright / WiX Toolset v4.x / Tauri 2.0+ CLI を導入し、各ツールが起動することを本ページの検収とする。
 
+> **pre-P0 注記**: `src/` は P10 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P10 完了後に有効。
+
 ## Vite + React 19
 
 ```bash

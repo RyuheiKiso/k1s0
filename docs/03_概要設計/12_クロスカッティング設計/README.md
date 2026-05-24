@@ -26,7 +26,7 @@ covered_by:
 - [05_OSSライフサイクル](05_OSSライフサイクル.md) — 6 lifecycle_class + 8 signal + 移行 toolchain + L1+ 単一深耕
 - [06_Bidi適応経路](06_Bidi適応経路.md) — 5 conformance_class + 8 adapter + UA-aware + Capability Negotiation + Resume
 - [07_時刻整合HLC](07_時刻整合HLC.md) — PTP + chrony + HLC（Hybrid Logical Clock）+ wall-clock TTL 禁止
-- [08_数学的enforcement](08_数学的enforcement.md) — 5 proof_class + 95 cell coverage + counter-example closure + reviewer dual sign-off
+- [08_数学的enforcement](08_数学的enforcement.md) — 5 proof_class + 95 cell（proof_matrix 基底）coverage + counter-example closure + reviewer dual sign-off
 
 ## 詳細設計（cross-cutting 適合仕様）への参照
 本 index は概要、機械可読な単一の真は [04_詳細設計/03_クロスカッティング適合仕様/](../../04_詳細設計/03_クロスカッティング適合仕様/) を参照:

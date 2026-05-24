@@ -28,7 +28,7 @@ covered_by:
 
 ## test 軸との同型直交
 - test 軸: 「実行 artifact」（pact / Playwright trace / chaos workflow result / mutation report）を 18 axis × 5 verification_class = 90 cell に詰める。
-- formal 軸: 「machine-checkable certificate」（TLA+ / Apalache / P / Stainless / Dafny / Lean / Kani / CBMC）を 19 axis × 5 proof_class = 95 cell に詰める。
+- formal 軸: 「machine-checkable certificate」（TLA+ / Apalache / P / Stainless / Dafny / Lean / Kani / CBMC）を 19 axis × 5 proof_class = 95 cell（proof_matrix 基底）に詰める。
 - 両者は同型だが直交。bind: formal の `v1_temporal_safety_proof` / `v1_program_correctness_proof` で verified された invariant は test 軸の `v1_property_axiom` の seed pool に物理転写される。drift は CI fail。
 
 ## 配下ドキュメント
@@ -44,7 +44,7 @@ covered_by:
 | 07 | [counter_example 方針](07_counter_example方針.md) | -（横断） | - |
 | 08 | [proof_review 方針](08_proof_review方針.md) | -（横断） | - |
 
-## 5 proof_class × 19 軸 = 95 cell の構造
+## 5 proof_class × 19 軸 = 95 cell（proof_matrix 基底）の構造
 - 全 cell が `proof_inventory.lock.yaml` に entry を持ち、`proof_status.lock.yaml` の `cell_state` が `v1_baseline_verified` または `v1_accepted_with_assumption` であることを 1.0.0 ship blocker として CI 不変条件化。
 - cell 詳細は [形式検証適合仕様](../../04_詳細設計/01_適合仕様/20_形式検証適合仕様.md) で structural spec として宣言。
 

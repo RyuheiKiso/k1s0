@@ -34,7 +34,7 @@ SLO / 監査 / 認可 / テナント分離 / OSS 移行 / 形式検証 — そ�
 | **dead spec を CI で殺す** | 参照消失で CI fail。`lock.yaml` は build script の生成物で、手書き drift を物理拒否 |
 | **defense-in-depth 6 層** | A: compile / B: lint / C: integration test / D: runtime / E: 物理 / F: 数学的。**任意の単層が破れても他層が必ず止める** |
 | **5⁴ = 625 cell threat catalog** | 5 actor × 5 capability × 5 surface × 5 asset。各 cell に 5 mitigation_class が必ず bind、unreachable は `explicit_unreachable=true` |
-| **95 cell formal proof** | 19 軸 × 5 proof_class。1.0.0 で `verified` or `accepted_with_assumption` が AND-gate |
+| **95 cell formal proof（proof_matrix 基底）** | 19 軸 × 5 proof_class。1.0.0 で `verified` or `accepted_with_assumption` が AND-gate |
 | **業界 pack 並立 day-1** | 命名禁則 / 依存方向 / 第二業界 stub conformance の **3 種機械的担保** で業界横断層の汚染を物理拒否 |
 
 > 哲学: **「至高を目指す判断」。** 運用コスト度外視、1.0.0 完璧主義、段階的 release 禁止、機能削減なし、production / development 区別なし。[CLAUDE.md](CLAUDE.md)。
@@ -64,7 +64,7 @@ SLO / 監査 / 認可 / テナント分離 / OSS 移行 / 形式検証 — そ�
 | **ops** | 横断 | シニア | 運用ループ |
 | **client** | 横断 | シニア | クライアント SDK 配布（9 言語 lockstep） |
 | **test** | 横断 | シニア | 検証規律（**18 axis × 5 verification_class = 90 cell**） |
-| **formal** | meta-meta | シニア | 形式検証（**19 axis × 5 proof_class = 95 cell**） |
+| **formal** | meta-meta | シニア | 形式検証（**19 axis × 5 proof_class = 95 cell（proof_matrix 基底）**） |
 | **meta-axis** | 軸登録 | overview | `00_軸登録適合仕様` が軸の追加削除を物理 enforce（cap v1 = 20、現 19、残 1） |
 
 ### cross-cutting 適合仕様 13 件
@@ -98,11 +98,11 @@ SLO / 監査 / 認可 / テナント分離 / OSS 移行 / 形式検証 — そ�
 | **C** | integration / contract | **Pact** provider / consumer / **Testcontainers**（tier1 Server + Companion Mock + tier2 atomic 三表書込 + Outbox + Keycloak + OpenBao）/ **Playwright** E2E / **Litmus** chaos drill / cross-tenant test / conformance scenario corpus |
 | **D** | runtime | **PostgreSQL Row Level Security FORCE** / pgaudit / WebCrypto / OS keychain / DPAPI / 24h Idempotency-Key TTL / retry budget sliding window / circuit breaker / Capability Negotiation / Envoy `jwt_authn` filter + Keycloak token introspection + DPoP / atomic 三表書込 |
 | **E** | 物理 | **Cosign signed package のみ install 可能**（Harbor admission policy で unsigned reject）/ Kyverno 25+ policy / **HSM PKCS#11 destroy で KEK Shamir share zeroize** / **RFC 3161 trusted timestamp + Sigstore transparency log** / WebCrypto non-extractable CryptoKey / OS keychain user 認証 / Browser CSP `default 'self'` / Envoy 業務 listener が HTTP/2 + HTTP/3 のみ accept、ALPN h2 必須 |
-| **F** | 数学的 | TLA+ + Apalache / Stainless / Dafny / Lean 4 + mathlib / Kani / CBMC で 5 proof_class × 19 軸 = **95 cell coverage** |
+| **F** | 数学的 | TLA+ + Apalache / Stainless / Dafny / Lean 4 + mathlib / Kani / CBMC で 5 proof_class × 19 軸 = **95 cell（proof_matrix 基底）** |
 
 ---
 
-## 形式検証 — 5 proof_class × 95 cell
+## 形式検証 — 5 proof_class × 95 cell（proof_matrix 基底）
 
 | proof_class | tool | 対象 | cell 数 |
 |---|---|---|---|
@@ -303,7 +303,7 @@ PostgreSQL（**CloudNativePG**, RLS FORCE + pgaudit）+ PgBouncer + pg_partman +
 | 17 | 運用ループ | ops_loop / budget_action binding / alert_catalog / runbook_catalog / ownership_table |
 | 18 | クライアント SDK 配布 | 4 言語 × capability matrix × conformance を lock.yaml で CI 全数検査 |
 | 19 | 検証規律 | 18 axis × 5 verification_class = 90 cell coverage matrix |
-| 20 | 形式検証 | 19 axis × 5 proof_class = 95 cell の verified or accepted_with_assumption |
+| 20 | 形式検証 | 19 axis × 5 proof_class = 95 cell（proof_matrix 基底）の verified or accepted_with_assumption |
 
 ### 10 強制機構（軸別、層数）
 
@@ -353,7 +353,7 @@ PostgreSQL（**CloudNativePG**, RLS FORCE + pgaudit）+ PgBouncer + pg_partman +
 
 - 全 19 軸の `release_gate.lock.yaml` cell が green
 - 4 primary pair の `dry_run.lock.yaml` の `last_green_at` が **365 日以内**
-- formal proof **95 cell** が `verified` or `accepted_with_assumption`（`accepted_as_bug` cap ≤ 10 件）
+- formal proof **95 cell（proof_matrix 基底）** が `verified` or `accepted_with_assumption`（`accepted_as_bug` cap ≤ 10 件）
 - 製造業 pack **9 stress test** 全 green
 - `cosign signed tag` が **物理 prerequisite**
 
@@ -426,7 +426,7 @@ upstream 寄稿: Apicurio Operator / OpenTelemetry Weaver / protobuf-go FSM。
 ## プロジェクト状態
 
 - 現在は **設計フェーズ**。`docs/` の全 frontmatter は `status: draft`。
-- ソース実装（`src/`）は未着手。`tools/` に `docs_lint` / `lock_yaml_generator` の骨格のみ。
+- `src/` および `tools/` は pre-P0 時点で実体ゼロ。`*.lock.yaml` も未生成。
 - 設計は **完成度 first**。「文章で書いた」を「物理で守る」に置き換える作業を、コードに先んじてやりきる方針。
 
 ---

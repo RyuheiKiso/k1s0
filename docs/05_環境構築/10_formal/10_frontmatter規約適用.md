@@ -80,6 +80,8 @@ proof_classes の有効な値は `tla_plus` / `dafny` / `lean4` / `kani` / `cbmc
 
 ## 検収コマンド
 
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
+
 ```bash
 python3 tools/docs_lint/run_lint.py 2>&1 | grep -E "FAIL|green"
 ```

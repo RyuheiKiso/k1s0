@@ -23,7 +23,7 @@ covered_by:
 
 ## test / formal / security / ops との同型直交
 - test 軸: 18 axis × 5 verification_class = 90 cell の coverage matrix（実行 artifact）
-- formal 軸: 19 axis × 5 proof_class = 95 cell の proof matrix（machine-checkable certificate）
+- formal 軸: 19 axis × 5 proof_class = 95 cell（proof_matrix 基底）の proof matrix（machine-checkable certificate）
 - security 軸: 5⁴ = 625 cell の threat catalog × mitigation pointer
 - ops 軸: 5 signal_class × 5 phase = 25 cell の ops_loop catalog × action pointer
 - formal と test は同型直交: test の `v1_property_axiom` cell と formal の `v1_temporal_safety_proof` / `v1_program_correctness_proof` cell は cross-cutting に bound（property test corpus は proof obligation の instantiation、proof obligation は property の axiom 形式）

@@ -15,7 +15,7 @@ covered_by:
 
 ## 一文方針
 
-- data 軸のドキュメントは `id: env.data.<slug>` / `axis: data` / `phase: env_setup` の 3 フィールドが固定であり、新規ページ作成のたびに `python3 tools/docs_lint/run_lint.py` で green を確認してから PR に含める。
+- data 軸のドキュメントは `id: env.data.<slug>` / `axis: data` / `phase: env_setup` の 3 フィールドが固定であり、新規ページ作成のたびに `python3 tools/docs_lint/run_lint.py`（P2 deliverable） で green を確認してから PR に含める。
 
 ## id 導出規則
 
@@ -57,6 +57,8 @@ slug は小文字 ASCII + `_` のみ。ファイル名からの変換例:
 - docker-compose.yml へのリンクも同様に lint 対象外。
 
 ## 検収コマンド
+
+> **pre-P0 注記**: `tools/docs_lint/` は P2 deliverable（pre-P0 時点で実体ゼロ）。以下の手順は P2 完了後に有効。
 
 ```bash
 # 新規ファイルを作ったあとに必ず実行

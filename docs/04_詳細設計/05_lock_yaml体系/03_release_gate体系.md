@@ -66,12 +66,12 @@ trace:
 ### formal 軸 cells
 | cell_id | 入力 lock.yaml | 条件 |
 |---|---|---|
-| `formal.all_critical_verified` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_baseline_verified'], total_cells) >= 80%`（100 cell 体系で 20% cap と対称; 旧 ">= 95 cells" を更新） |
+| `formal.all_critical_verified` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_baseline_verified'], total_cells) >= 80%`（95 cell（proof_matrix 基底）体系で 20% cap と対称） |
 | `formal.proof_matrix_complete` | `proof_matrix.lock.yaml` | 全 cell `cell_state` ∈ {v1_baseline_verified, v1_accepted_with_assumption, v1_unverified_handled} |
 | `formal.no_open_above_severity_low` | `counter_example.lock.yaml` | high severity open ゼロ + medium severity decreasing monotonic |
 | `formal.dual_review_completeness_100pct` | `proof_review.lock.yaml` | 全 obligation の dual_signoff_complete=true |
 | `formal.assumption_cap_within_20` | `assumption.lock.yaml` | cap=20 件以内 + 全 entry に軽減策 + revisit 期限完備 |
-| `formal.accepted_with_assumption_ratio_within_cap` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 20%`（61% は red、41 cell を v1 必達に巻き戻す義務） |
+| `formal.accepted_with_assumption_ratio_within_cap` | `proof_status.lock.yaml` | `ratio(cells[?cell_state=='v1_accepted_with_assumption'], total_cells) <= 20%` |
 | `formal.tool_pin_drill_green` | `tla_apalache_pin.lock.yaml` `kani_cbmc_pin.lock.yaml` `mathlib_pin.lock.yaml` | major version migration drill green 維持 |
 | `formal.reproducibility_daily_green` | reproducibility check log | 日次 green |
 | `formal.cross_axis_lock_drift_zero` | 18 軸との bidirectional lock check | drift ゼロ |
@@ -144,6 +144,8 @@ trace:
 | `cross_edge.companion_otel_4stack_green` | `cross_cutting_registry.lock.yaml` | .NET Framework Companion OTel 4 stack（WCF / HttpWebRequest / HttpClient / WebClient）JWT claim 注入 E2E green |
 | `cross_edge.ua_aware_adapter_capability_matrix_complete` | `cross_cutting_registry.lock.yaml` | UA-aware adapter 5 ua_subclass 全 capability cell 完備（四軸 entry 要件 CI green）|
 | `cross_edge.dotnet8_connect_conformance_green` | `cross_cutting_registry.lock.yaml` | .NET 8 Connect-RPC Conformance Suite 全 case green（bidi / server-streaming / unary / client-streaming）|
+
+> **cell 数合計**: proof_matrix 基底（19 軸 × 5 proof_class = **95 cell**）+ cross-cutting / meta 追加 **3 cell** = **計 98 cell**。上記 catalog（46 cell）は代表的な cell の一覧であり、全 98 cell の詳細は `release_gate.lock.yaml` の `cells` array が SoT。
 
 ## AND-gate の意味論
 - 全 cell が `status=green` でなければ `release_gate_status=red`
